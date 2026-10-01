@@ -1,5 +1,6 @@
 import {getStore} from '@netlify/blobs';
 import {MODEL, callOpenAI, outputText, parseModelJSON, lecturePrompt, renderGenerated} from './_shared.mjs';
+import {inferLectureNumber, getModule, inferModule} from './catalog.mjs';
 export default async (req) => {
   const body=await req.json().catch(()=>({})); const jobId=String(body.job_id||''); if(!jobId)return;
   const store=getStore({name:'study-atlas',consistency:'strong'});
@@ -17,8 +18,12 @@ export default async (req) => {
     await store.set(`originals/${job.lecture_id}.pdf`,pdfBytes.buffer,{metadata:{filename:job.filename,title:obj.title}});
     await store.set(`lectures/${job.lecture_id}.html`,html,{metadata:{title:obj.title,module_id:job.module_id}});
     const manifest=(await store.get('manifest.json',{type:'json',consistency:'strong'}))||[];
-    const sameModule=manifest.filter(x=>x.module_id===job.module_id).length;
-    const meta={id:job.lecture_id,module_id:job.module_id,module_name:job.module_name,module_code:job.module_code,number:String(sameModule+1).padStart(2,'0'),title:obj.title,slides:`${Number(obj.slide_count||0)} original slides`,chapters:`${(obj.chapters||[]).length} AI chapters`,description:obj.description||obj.subtitle||'AI-generated Study Atlas lecture.',created:Date.now()};
+    const resolvedModule=getModule(job.module_code)||getModule(job.module_id)||inferModule((obj.title||'')+' '+job.filename);
+    const moduleId=resolvedModule?.id||job.module_id,moduleCode=resolvedModule?.code||job.module_code,moduleName=resolvedModule?.name||job.module_name;
+    const sameModule=manifest.filter(x=>x.module_id===moduleId).length;
+    const detectedNo=Number(job.lecture_number)||inferLectureNumber(moduleCode,obj.title||job.title,job.filename)||null;
+    const lectureNo=detectedNo||sameModule+1;
+    const meta={id:job.lecture_id,module_id:moduleId,module_name:moduleName,module_code:moduleCode,number:String(lectureNo).padStart(2,'0'),title:obj.title,slides:`${Number(obj.slide_count||0)} original slides`,chapters:`${(obj.chapters||[]).length} AI chapters`,description:obj.description||obj.subtitle||'AI-generated Study Atlas lecture.',created:Date.now()};
     const next=manifest.filter(x=>x.id!==meta.id);next.push(meta);await store.setJSON('manifest.json',next);
     job={...job,status:'complete',stage:'Lecture ready.',lecture:meta,completed:Date.now()};await store.setJSON(key,job);
   }catch(e){job={...job,status:'error',stage:'Build failed.',error:e?.message||String(e),completed:Date.now()};await store.setJSON(key,job)}
