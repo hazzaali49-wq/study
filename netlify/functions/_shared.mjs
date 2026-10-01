@@ -1,5 +1,6 @@
 export const MODEL = process.env.OPENAI_MODEL || 'gpt-5-mini';
-export const OPENAI_KEY = (process.env.OPENAI_API_KEY || '').trim();\nexport const OPENAI_BASE = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\\/+$/,'');
+export const OPENAI_KEY = (process.env.OPENAI_API_KEY || '').trim();\nexport const OPENAI_BASE = (process.env.OPENAI_BASE_URL || 'https://api.openai.com').replace(/\/+$/,'');
+export const OPENAI_API_ROOT = OPENAI_BASE.endsWith('/v1') ? OPENAI_BASE : `${OPENAI_BASE}/v1`;
 
 export const json = (obj, status=200, headers={}) => new Response(JSON.stringify(obj), {
   status,
@@ -32,7 +33,7 @@ export async function callOpenAI(payload, timeoutMs=120000){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
-    const r=await fetch(`${OPENAI_BASE}/responses`,{
+    const r=await fetch(`${OPENAI_API_ROOT}/responses`,{
       method:'POST',
       headers:{'authorization':`Bearer ${OPENAI_KEY}`,'content-type':'application/json'},
       body:JSON.stringify(payload),
