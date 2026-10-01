@@ -1,0 +1,65 @@
+/* Study Atlas lecture dark theme v2 */
+:root{
+  --ink:#eef4ff!important;--muted:#9aa9bf!important;--paper:#080d16!important;--white:#111a2b!important;
+  --line:#29364f!important;--navy:#101a31!important;--violet:#8f72f1!important;--lilac:#211c38!important;
+  --mint:#16372f!important;--green:#7de1bd!important;--orange:#f2bb78!important;--coral:#41261f!important;--sky:#152a42!important;
+  --shadow:0 16px 46px rgba(0,0,0,.28)!important;
+}
+html{color-scheme:dark!important;background:#080d16!important}
+body{
+  color:#edf3ff!important;
+  background:
+    radial-gradient(circle at 10% 0%,rgba(88,109,255,.14),transparent 30rem),
+    radial-gradient(circle at 96% 10%,rgba(74,213,172,.07),transparent 30rem),
+    linear-gradient(180deg,#070b13 0%,#0a101d 48%,#080d16 100%)!important;
+}
+header{background:rgba(8,13,23,.94)!important;border-color:#253149!important}
+.logo,.top-right{color:#edf3ff!important}
+.logo-mark{background:linear-gradient(145deg,#172744,#24385f)!important;color:#a4efd0!important}
+.mini-btn,.simplebtn,.search{background:#121c2e!important;color:#e6edfb!important;border-color:#31405d!important}
+.mini-btn:hover,.simplebtn:hover{background:#1b2941!important}
+.search::placeholder{color:#7f8ea6!important}
+.layout{background:transparent!important}
+.sidebar{color:#c9d3e4!important}
+.label{color:#8997ae!important}
+.side-link{color:#9ba9bd!important}
+.side-link:hover,.side-link.active{background:#18243a!important;color:#fff!important}
+.num{background:#121d30!important;color:#a98ff7!important}
+.sidebox{background:linear-gradient(145deg,#10231f,#111d2d)!important;color:#dfe9f6!important;border:1px solid #29463f!important}
+.meter{background:#1d2a3c!important}.fill{background:linear-gradient(90deg,#4e8fff,#71d7ff)!important}
+.sidebox small{color:#8fa6a0!important}
+.hero{background:linear-gradient(145deg,#10192d,#17233c)!important;border:1px solid #2e3a55!important;box-shadow:0 24px 70px rgba(0,0,0,.34)!important}
+.hero p{color:#b9c5d8!important}.eyebrow{color:#99e7c7!important}
+.quick,.course,.chapter,.cheatcard,.quizcard,.resource{
+  background:linear-gradient(180deg,#111a2b,#0d1625)!important;
+  color:#edf3ff!important;border-color:#293650!important;box-shadow:0 14px 42px rgba(0,0,0,.20)!important
+}
+.quick span,.course p,.chapter-title p,.section-head p,.course .foot,.footnote,.resource small,.callout{color:#95a4ba!important}
+.quick strong,.course h3,.chapter h3,.chapter h4,.section-head h2,.cheatcard h3,.quizcard h4,.resource b{color:#eef4ff!important}
+.pill{background:#241d43!important;color:#bba7ff!important}.pill.green{background:#11352c!important;color:#8ce5c3!important}.pill.orange{background:#3b2917!important;color:#f6c987!important}
+.slidepic{background:#0b1220!important;border:1px solid #293650!important}.slidepic figcaption{color:#8e9db4!important}
+.note{background:#1b1930!important;color:#dce5f2!important;border-color:#8267e5!important}
+.note.mint{background:#102820!important;border-color:#42a989!important}.note.sun{background:#2a2015!important;border-color:#d69b58!important}.note.blue{background:#102237!important;border-color:#5698e5!important}.note b{color:#f1f5ff!important}
+.story{background:#261d13!important;border-color:#5a4225!important;color:#e4d7c1!important}.story .st{color:#efbd7f!important}
+.path span{background:#121f32!important;color:#dce6f5!important}.path em{color:#a78bfa!important}
+.tablewrap{border-color:#2c3953!important}table{color:#dfe8f5!important}th{background:#17243a!important;color:#f0f4ff!important}td,th{border-color:#27334b!important}tr:nth-child(even) td{background:#0e1726!important}
+.cheat-intro{background:#10291f!important;color:#e2efe9!important}
+.flash-stage{background:linear-gradient(145deg,#111b31,#1a2543)!important;border:1px solid #2d3a58!important}
+.option{background:#111b2d!important;border-color:#2a3751!important;color:#dbe5f4!important}.option:hover{background:#18243a!important}.option:has(input:checked){background:#29204a!important;border-color:#7c67dc!important}
+.feedback.ok{background:#113328!important;color:#9ce7c9!important}.feedback.no{background:#3b2028!important;color:#ffc0cc!important}
+.stylebox{background:#17142a!important;color:#e0d9f7!important}
+#atlasNotesSummary{background:linear-gradient(180deg,#111a2b,#0d1625)!important;border-color:#2d3a55!important}
+.atlas-note-card,.atlas-notes-empty{background:#0e1726!important;border-color:#28364f!important}.atlas-note-text{color:#dbe5f3!important}.atlas-note-thumb{background:#09111e!important}
+#atlasQuickNotePanel{background:rgba(11,18,31,.985)!important;color:#edf3ff!important;border-color:#33415e!important}
+.atlas-qn-text{background:#08111e!important;color:#edf4ff!important;border-color:#33415d!important}
+#atlasQuickSketch{background-color:#0b1422!important;background-image:linear-gradient(#1a2639 1px,transparent 1px),linear-gradient(90deg,#172234 1px,transparent 1px)!important;border-color:#33405b!important}
+.atlas-qn-close,.atlas-qn-mini,.atlas-qn-action{background:#18243a!important;color:#dbe5f3!important}
+.atlas-qn-action.primary{background:linear-gradient(135deg,#7558d9,#507ede)!important;color:#fff!important}
+#atlasAIPanel{background:linear-gradient(180deg,#111b2f,#0b1322)!important;color:#edf3ff!important;border:1px solid #34415f!important;box-shadow:0 25px 80px rgba(0,0,0,.48)!important}
+#atlasAIPanel textarea{background:#07101d!important;color:#eef5ff!important;border-color:#34415d!important}
+.atlas-ai-msg.ai{background:#152238!important}.atlas-ai-empty{color:#94a3ba!important}
+.atlas-chapter-check{background:linear-gradient(145deg,#151f34,#0e1727)!important}
+.atlas-chapter-option{background:#101a2b!important}
+#atlasPinboard{background:linear-gradient(180deg,#111b2e,#09111e)!important}
+footer{color:#6f7f97!important}
+@media print{body,.chapter,.course,.quick,.cheatcard,.quizcard,.resource{background:#fff!important;color:#000!important}}
