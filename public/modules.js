@@ -34,7 +34,7 @@ window.STUDY_MODULES = [
     "lectures": [
       {
         "id": "hypo",
-        "number": "01",
+        "number": "03",
         "title": "Hypothalamus & Pituitary Gland",
         "slides": "28 original slides",
         "chapters": "7 illustrated chapters",
@@ -45,7 +45,7 @@ window.STUDY_MODULES = [
       },
       {
         "id": "anterior",
-        "number": "02",
+        "number": "04",
         "title": "The Anterior Pituitary Gland",
         "slides": "29 original slides",
         "chapters": "6 illustrated chapters",
