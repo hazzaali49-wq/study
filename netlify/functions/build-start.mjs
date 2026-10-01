@@ -12,7 +12,7 @@ export default async (req) => {
     const id=slugify(body.title||body.filename||'lecture'), job=`job-${crypto.randomUUID()}`;
     const store=getStore({name:'study-atlas',consistency:'strong'});
     await store.set(`jobs/${job}/original.pdf`,bytes.buffer,{metadata:{filename:String(body.filename||'lecture.pdf')}});
-    await store.setJSON(`jobs/${job}/job.json`,{status:'queued',stage:'Original PDF saved. Waiting for AI builder…',job_id:job,lecture_id:id,filename:String(body.filename||'lecture.pdf'),title:String(body.title||'Lecture'),module_id:String(body.module_id||''),module_name:String(body.module_name||''),module_code:String(body.module_code||''),created:Date.now()});
+    await store.setJSON(`jobs/${job}/job.json`,{status:'queued',stage:'Original PDF saved. Waiting for AI builder…',job_id:job,lecture_id:id,filename:String(body.filename||'lecture.pdf'),title:String(body.title||'Lecture'),module_id:String(body.module_id||''),module_name:String(body.module_name||''),module_code:String(body.module_code||''),lecture_number:Number(body.lecture_number)||null,created:Date.now()});
     return json({ok:true,job_id:job,lecture_id:id,model:MODEL},202);
   }catch(e){return json({error:e?.message||String(e)},500)}
 };
