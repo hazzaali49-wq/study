@@ -1,0 +1,9 @@
+{
+  "name": "study-atlas-netlify",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Study Atlas with Netlify Functions, persistent AI lecture builder and cloud AI tutor.",
+  "dependencies": {
+    "@netlify/blobs": "latest"
+  }
+}
