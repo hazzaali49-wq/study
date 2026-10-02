@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Study Atlas with Netlify Functions, persistent AI lecture builder and cloud AI tutor.",
   "dependencies": {
-    "@netlify/blobs": "latest"
+    "@netlify/blobs": "latest",
+    "pdf-lib": "^1.17.1"
   }
 }
