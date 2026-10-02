@@ -77,9 +77,23 @@ export function inferModule(text=''){
   return score?best:null;
 }
 export function inferLectureNumber(moduleCode='',title='',filename=''){
+  const raw=norm(String(title)+' '+String(filename));
+  const code=String(moduleCode||'').toUpperCase();
+
+  // Course-specific aliases where fuzzy token matching is ambiguous.
+  if(code==='MDSA20030'){
+    if(/clinical anatomy/.test(raw) && /pituitary/.test(raw)) return 2;
+    if(/hypothalamus/.test(raw) && /pituitary/.test(raw) && !/clinical anatomy/.test(raw)) return 3;
+    if(/anterior pituitary/.test(raw)) return 4;
+    if(/clinical anatomy/.test(raw) && /thyroid/.test(raw) && /parathyroid/.test(raw)) return 5;
+    if(/growth hormone|\bgh\b/.test(raw) && /igf/.test(raw)) return 6;
+    if(/thyroid physiology/.test(raw)) return 7;
+    if(/calcium regulation/.test(raw)) return 8;
+  }
+
   const explicit=(String(filename)+' '+String(title)).match(/(?:^|[^a-z0-9])(?:lecture|lec|l)\s*0*(\d{1,2})(?:[^a-z0-9]|$)/i);
   if(explicit)return Number(explicit[1]);
-  const list=LECTURE_CATALOG[String(moduleCode||'').toUpperCase()]||[],q=tokens(title+' '+filename); if(!q.size)return null;
+  const list=LECTURE_CATALOG[code]||[],q=tokens(title+' '+filename); if(!q.size)return null;
   let best=null,bestScore=0; for(const [num,name] of list){const t=tokens(name);let hit=0;for(const x of q)if(t.has(x))hit++;const score=hit/Math.max(3,Math.min(q.size,t.size));if(score>bestScore){bestScore=score;best=num}}
   return bestScore>=.34?best:null;
 }
