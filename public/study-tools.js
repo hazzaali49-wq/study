@@ -87,7 +87,7 @@ function renderTimer(){
 }
 function init(){
  const id=currentModule();if(id)applyModule(id);decorateDashboard();timerUI();renderTimer();
- new MutationObserver(()=>decorateDashboard()).observe(document.body,{childList:true,subtree:true});
+ new MutationObserver(ms=>{if(ms.some(m=>[...m.addedNodes].some(n=>n?.nodeType===1&&(n.matches?.('.lecture')||n.querySelector?.('.lecture')))))setTimeout(decorateDashboard,30)}).observe(document.body,{childList:true,subtree:true});
  setInterval(()=>{syncTime();renderTimer()},1000);addEventListener('storage',()=>renderTimer());
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
