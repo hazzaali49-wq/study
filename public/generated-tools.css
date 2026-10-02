@@ -24,3 +24,12 @@ body.atlas-gen-focus aside,body.atlas-gen-focus .hero{display:none!important}bod
 body.atlas-generated-v3 #atlasTimerFloat{display:none!important}
 body.atlas-generated-v3 mark.atlas-gen-highlight{background:color-mix(in srgb,var(--atlas-mod,#8f72f1) 42%,transparent);color:inherit;border-radius:.2em;padding:.02em .05em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 body.atlas-generated-v3.atlas-gen-erase-text mark.atlas-gen-highlight{cursor:pointer;outline:1px dashed #ff839c}
+
+/* let the AI lecture itself inherit the module personality, not just the toolbar */
+body.atlas-generated-v3 .hero{background:radial-gradient(circle at 88% 8%,color-mix(in srgb,var(--atlas-mod) 20%,transparent),transparent 23rem),linear-gradient(145deg,color-mix(in srgb,var(--atlas-mod) 10%,#10192d),color-mix(in srgb,var(--atlas-mod2) 8%,#17233c))!important;border-color:color-mix(in srgb,var(--atlas-mod) 28%,#2e3a55)!important}
+body.atlas-generated-v3 .chapter{background:radial-gradient(circle at 102% 0,color-mix(in srgb,var(--atlas-mod) 6%,transparent),transparent 18rem),linear-gradient(180deg,#101a2c,#0c1524)!important;border-color:color-mix(in srgb,var(--atlas-mod) 16%,#293753)!important}
+body.atlas-generated-v3 .visualcard{border-color:color-mix(in srgb,var(--atlas-mod) 22%,#31425f)!important}
+body.atlas-generated-v3 .kicker,body.atlas-generated-v3 .visualtag{color:color-mix(in srgb,var(--atlas-mod) 72%,#fff)!important}
+body.atlas-generated-v3 .tag{background:color-mix(in srgb,var(--atlas-mod2) 12%,#10231f)!important;color:color-mix(in srgb,var(--atlas-mod2) 76%,#fff)!important;border-color:color-mix(in srgb,var(--atlas-mod2) 30%,#235247)!important}
+body.atlas-generated-v3 .slidesbtn,body.atlas-generated-v3 .openvisual{border-color:color-mix(in srgb,var(--atlas-mod) 38%,#40577d)!important;background:linear-gradient(135deg,color-mix(in srgb,var(--atlas-mod) 14%,#172942),#15233a)!important}
+body.atlas-generated-v3 .story{border-color:color-mix(in srgb,var(--atlas-mod2) 24%,#574327)!important}
