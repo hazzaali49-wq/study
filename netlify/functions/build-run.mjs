@@ -7,17 +7,17 @@ import {inferLectureNumber, getModule, inferModule} from './catalog.mjs';
 const escPrompt=(s='')=>String(s||'').replace(/\s+/g,' ').trim();
 
 function chunkPrompt({title,moduleName,moduleCode,start,end,total}){
-  return \`Read ONLY original lecture slides \${start}–\${end} from the attached PDF chunk. This is part of \${moduleCode||''} \${moduleName||''}. Lecture title: \${title}.
-The chunk corresponds exactly to original slide numbers \${start}–\${end} of \${total}.
+  return `Read ONLY original lecture slides ${start}–${end} from the attached PDF chunk. This is part of ${moduleCode||''} ${moduleName||''}. Lecture title: ${title}.
+The chunk corresponds exactly to original slide numbers ${start}–${end} of ${total}.
 
 GOAL: recreate the hand-built Study Atlas style: visual-first, concise, fun to study, but COMPLETE. Do not miss important lecture content.
 
 Return ONLY valid JSON:
-{"title":"clean lecture title","subtitle":"one short inviting overview","description":"one concise dashboard sentence","chapters":[{"title":"memorable chapter title","slide_start":\${start},"slide_end":\${end},"summary":"one sentence","intro":"2-3 concise teaching sentences","visuals":[{"slide":\${start},"title":"what this figure/slide shows","explain":"2-4 concise sentences explaining what the student should notice and how the visual works","labels":["important label/arrow → what it means"]}],"concepts":[{"heading":"concept","slide_refs":[\${start}],"explain":"1-3 concise sentences that teach the idea in context","key_points":["specific important detail from the lecture","another detail, mechanism, relationship, label, table point, exception or lecturer emphasis"],"fun_fact":"ONLY if there is a genuinely memorable story, historical fact, unusual clinical fact, clever connection or useful mnemonic; otherwise empty","clinical":"brief clinical/real-world link only when genuinely useful; otherwise empty"}],"questions":[{"question":"short SBA-style check","options":["A","B","C","D"],"answer_index":0,"explanation":"1-2 lines"}]}],"cheat_sheet":[{"heading":"topic","bullets":["compact high-yield fact","mechanism/pathway"]}]}
+{"title":"clean lecture title","subtitle":"one short inviting overview","description":"one concise dashboard sentence","chapters":[{"title":"memorable chapter title","slide_start":${start},"slide_end":${end},"summary":"one sentence","intro":"2-3 concise teaching sentences","visuals":[{"slide":${start},"title":"what this figure/slide shows","explain":"2-4 concise sentences explaining what the student should notice and how the visual works","labels":["important label/arrow → what it means"]}],"concepts":[{"heading":"concept","slide_refs":[${start}],"explain":"1-3 concise sentences that teach the idea in context","key_points":["specific important detail from the lecture","another detail, mechanism, relationship, label, table point, exception or lecturer emphasis"],"fun_fact":"ONLY if there is a genuinely memorable story, historical fact, unusual clinical fact, clever connection or useful mnemonic; otherwise empty","clinical":"brief clinical/real-world link only when genuinely useful; otherwise empty"}],"questions":[{"question":"short SBA-style check","options":["A","B","C","D"],"answer_index":0,"explanation":"1-2 lines"}]}],"cheat_sheet":[{"heading":"topic","bullets":["compact high-yield fact","mechanism/pathway"]}]}
 
 STRICT RULES:
-- Use GLOBAL slide numbers \${start}–\${end}; never renumber this chunk from 1.
-- EVERY slide in \${start}–\${end} must be covered. Do not selectively summarize only the most obvious points.
+- Use GLOBAL slide numbers ${start}–${end}; never renumber this chunk from 1.
+- EVERY slide in ${start}–${end} must be covered. Do not selectively summarize only the most obvious points.
 - Concepts across the chapter must collectively cover every distinct important point from the source: labels, arrows, pathways, mechanisms, tables, comparisons, exceptions, captions and lecturer notes.
 - If two slides repeat the same idea, combine them instead of repeating yourself, but include any new detail.
 - Prefer short bullets and compact explanations over long paragraphs.
@@ -30,7 +30,7 @@ STRICT RULES:
 - Keep the study version concise even while complete: merge related facts and avoid filler.
 - Put 2–3 questions under EACH chapter.
 - Do not invent content not supported by these slides.
-- No markdown and no code fences.\`;
+- No markdown and no code fences.`;
 }
 
 async function makeChunkPdf(source,startIndex,endIndex){
