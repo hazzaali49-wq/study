@@ -395,13 +395,28 @@ function shiftsFor(m){return (data.shifts||[]).filter(function(x){return (x.date
 function otherSavingsFor(m){return (data.otherSavings||[]).filter(function(x){return (x.date||'').slice(0,7)===m})}
 function otherSavingsTotal(m){return otherSavingsFor(m).reduce(function(t,x){return t+(+x.amount||0)},0)}
 function actualFor(m){if(!data.savings)data.savings={};return data.savings[m]||{}}
+function hasValue(v){return v!==null&&v!==undefined&&v!==''}
+function estimatedShiftSavings(m){
+ var p=SAVE_PLAN[m],ss=shiftsFor(m),hrs=ss.reduce(function(t,x){return t+(+x.hours||0)},0);
+ if(!p)return 0;
+ var saveRate=(+p.hours>0&&+p.wages>=0)?(+p.wages/+p.hours):STANDARD_RATE;
+ return hrs*saveRate
+}
+function trackedWages(m){
+ var a=actualFor(m);
+ return hasValue(a.wagesSaved)?Number(a.wagesSaved)||0:estimatedShiftSavings(m)
+}
+function monthTrackedNet(m){
+ var a=actualFor(m);
+ return (Number(a.allowanceSaved)||0)+trackedWages(m)+otherSavingsTotal(m)-(Number(a.tripExtra)||0)
+}
 function trackedBalance(){
  var balance=0,hasBalance=false;
  SAVE_MONTHS.forEach(function(m){
-   var a=actualFor(m),hasActual=a.balance!==null&&a.balance!==undefined&&a.balance!=='';
-   if(hasActual){balance=Number(a.balance)||0;hasBalance=true}
+   var a=actualFor(m);
+   if(hasValue(a.balance)){balance=Number(a.balance)||0;hasBalance=true}
    else{
-     var monthNet=(Number(a.allowanceSaved)||0)+(Number(a.wagesSaved)||0)+otherSavingsTotal(m)-(Number(a.tripExtra)||0);
+     var monthNet=monthTrackedNet(m);
      if(monthNet!==0||hasBalance)balance+=monthNet
    }
  });
@@ -409,7 +424,7 @@ function trackedBalance(){
 }
 function savingsSnapshot(){
  var m=(q('#saveMonth')&&q('#saveMonth').value)||mon(),p=SAVE_PLAN[m]||null,ss=shiftsFor(m),a=actualFor(m),hrs=ss.reduce(function(t,x){return t+(+x.hours||0)},0);
- return{goal:SAVINGS_GOAL,deadline:'2027-07-01',month:m,plan:p,workedShifts:ss.length,workedHours:hrs,estimatedGross:ss.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),otherSavings:otherSavingsFor(m),otherSavingsTotal:otherSavingsTotal(m),actual:a,currentBalance:trackedBalance(),goalRemaining:Math.max(0,SAVINGS_GOAL-trackedBalance())}
+ return{goal:SAVINGS_GOAL,deadline:'2027-07-01',month:m,plan:p,workedShifts:ss.length,workedHours:hrs,estimatedGross:ss.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),estimatedSavedWages:estimatedShiftSavings(m),trackedMonthNet:monthTrackedNet(m),otherSavings:otherSavingsFor(m),otherSavingsTotal:otherSavingsTotal(m),actual:a,currentBalance:trackedBalance(),goalRemaining:Math.max(0,SAVINGS_GOAL-trackedBalance())}
 }
 function renderSavingsHome(){
  var box=q('#homeSavings');if(!box)return;var m=SAVE_PLAN[mon()]?mon():SAVE_MONTHS[0],p=SAVE_PLAN[m],ss=shiftsFor(m),hrs=ss.reduce(function(t,x){return t+(+x.hours||0)},0),left=Math.max(0,p.shifts-ss.length),hleft=Math.max(0,p.hours-hrs);
@@ -420,17 +435,18 @@ function renderSavings(){
  if(!sel.options.length){SAVE_MONTHS.forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=SAVE_PLAN[m].label;sel.appendChild(o)});sel.value=SAVE_PLAN[mon()]?mon():SAVE_MONTHS[0]}
  var m=sel.value||SAVE_MONTHS[0],p=SAVE_PLAN[m],ss=shiftsFor(m).sort(function(a,b){return (b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0)}),a=actualFor(m);
  var hrs=ss.reduce(function(t,x){return t+(+x.hours||0)},0),gross=ss.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),shiftLeft=Math.max(0,p.shifts-ss.length),hourLeft=Math.max(0,p.hours-hrs);
- var allowanceSaved=Number(a.allowanceSaved)||0,wagesSaved=Number(a.wagesSaved)||0,tripExtra=Number(a.tripExtra)||0,otherTotal=otherSavingsTotal(m),net=allowanceSaved+wagesSaved+otherTotal-tripExtra,bal=trackedBalance(),goalLeft=Math.max(0,SAVINGS_GOAL-bal),pct=Math.min(100,Math.max(0,bal/SAVINGS_GOAL*100));
- q('#sGoalBalance').textContent=euro(bal);q('#sGoalLeft').textContent=euro(goalLeft)+' left to €15,000';q('#sGoalFill').style.width=pct+'%';q('#goalPill').textContent=euro(bal)+' / €15,000';
- q('#sShifts').textContent=ss.length+' / '+p.shifts;q('#sShiftsLeft').textContent=shiftLeft+' left';q('#sHours').textContent=fmtHours(hrs)+' / '+fmtHours(p.hours);q('#sHoursLeft').textContent=fmtHours(hourLeft)+' left';q('#sGross').textContent=euro(gross);q('#sMonthlyGoal').textContent=(p.net>=0?'+':'-')+euro(Math.abs(p.net));q('#sMonthlyActual').textContent=(net>=0?'+':'-')+euro(Math.abs(net))+' actual so far';q('#sPlanEnd').textContent=euro(p.end);
+ var allowanceSaved=Number(a.allowanceSaved)||0,wagesSaved=trackedWages(m),tripExtra=Number(a.tripExtra)||0,otherTotal=otherSavingsTotal(m),net=monthTrackedNet(m),bal=trackedBalance(),goalLeft=Math.max(0,SAVINGS_GOAL-bal),pct=Math.min(100,Math.max(0,bal/SAVINGS_GOAL*100));
+ q('#sGoalBalance').textContent=euro(bal);q('#sGoalLeft').textContent=euro(goalLeft)+' left to €15,000 · shift pay auto-estimated until actual pay is entered';q('#sGoalFill').style.width=pct+'%';q('#goalPill').textContent=euro(bal)+' / €15,000';
+ q('#sShifts').textContent=ss.length+' / '+p.shifts;q('#sShiftsLeft').textContent=shiftLeft+' left';q('#sHours').textContent=fmtHours(hrs)+' / '+fmtHours(p.hours);q('#sHoursLeft').textContent=fmtHours(hourLeft)+' left';q('#sGross').textContent=euro(gross);q('#sMonthlyGoal').textContent=(p.net>=0?'+':'-')+euro(Math.abs(p.net));q('#sMonthlyActual').textContent=(net>=0?'+':'-')+euro(Math.abs(net))+' tracked so far';q('#sPlanEnd').textContent=euro(p.end);
  q('#sBalanceDiff').textContent=(a.balance!==null&&a.balance!==undefined&&a.balance!=='')?((Number(a.balance)-p.end)>=0?euro(Number(a.balance)-p.end)+' ahead':euro(Math.abs(Number(a.balance)-p.end))+' behind'):'enter actual balance';
  q('#saveMonthTitle').textContent=p.label+' target';
- var wageLeft=Math.max(0,p.wages-wagesSaved),allowLeft=Math.max(0,p.allowanceSave-allowanceSaved),grossTarget=(+p.hours||0)*STANDARD_RATE;
+ var wageLeft=Math.max(0,p.wages-wagesSaved),allowLeft=Math.max(0,p.allowanceSave-allowanceSaved),grossTarget=(+p.hours||0)*STANDARD_RATE,wageLabel=hasValue(a.wagesSaved)?'Actual wages saved':'Estimated saved wages from logged shifts';
  q('#sLeftList').innerHTML=
    '<div class="left-row '+(shiftLeft===0?'good':'warn')+'"><span>Shifts left</span><strong>'+shiftLeft+' / '+p.shifts+'</strong></div>'+
    '<div class="left-row '+(hourLeft===0?'good':'warn')+'"><span>Paid hours left</span><strong>'+fmtHours(hourLeft)+'</strong></div>'+
    '<div class="left-row"><span>Gross pay expected from target hours</span><strong>'+euro(grossTarget)+'</strong></div>'+
    '<div class="left-row"><span>Gross pay from shifts logged</span><strong>'+euro(gross)+'</strong></div>'+
+   '<div class="left-row"><span>'+wageLabel+'</span><strong>'+euro(wagesSaved)+'</strong></div>'+
    '<div class="left-row"><span>Planned wages to save</span><strong>'+euro(p.wages)+'</strong></div>'+
    '<div class="left-row"><span>Wages still to save vs plan</span><strong>'+euro(wageLeft)+'</strong></div>'+
    '<div class="left-row"><span>Allowance still to save</span><strong>'+euro(allowLeft)+'</strong></div>'+
@@ -439,11 +455,11 @@ function renderSavings(){
    '<div class="left-row"><span>Monthly savings goal</span><strong>'+(p.net>=0?'+':'-')+euro(Math.abs(p.net))+'</strong></div>'+
    '<div class="left-row"><span>Planned month-end balance</span><strong>'+euro(p.end)+'</strong></div>';
  q('#sPlanNote').innerHTML='<b>'+e(p.term)+'</b><br>'+e(p.note);
- q('#actualNetPill').textContent='Net '+(net>=0?'+':'-')+euro(Math.abs(net));q('#actualNetPill').classList.toggle('negative',net<0);
+ q('#actualNetPill').textContent='Tracked '+(net>=0?'+':'-')+euro(Math.abs(net));q('#actualNetPill').classList.toggle('negative',net<0);
  var form=q('#savingsActualForm');['allowanceSaved','wagesSaved','tripExtra','balance'].forEach(function(k){form.elements[k].value=(a[k]===null||a[k]===undefined)?'':a[k]});
  q('#shiftHistoryTitle').textContent=p.label;var totalShiftTarget=SAVE_MONTHS.reduce(function(t,k){return t+(+SAVE_PLAN[k].shifts||0)},0);q('#journeyShiftPill').textContent=(data.shifts||[]).filter(function(x){return SAVE_PLAN[(x.date||'').slice(0,7)]}).length+' / '+totalShiftTarget+' total';
  q('#shiftList').innerHTML=ss.length?ss.map(function(x){var d=new Date(x.date+'T12:00:00');return '<div class="shift-item"><div class="shift-date"><b>'+d.getDate()+'</b>'+d.toLocaleDateString('en-IE',{month:'short'})+'</div><div><strong>'+fmtHours(x.hours)+' paid · '+euro((+x.hours||0)*(+x.rate||STANDARD_RATE))+' gross est.</strong><p>€'+Number(x.rate||STANDARD_RATE).toFixed(2)+'/h'+(x.note?' · '+e(x.note):'')+'</p></div><button class="tinybtn" onclick="delShift(\''+x.id+'\')">×</button></div>'}).join(''):'<div class="empty">No shifts logged for '+e(p.label)+'.</div>';
- q('#sRoadmap').innerHTML=SAVE_MONTHS.map(function(k){var rp=SAVE_PLAN[k],rs=shiftsFor(k),os=otherSavingsTotal(k),ra=actualFor(k),rh=rs.reduce(function(t,x){return t+(+x.hours||0)},0),rg=rs.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),rnet=(Number(ra.allowanceSaved)||0)+(Number(ra.wagesSaved)||0)+os-(Number(ra.tripExtra)||0);return '<div class="road-month '+(k===m?'current':'')+'"><b>'+e(rp.short)+'</b><span>'+(rp.net>=0?'+':'-')+euro(Math.abs(rp.net))+'</span><small>monthly savings goal</small><small>Actual: '+(rnet>=0?'+':'-')+euro(Math.abs(rnet))+'</small><small class="road-work">'+rs.length+' / '+rp.shifts+' shifts · '+fmtHours(rh)+' / '+fmtHours(rp.hours)+'</small><small>Expected gross: '+euro((+rp.hours||0)*STANDARD_RATE)+'</small><small>Logged gross: '+euro(rg)+'</small><small>Cumulative target: '+euro(rp.end)+'</small></div>'}).join('');
+ q('#sRoadmap').innerHTML=SAVE_MONTHS.map(function(k){var rp=SAVE_PLAN[k],rs=shiftsFor(k),os=otherSavingsTotal(k),ra=actualFor(k),rh=rs.reduce(function(t,x){return t+(+x.hours||0)},0),rg=rs.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),rnet=monthTrackedNet(k);return '<div class="road-month '+(k===m?'current':'')+'"><b>'+e(rp.short)+'</b><span>'+(rp.net>=0?'+':'-')+euro(Math.abs(rp.net))+'</span><small>monthly savings goal</small><small>Tracked: '+(rnet>=0?'+':'-')+euro(Math.abs(rnet))+'</small><small class="road-work">'+rs.length+' / '+rp.shifts+' shifts · '+fmtHours(rh)+' / '+fmtHours(rp.hours)+'</small><small>Expected gross: '+euro((+rp.hours||0)*STANDARD_RATE)+'</small><small>Logged gross: '+euro(rg)+'</small><small>Cumulative target: '+euro(rp.end)+'</small></div>'}).join('');
  var os=otherSavingsFor(m).sort(function(a,b){return (b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0)});
  q('#otherSavePill').textContent=euro(otherTotal)+' this month';q('#otherSaveTitle').textContent=p.label;q('#otherSaveCount').textContent=os.length+' '+(os.length===1?'entry':'entries');
  q('#otherSaveList').innerHTML=os.length?os.map(function(x){var d=new Date(x.date+'T12:00:00');return '<div class="shift-item"><div class="shift-date"><b>'+d.getDate()+'</b>'+d.toLocaleDateString('en-IE',{month:'short'})+'</div><div><strong class="other-save-amount">+'+euro(x.amount)+' · '+e(x.source||'Other')+'</strong><p>'+e(x.description||'Extra savings')+'</p></div><button class="tinybtn" onclick="delOtherSaving(\''+x.id+'\')">×</button></div>'}).join(''):'<div class="empty">No other savings logged for '+e(p.label)+'.</div>';
