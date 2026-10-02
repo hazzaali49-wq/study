@@ -17,16 +17,20 @@ Return ONLY valid JSON:
 
 STRICT RULES:
 - Use GLOBAL slide numbers ${start}–${end}; never renumber this chunk from 1.
-- EVERY slide in ${start}–${end} must be covered. Do not selectively summarize only the most obvious points.
+- Cover EVERY USEFUL TEACHING slide in ${start}–${end}, but deliberately skip non-teaching/admin slides.
+- SKIP slides that are only: title/cover pages, learning outcomes/objectives, module administration, timetables, housekeeping, lecturer contact details, reading lists, references/bibliography, copyright notices, blank pages, repeated section dividers, or duplicated slides with no new teaching content.
+- Do NOT explain learning outcomes themselves. Teach the actual lecture content that follows.
+- If an apparently administrative slide contains a genuinely examinable fact, diagram, mechanism, definition, warning, or lecturer emphasis, keep only that useful content.
 - Concepts across the chapter must collectively cover every distinct important point from the source: labels, arrows, pathways, mechanisms, tables, comparisons, exceptions, captions and lecturer notes.
 - If two slides repeat the same idea, combine them instead of repeating yourself, but include any new detail.
 - Prefer short bullets and compact explanations over long paragraphs.
 - Do NOT make dictionary-style "why is the word called this?" blocks. Explain terminology naturally in context when needed for understanding.
 - "fun_fact" is optional and should be EMPTY unless there is a genuinely interesting or memorable story/fact/connection. Never force etymology.
 - VISUAL-FIRST: if the source contains diagrams, anatomy images, graphs, tables, pathways, labelled figures or useful photos, include them in "visuals". Aim for 1–3 visual references per chapter when the source supports it.
+- NEVER choose a title slide, learning-outcomes slide, references slide, blank slide, or other skipped/admin slide as a visual.
 - For each visual, explain what to LOOK AT, what the important labels/arrows mean, and why the image matters.
 - Preserve source order and source terminology.
-- Make 1–2 chapters for this chunk depending on topic changes.
+- Make 0–2 chapters for this chunk depending on useful teaching content and topic changes. If the whole chunk is only admin/learning-outcomes/references/blank material, return an empty chapters array.
 - Keep the study version concise even while complete: merge related facts and avoid filler.
 - Put 2–3 questions under EACH chapter.
 - Do not invent content not supported by these slides.
