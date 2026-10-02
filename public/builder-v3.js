@@ -31,7 +31,7 @@
     function quickGuess(name){
       const n=name.toLowerCase(),mods=window.__ATLAS_MODULES__||[];
       const rules=[
-        ['mdsa20030',['endocrine','pituitary','thyroid','adrenal']],
+        ['mdsa20030',['endocrine','pituitary','thyroid','parathyroid','adrenal','growth hormone','igf','calcium regulation','calcium homeostasis','endocrine pancreas','diabetes','gonad','testis','ovary','puberty','lactation']],
         ['mdsa20010',['ingestion','git','gastro','liver','abdominal','peritoneum','stomach','intestin']],
         ['anat20060',['locomotor','lower limb','hip','thigh','knee','foot','gait']],
         ['anat20040',['neuro','brain','cranial','cerebell','synapse']],
@@ -58,9 +58,9 @@
         if(j.module_id)sel.value=j.module_id;if(j.title)title.value=j.title;if(j.lecture_number)file.dataset.lectureNumber=String(j.lecture_number);
         const conf=Math.round((Number(j.confidence)||0)*100);
         main.textContent=(j.module_code||'')+(j.lecture_number?' · Lecture '+j.lecture_number:'');
-        sub.textContent=(j.title||f.name.replace(/\.pdf$/i,''))+' · '+(conf?conf+'% confidence':'matched automatically');
+        sub.textContent=(j.title||f.name.replace(/\.pdf$/i,''))+' · '+(j.method?.startsWith('calendar')?'calendar matched':(conf?conf+'% confidence':'matched automatically'))+(j.calendar_date?' · '+new Date(j.calendar_date+'T12:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'}):'');
         summary.classList.remove('detecting','bad');summary.classList.add('good');
-        status.className='atlas-builder-status good';status.textContent='Detected. Press Build lecture — it will be filed into the correct module automatically.';
+        status.className='atlas-builder-status good';status.textContent=j.method?.startsWith('calendar')?'Matched against your course calendar. Press Build lecture — module and lecture number are locked to the calendar match.':'Detected. Press Build lecture — it will be filed into the correct module automatically.';
       }catch(err){
         summary.classList.remove('detecting','good');summary.classList.add('bad');
         main.textContent='Couldn’t fully identify it';sub.textContent='Use Edit to choose the module/title manually, then build as normal.';
