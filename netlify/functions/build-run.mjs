@@ -179,7 +179,7 @@ export default async (req) => {
     const resolvedModule=getModule(job.module_code)||getModule(job.module_id)||inferModule((obj.title||'')+' '+job.filename);
     const moduleId=resolvedModule?.id||job.module_id,moduleCode=resolvedModule?.code||job.module_code,moduleName=resolvedModule?.name||job.module_name;
     const sameModule=manifest.filter(x=>x.module_id===moduleId).length;
-    const detectedNo=Number(job.lecture_number)||inferLectureNumber(moduleCode,obj.title||job.title,job.filename)||null;
+    const detectedNo=inferLectureNumber(moduleCode,obj.title||job.title,job.filename)||Number(job.lecture_number)||null;
     const lectureNo=detectedNo||sameModule+1;
     const meta={id:job.lecture_id,module_id:moduleId,module_name:moduleName,module_code:moduleCode,number:String(lectureNo).padStart(2,'0'),title:obj.title,slides:`${total} original slides`,chapters:`${chapters.length} AI chapters`,description:obj.description||obj.subtitle||'AI-generated Study Atlas lecture.',created:Date.now()};
     const oldMatch=manifest.find(x=>x.id!==meta.id&&x.module_id===meta.module_id&&String(x.number||'').replace(/^0+/,'')===String(meta.number||'').replace(/^0+/,''));
