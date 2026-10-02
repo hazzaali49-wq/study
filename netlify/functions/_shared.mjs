@@ -47,11 +47,21 @@ export async function callOpenAI(payload, timeoutMs=120000){
 }
 
 export function parseModelJSON(text=''){
-  text=String(text).trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
-  try{return JSON.parse(text)}catch{}
+  text=String(text||'').replace(/^\uFEFF/,'').trim().replace(/^\`\`\`(?:json)?\s*/i,'').replace(/\s*\`\`\`$/,'');
+  const attempts=[text];
   const a=text.indexOf('{'), b=text.lastIndexOf('}');
-  if(a>=0&&b>a) return JSON.parse(text.slice(a,b+1));
-  throw new Error('AI returned content that could not be parsed as lecture JSON.');
+  if(a>=0&&b>a) attempts.push(text.slice(a,b+1));
+  for(let candidate of attempts){
+    if(!candidate) continue;
+    try{return JSON.parse(candidate)}catch{}
+    try{
+      candidate=candidate
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,' ')
+        .replace(/,\s*([}\]])/g,'$1');
+      return JSON.parse(candidate);
+    }catch{}
+  }
+  throw new Error('The AI returned malformed lecture data. Study Atlas will retry automatically on the next build attempt.');
 }
 
 export const esc = (v='') => String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
