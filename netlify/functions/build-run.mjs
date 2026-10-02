@@ -92,7 +92,7 @@ export default async (req) => {
         model:MODEL,
         instructions:'Build a concise, source-faithful medical study guide from this PDF section. Output only valid JSON.',
         input:[{role:'user',content:[
-          {type:'input_file',filename:`${job.filename.replace(/\.pdf$/i,'')} slides ${ch.start}-${ch.end}.pdf`,file_data:b64},
+          {type:'input_file',filename:`${job.filename.replace(/\.pdf$/i,'')} slides ${ch.start}-${ch.end}.pdf`,file_data:`data:application/pdf;base64,${b64}`},
           {type:'input_text',text:chunkPrompt({title:job.title,moduleName:job.module_name,moduleCode:job.module_code,start:ch.start,end:ch.end,total})}
         ]}],
         max_output_tokens:5200
