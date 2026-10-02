@@ -120,7 +120,7 @@ button,input,textarea,select{font:inherit}.shell{display:grid;grid-template-colu
 .left-list{display:grid;gap:8px}.left-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:#10163a;padding:11px 12px;border-radius:12px}.left-row span{font-size:11px;color:#a9b3d6}.left-row strong{font-size:12px}.left-row.good strong{color:var(--mint)}.left-row.warn strong{color:var(--yellow)}.plan-note{margin-top:11px;background:rgba(255,213,94,.08);border:1px solid rgba(255,213,94,.13);color:#d6cfac;padding:11px;border-radius:12px;font-size:10px;line-height:1.5}
 .shift-list{display:grid;gap:8px;max-height:350px;overflow:auto}.shift-item{display:grid;grid-template-columns:46px 1fr auto;gap:10px;align-items:center;background:#10163a;border:1px solid #252d63;border-radius:13px;padding:10px}.shift-date{width:42px;height:42px;border-radius:12px;background:#202b64;display:grid;place-items:center;text-align:center;font-size:9px;color:#aab6dc;line-height:1.1}.shift-date b{font-size:15px;color:#fff}.shift-item strong{font-size:12px}.shift-item p{margin:3px 0 0;font-size:9px;color:#7785b2}
 .roadmap-card{margin-bottom:10px}.roadmap{display:grid;grid-template-columns:repeat(9,1fr);gap:8px}.road-month{border:1px solid #29326b;background:#10163a;border-radius:13px;padding:11px 9px;min-width:0}.road-month.current{border-color:var(--mint);box-shadow:inset 0 0 0 1px rgba(114,224,185,.15)}.road-month b,.road-month span,.road-month small{display:block}.road-month b{font-size:11px}.road-month span{font-size:14px;font-weight:900;margin:6px 0 2px}.road-month small{font-size:8px;color:#7784b1;line-height:1.35}.road-month .road-work{color:var(--blue);font-weight:700;margin-top:7px}
-#actualNetPill.negative{color:#ff979f}
+#actualNetPill.negative{color:#ff979f}.other-save-amount{color:var(--mint);font-weight:900}
 @media(max-width:1080px){.roadmap{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:720px){.save-hero{grid-template-columns:1fr;padding:18px;border-radius:20px;gap:13px}.save-goal{padding:0}.save-goal strong{font-size:32px}.save-stats{gap:7px}.save-stats>div{padding:11px}.save-layout{display:block;margin-bottom:0}.save-layout>.card{margin-bottom:11px}.roadmap{grid-template-columns:repeat(3,1fr);gap:7px}.road-month{padding:10px 8px}.shift-list{max-height:none}.shift-quick{min-height:66px}#saveMonth{font-size:14px;min-height:40px}}
 
@@ -284,7 +284,7 @@ button,input,textarea,select{font:inherit}.shell{display:grid;grid-template-colu
         <label>Actual balance €<input name="balance" type="number" min="0" step="0.01" placeholder="Bank / savings balance"></label>
         <button class="primary full">Save actual numbers</button>
       </form>
-      <p class="save-hint">Net added = allowance saved + wages saved − trip/extra. Shift earnings stay an estimate until money reaches your account.</p>
+      <p class="save-hint">Net added = allowance saved + wages saved + other savings − trip/extra. Shift earnings stay an estimate until money reaches your account.</p>
     </article>
 
     <article class="card">
@@ -293,8 +293,27 @@ button,input,textarea,select{font:inherit}.shell{display:grid;grid-template-colu
     </article>
   </div>
 
+  <div class="save-layout">
+    <article class="card">
+      <div class="head"><div><p class="eyebrow">EXTRA MONEY</p><h3>Add other savings</h3></div><span class="pill" id="otherSavePill">€0 this month</span></div>
+      <form class="form-grid" id="otherSaveForm">
+        <label>Date<input name="date" type="date" required></label>
+        <label>Amount €<input name="amount" type="number" min="0.01" step="0.01" required placeholder="100"></label>
+        <label>Source<select name="source"><option>Extra income</option><option>Gift</option><option>Refund</option><option>Sale</option><option>Bonus</option><option>Interest</option><option>Other</option></select></label>
+        <label>Description<input name="description" placeholder="Sold old phone, refund…"></label>
+        <button class="primary full">Add to savings</button>
+      </form>
+      <p class="save-hint">Use this for any money added to savings that is not already counted as allowance or wages.</p>
+    </article>
+
+    <article class="card">
+      <div class="head"><div><p class="eyebrow">OTHER SAVINGS HISTORY</p><h3 id="otherSaveTitle">This month</h3></div><span class="pill" id="otherSaveCount">0 entries</span></div>
+      <div class="shift-list" id="otherSaveList"></div>
+    </article>
+  </div>
+
   <article class="card roadmap-card">
-    <div class="head"><div><p class="eyebrow">OCTOBER → JUNE</p><h3>Your full roadmap</h3></div><span class="pill">€15,000 goal</span></div>
+    <div class="head"><div><p class="eyebrow">SEPTEMBER → JUNE</p><h3>Your full roadmap</h3></div><span class="pill">€15,000 goal</span></div>
     <div class="roadmap" id="sRoadmap"></div>
   </article>
 </section>
@@ -308,7 +327,7 @@ button,input,textarea,select{font:inherit}.shell{display:grid;grid-template-colu
 </main></div><div class="toast" id="toast"></div>
 <script>
 var KEY='mind.v1',data=load(),q=function(s,r){return (r||document).querySelector(s)},qa=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
-function load(){try{return Object.assign({day:[],study:[],tx:[],notes:[],rem:[],shifts:[],savings:{}},JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){return{day:[],study:[],tx:[],notes:[],rem:[],shifts:[],savings:{}}}}
+function load(){try{return Object.assign({day:[],study:[],tx:[],notes:[],rem:[],shifts:[],savings:{},otherSavings:[]},JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){return{day:[],study:[],tx:[],notes:[],rem:[],shifts:[],savings:{},otherSavings:[]}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function iso(){return new Date().toLocaleDateString('en-CA')}
@@ -357,6 +376,7 @@ setInterval(function(){if(!('Notification'in window)||Notification.permission!==
 
 var SAVINGS_GOAL=15000,STANDARD_SHIFT_HOURS=6.5,STANDARD_RATE=14.15;
 var SAVE_PLAN={
+ '2026-09':{label:'September 2026',short:'Sep',term:'Before the original planner starts',allowance:0,rent:0,living:0,allowanceSave:0,shifts:0,hours:0,wages:0,travel:0,net:0,end:0,unplanned:true,note:'September was not included in your uploaded savings plan, so Mind will track your real shifts and savings without inventing a monthly target.'},
  '2026-10':{label:'October 2026',short:'Oct',term:'Term 1 / UK trip',allowance:1725,rent:800,living:400,allowanceSave:525,shifts:18,hours:117,wages:1626,travel:300,net:1851,end:1851,note:'Aim for 18 shifts. Keep the UK trip within €300, pay €800 rent, reserve €400 living, and move €525 allowance to savings.'},
  '2026-11':{label:'November 2026',short:'Nov',term:'Revision starts',allowance:1725,rent:800,living:400,allowanceSave:525,shifts:11,hours:71.5,wages:993,travel:0,net:1518,end:3369,note:'Aim for 11 shifts and finish work by 20 November. No work from 21 November so revision and exams are protected.'},
  '2026-12':{label:'December 2026',short:'Dec',term:'UAE + exam break',allowance:1725,rent:400,living:400,allowanceSave:925,shifts:0,hours:0,wages:0,travel:1000,net:-75,end:3294,note:'No paid shifts this month. Reduced rent is €400. Save €925 allowance and keep the UAE trip at or below €1,000.'},
@@ -371,44 +391,64 @@ var SAVE_MONTHS=Object.keys(SAVE_PLAN);
 function nval(v){return v===''||v==null?null:Number(v)}
 function fmtHours(n){n=Math.max(0,Number(n)||0);return (Math.round(n*100)/100).toString().replace(/\.0+$/,'')+'h'}
 function shiftsFor(m){return (data.shifts||[]).filter(function(x){return (x.date||'').slice(0,7)===m})}
+function otherSavingsFor(m){return (data.otherSavings||[]).filter(function(x){return (x.date||'').slice(0,7)===m})}
+function otherSavingsTotal(m){return otherSavingsFor(m).reduce(function(t,x){return t+(+x.amount||0)},0)}
 function actualFor(m){if(!data.savings)data.savings={};return data.savings[m]||{}}
-function latestBalance(){var out=null;SAVE_MONTHS.forEach(function(m){var a=actualFor(m);if(a.balance!==null&&a.balance!==undefined&&a.balance!=='')out=Number(a.balance)});return out==null?0:out}
+function trackedBalance(){
+ var balance=0,hasBalance=false;
+ SAVE_MONTHS.forEach(function(m){
+   var a=actualFor(m),hasActual=a.balance!==null&&a.balance!==undefined&&a.balance!=='';
+   if(hasActual){balance=Number(a.balance)||0;hasBalance=true}
+   else{
+     var monthNet=(Number(a.allowanceSaved)||0)+(Number(a.wagesSaved)||0)+otherSavingsTotal(m)-(Number(a.tripExtra)||0);
+     if(monthNet!==0||hasBalance)balance+=monthNet
+   }
+ });
+ return Math.max(0,balance)
+}
 function savingsSnapshot(){
  var m=(q('#saveMonth')&&q('#saveMonth').value)||mon(),p=SAVE_PLAN[m]||null,ss=shiftsFor(m),a=actualFor(m),hrs=ss.reduce(function(t,x){return t+(+x.hours||0)},0);
- return{goal:SAVINGS_GOAL,deadline:'2027-07-01',month:m,plan:p,workedShifts:ss.length,workedHours:hrs,estimatedGross:ss.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),actual:a,currentBalance:latestBalance(),goalRemaining:Math.max(0,SAVINGS_GOAL-latestBalance())}
+ return{goal:SAVINGS_GOAL,deadline:'2027-07-01',month:m,plan:p,workedShifts:ss.length,workedHours:hrs,estimatedGross:ss.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),otherSavings:otherSavingsFor(m),otherSavingsTotal:otherSavingsTotal(m),actual:a,currentBalance:trackedBalance(),goalRemaining:Math.max(0,SAVINGS_GOAL-trackedBalance())}
 }
 function renderSavingsHome(){
  var box=q('#homeSavings');if(!box)return;var m=SAVE_PLAN[mon()]?mon():SAVE_MONTHS[0],p=SAVE_PLAN[m],ss=shiftsFor(m),hrs=ss.reduce(function(t,x){return t+(+x.hours||0)},0),left=Math.max(0,p.shifts-ss.length),hleft=Math.max(0,p.hours-hrs);
- box.innerHTML='<div class="focus"><b>'+e(p.short.toUpperCase())+' TARGET</b><h4>'+ss.length+' / '+p.shifts+' shifts · '+fmtHours(hrs)+' / '+fmtHours(p.hours)+'</h4><small>'+left+' shifts and '+fmtHours(hleft)+' left · planned month-end '+euro(p.end)+'</small></div>';
+ box.innerHTML=p.unplanned?'<div class="focus"><b>'+e(p.short.toUpperCase())+' TRACKING</b><h4>'+ss.length+' shifts · '+fmtHours(hrs)+' logged</h4><small>'+euro(otherSavingsTotal(m))+' other savings · no preset September target</small></div>':'<div class="focus"><b>'+e(p.short.toUpperCase())+' TARGET</b><h4>'+ss.length+' / '+p.shifts+' shifts · '+fmtHours(hrs)+' / '+fmtHours(p.hours)+'</h4><small>'+left+' shifts and '+fmtHours(hleft)+' left · planned month-end '+euro(p.end)+'</small></div>';
 }
 function renderSavings(){
  if(!q('#saveMonth'))return;var sel=q('#saveMonth');
  if(!sel.options.length){SAVE_MONTHS.forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=SAVE_PLAN[m].label;sel.appendChild(o)});sel.value=SAVE_PLAN[mon()]?mon():SAVE_MONTHS[0]}
  var m=sel.value||SAVE_MONTHS[0],p=SAVE_PLAN[m],ss=shiftsFor(m).sort(function(a,b){return (b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0)}),a=actualFor(m);
- var hrs=ss.reduce(function(t,x){return t+(+x.hours||0)},0),gross=ss.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),shiftLeft=Math.max(0,p.shifts-ss.length),hourLeft=Math.max(0,p.hours-hrs);
- var allowanceSaved=Number(a.allowanceSaved)||0,wagesSaved=Number(a.wagesSaved)||0,tripExtra=Number(a.tripExtra)||0,net=allowanceSaved+wagesSaved-tripExtra,bal=latestBalance(),goalLeft=Math.max(0,SAVINGS_GOAL-bal),pct=Math.min(100,Math.max(0,bal/SAVINGS_GOAL*100));
+ var hrs=ss.reduce(function(t,x){return t+(+x.hours||0)},0),gross=ss.reduce(function(t,x){return t+((+x.hours||0)*(+x.rate||STANDARD_RATE))},0),shiftLeft=p.unplanned?0:Math.max(0,p.shifts-ss.length),hourLeft=p.unplanned?0:Math.max(0,p.hours-hrs);
+ var allowanceSaved=Number(a.allowanceSaved)||0,wagesSaved=Number(a.wagesSaved)||0,tripExtra=Number(a.tripExtra)||0,otherTotal=otherSavingsTotal(m),net=allowanceSaved+wagesSaved+otherTotal-tripExtra,bal=trackedBalance(),goalLeft=Math.max(0,SAVINGS_GOAL-bal),pct=Math.min(100,Math.max(0,bal/SAVINGS_GOAL*100));
  q('#sGoalBalance').textContent=euro(bal);q('#sGoalLeft').textContent=euro(goalLeft)+' left to €15,000';q('#sGoalFill').style.width=pct+'%';q('#goalPill').textContent=euro(bal)+' / €15,000';
- q('#sShifts').textContent=ss.length+' / '+p.shifts;q('#sShiftsLeft').textContent=shiftLeft+' left';q('#sHours').textContent=fmtHours(hrs)+' / '+fmtHours(p.hours);q('#sHoursLeft').textContent=fmtHours(hourLeft)+' left';q('#sGross').textContent=euro(gross);q('#sPlanEnd').textContent=euro(p.end);
- q('#sBalanceDiff').textContent=(a.balance!==null&&a.balance!==undefined&&a.balance!=='')?((Number(a.balance)-p.end)>=0?euro(Number(a.balance)-p.end)+' ahead':euro(Math.abs(Number(a.balance)-p.end))+' behind'):'enter actual balance';
+ q('#sShifts').textContent=p.unplanned?ss.length+' logged':ss.length+' / '+p.shifts;q('#sShiftsLeft').textContent=p.unplanned?'no preset target':shiftLeft+' left';q('#sHours').textContent=p.unplanned?fmtHours(hrs)+' logged':fmtHours(hrs)+' / '+fmtHours(p.hours);q('#sHoursLeft').textContent=p.unplanned?'record actual hours':fmtHours(hourLeft)+' left';q('#sGross').textContent=euro(gross);q('#sPlanEnd').textContent=p.unplanned?'No preset':euro(p.end);
+ q('#sBalanceDiff').textContent=p.unplanned?'September is record-only':((a.balance!==null&&a.balance!==undefined&&a.balance!=='')?((Number(a.balance)-p.end)>=0?euro(Number(a.balance)-p.end)+' ahead':euro(Math.abs(Number(a.balance)-p.end))+' behind'):'enter actual balance');
  q('#saveMonthTitle').textContent=p.label+' target';
- var wageLeft=Math.max(0,p.wages-wagesSaved),allowLeft=Math.max(0,p.allowanceSave-allowanceSaved);
- q('#sLeftList').innerHTML='<div class="left-row '+(shiftLeft===0?'good':'warn')+'"><span>Shifts left</span><strong>'+shiftLeft+' / '+p.shifts+'</strong></div><div class="left-row '+(hourLeft===0?'good':'warn')+'"><span>Paid hours left</span><strong>'+fmtHours(hourLeft)+'</strong></div><div class="left-row"><span>Allowance still to save</span><strong>'+euro(allowLeft)+'</strong></div><div class="left-row"><span>Wages still to save vs plan</span><strong>'+euro(wageLeft)+'</strong></div><div class="left-row"><span>Planned travel / extra</span><strong>'+euro(p.travel)+'</strong></div><div class="left-row"><span>Planned net change</span><strong>'+(p.net>=0?'+':'-')+euro(Math.abs(p.net))+'</strong></div><div class="left-row"><span>Planned month-end balance</span><strong>'+euro(p.end)+'</strong></div>';
+ var wageLeft=p.unplanned?0:Math.max(0,p.wages-wagesSaved),allowLeft=p.unplanned?0:Math.max(0,p.allowanceSave-allowanceSaved);
+ q('#sLeftList').innerHTML=p.unplanned?
+   '<div class="left-row"><span>Shifts logged</span><strong>'+ss.length+'</strong></div><div class="left-row"><span>Paid hours logged</span><strong>'+fmtHours(hrs)+'</strong></div><div class="left-row"><span>Other savings added</span><strong>'+euro(otherTotal)+'</strong></div><div class="left-row"><span>Actual net tracked</span><strong>'+(net>=0?'+':'-')+euro(Math.abs(net))+'</strong></div><div class="left-row"><span>September target</span><strong>Not preset</strong></div>':
+   '<div class="left-row '+(shiftLeft===0?'good':'warn')+'"><span>Shifts left</span><strong>'+shiftLeft+' / '+p.shifts+'</strong></div><div class="left-row '+(hourLeft===0?'good':'warn')+'"><span>Paid hours left</span><strong>'+fmtHours(hourLeft)+'</strong></div><div class="left-row"><span>Allowance still to save</span><strong>'+euro(allowLeft)+'</strong></div><div class="left-row"><span>Wages still to save vs plan</span><strong>'+euro(wageLeft)+'</strong></div><div class="left-row"><span>Other savings added</span><strong>'+euro(otherTotal)+'</strong></div><div class="left-row"><span>Planned travel / extra</span><strong>'+euro(p.travel)+'</strong></div><div class="left-row"><span>Planned net change</span><strong>'+(p.net>=0?'+':'-')+euro(Math.abs(p.net))+'</strong></div><div class="left-row"><span>Planned month-end balance</span><strong>'+euro(p.end)+'</strong></div>';
  q('#sPlanNote').innerHTML='<b>'+e(p.term)+'</b><br>'+e(p.note);
  q('#actualNetPill').textContent='Net '+(net>=0?'+':'-')+euro(Math.abs(net));q('#actualNetPill').classList.toggle('negative',net<0);
  var form=q('#savingsActualForm');['allowanceSaved','wagesSaved','tripExtra','balance'].forEach(function(k){form.elements[k].value=(a[k]===null||a[k]===undefined)?'':a[k]});
  q('#shiftHistoryTitle').textContent=p.label;q('#journeyShiftPill').textContent=(data.shifts||[]).filter(function(x){return SAVE_PLAN[(x.date||'').slice(0,7)]}).length+' / 108 total';
  q('#shiftList').innerHTML=ss.length?ss.map(function(x){var d=new Date(x.date+'T12:00:00');return '<div class="shift-item"><div class="shift-date"><b>'+d.getDate()+'</b>'+d.toLocaleDateString('en-IE',{month:'short'})+'</div><div><strong>'+fmtHours(x.hours)+' paid · '+euro((+x.hours||0)*(+x.rate||STANDARD_RATE))+' gross est.</strong><p>€'+Number(x.rate||STANDARD_RATE).toFixed(2)+'/h'+(x.note?' · '+e(x.note):'')+'</p></div><button class="tinybtn" onclick="delShift(\''+x.id+'\')">×</button></div>'}).join(''):'<div class="empty">No shifts logged for '+e(p.label)+'.</div>';
- q('#sRoadmap').innerHTML=SAVE_MONTHS.map(function(k){var rp=SAVE_PLAN[k],rs=shiftsFor(k);return '<div class="road-month '+(k===m?'current':'')+'"><b>'+e(rp.short)+'</b><span>'+euro(rp.end)+'</span><small>planned balance</small><small class="road-work">'+rs.length+' / '+rp.shifts+' shifts</small></div>'}).join('');
- q('#quickShiftDate').textContent=new Date().toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})+' · 6.5 paid hours';var sf=q('#shiftForm');if(!sf.elements.date.value)sf.elements.date.value=iso();
+ q('#sRoadmap').innerHTML=SAVE_MONTHS.map(function(k){var rp=SAVE_PLAN[k],rs=shiftsFor(k),os=otherSavingsTotal(k);return '<div class="road-month '+(k===m?'current':'')+'"><b>'+e(rp.short)+'</b><span>'+(rp.unplanned?'Tracked':euro(rp.end))+'</span><small>'+(rp.unplanned?'no preset plan':'planned balance')+'</small><small class="road-work">'+rs.length+(rp.unplanned?' shifts':' / '+rp.shifts+' shifts')+(os?' · +'+euro(os):'')+'</small></div>'}).join('');
+ var os=otherSavingsFor(m).sort(function(a,b){return (b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0)});
+ q('#otherSavePill').textContent=euro(otherTotal)+' this month';q('#otherSaveTitle').textContent=p.label;q('#otherSaveCount').textContent=os.length+' '+(os.length===1?'entry':'entries');
+ q('#otherSaveList').innerHTML=os.length?os.map(function(x){var d=new Date(x.date+'T12:00:00');return '<div class="shift-item"><div class="shift-date"><b>'+d.getDate()+'</b>'+d.toLocaleDateString('en-IE',{month:'short'})+'</div><div><strong class="other-save-amount">+'+euro(x.amount)+' · '+e(x.source||'Other')+'</strong><p>'+e(x.description||'Extra savings')+'</p></div><button class="tinybtn" onclick="delOtherSaving(\''+x.id+'\')">×</button></div>'}).join(''):'<div class="empty">No other savings logged for '+e(p.label)+'.</div>';
+ q('#quickShiftDate').textContent=new Date().toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})+' · 6.5 paid hours';var sf=q('#shiftForm');if(!sf.elements.date.value)sf.elements.date.value=iso();var of=q('#otherSaveForm');if(!of.elements.date.value)of.elements.date.value=iso();
 }
 q('#saveMonth').onchange=renderSavings;
 q('#quickShift').onclick=function(){data.shifts.push({id:id(),date:iso(),hours:STANDARD_SHIFT_HOURS,rate:STANDARD_RATE,note:'',created:Date.now()});save();tmsg('Today’s 6.5h shift logged')};
 q('#shiftForm').onsubmit=function(ev){ev.preventDefault();var o=Object.fromEntries(new FormData(ev.target));data.shifts.push({id:id(),date:o.date,hours:+o.hours,rate:+o.rate,note:o.note||'',created:Date.now()});ev.target.reset();ev.target.elements.date.value=iso();ev.target.elements.hours.value=STANDARD_SHIFT_HOURS;ev.target.elements.rate.value=STANDARD_RATE;save();tmsg('Shift logged')};
 window.delShift=function(i){data.shifts=data.shifts.filter(function(x){return x.id!==i});save()};
+q('#otherSaveForm').onsubmit=function(ev){ev.preventDefault();var o=Object.fromEntries(new FormData(ev.target));data.otherSavings.push({id:id(),date:o.date,amount:+o.amount,source:o.source||'Other',description:o.description||'',created:Date.now()});ev.target.reset();ev.target.elements.date.value=iso();save();tmsg('Other savings added')};
+window.delOtherSaving=function(i){data.otherSavings=data.otherSavings.filter(function(x){return x.id!==i});save()};
 q('#savingsActualForm').onsubmit=function(ev){ev.preventDefault();var m=q('#saveMonth').value,o=Object.fromEntries(new FormData(ev.target));data.savings[m]={allowanceSaved:nval(o.allowanceSaved),wagesSaved:nval(o.wagesSaved),tripExtra:nval(o.tripExtra),balance:nval(o.balance),updated:Date.now()};save();tmsg('Actual savings updated')};
 
 function snap(){return{today:iso(),day:data.day.filter(function(x){return x.date>=iso()}).sort(dt).slice(0,30),study:data.study.filter(function(x){return x.status!=='Done'}).slice(0,30),monthTransactions:data.tx.filter(function(x){return (x.date||'').slice(0,7)===mon()}).slice(-80),notes:data.notes.slice(-15),reminders:data.rem.filter(function(x){return !x.done&&x.date>=iso()}).slice(0,30),workAndSavings:savingsSnapshot()}}
-function apply(a){if(!a||!a.type)return false;var b={id:id(),created:Date.now()};if(a.type==='add_note'){data.notes.push(Object.assign(b,{title:a.title||'AI note',body:a.body||'',tags:a.tags||[]}));return true}if(a.type==='add_day_item'){data.day.push(Object.assign(b,{title:a.title||'Planned item',date:a.date||iso(),time:a.time||'18:00',duration:+a.duration||60,type:a.itemType||'Personal',priority:a.priority||'Normal',done:false}));return true}if(a.type==='add_study_task'){data.study.push(Object.assign(b,{subject:a.subject||'Study',topic:a.topic||a.title||'Study task',dueDate:a.dueDate||iso(),minutes:+a.minutes||60,priority:a.priority||'Medium',status:'To do'}));return true}if(a.type==='add_transaction'){data.tx.push(Object.assign(b,{description:a.description||'Transaction',amount:+a.amount||0,kind:a.kind==='Income'?'Income':'Expense',category:a.category||'Other',date:a.date||iso(),payment:a.payment||'Other',note:a.note||''}));return true}if(a.type==='add_reminder'){data.rem.push(Object.assign(b,{title:a.title||'Reminder',date:a.date||iso(),time:a.time||'18:00',details:a.details||'',done:false,notified:false}));return true}if(a.type==='add_shift'){data.shifts.push(Object.assign(b,{date:a.date||iso(),hours:+a.hours||STANDARD_SHIFT_HOURS,rate:+a.rate||STANDARD_RATE,note:a.note||''}));return true}return false}
+function apply(a){if(!a||!a.type)return false;var b={id:id(),created:Date.now()};if(a.type==='add_note'){data.notes.push(Object.assign(b,{title:a.title||'AI note',body:a.body||'',tags:a.tags||[]}));return true}if(a.type==='add_day_item'){data.day.push(Object.assign(b,{title:a.title||'Planned item',date:a.date||iso(),time:a.time||'18:00',duration:+a.duration||60,type:a.itemType||'Personal',priority:a.priority||'Normal',done:false}));return true}if(a.type==='add_study_task'){data.study.push(Object.assign(b,{subject:a.subject||'Study',topic:a.topic||a.title||'Study task',dueDate:a.dueDate||iso(),minutes:+a.minutes||60,priority:a.priority||'Medium',status:'To do'}));return true}if(a.type==='add_transaction'){data.tx.push(Object.assign(b,{description:a.description||'Transaction',amount:+a.amount||0,kind:a.kind==='Income'?'Income':'Expense',category:a.category||'Other',date:a.date||iso(),payment:a.payment||'Other',note:a.note||''}));return true}if(a.type==='add_reminder'){data.rem.push(Object.assign(b,{title:a.title||'Reminder',date:a.date||iso(),time:a.time||'18:00',details:a.details||'',done:false,notified:false}));return true}if(a.type==='add_shift'){data.shifts.push(Object.assign(b,{date:a.date||iso(),hours:+a.hours||STANDARD_SHIFT_HOURS,rate:+a.rate||STANDARD_RATE,note:a.note||''}));return true}if(a.type==='add_saving'){data.otherSavings.push(Object.assign(b,{date:a.date||iso(),amount:+a.amount||0,source:a.source||'Other',description:a.description||''}));return true}return false}
 function msg(s,w){var d=document.createElement('div');d.className='msg '+w;d.textContent=s;q('#messages').appendChild(d);q('#messages').scrollTop=q('#messages').scrollHeight;return d}
 async function ask(s){go('ai');msg(s,'user');var wait=msg('Thinking…','ai'),res;try{var r=await fetch('/.netlify/functions/assistant',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:s,context:snap()})});if(!r.ok)throw new Error('offline');res=await r.json();q('#aiMode').textContent='AI connected'}catch(err){res=localAI(s);q('#aiMode').textContent='local mode'}wait.remove();var changed=false;(res.actions||[]).forEach(function(a){if(apply(a))changed=true});if(changed)save();msg(res.reply||'Done.','ai')}
 function cat(s){s=s.toLowerCase();if(/tesco|aldi|lidl|grocery|food|coffee|restaurant/.test(s))return'Food';if(/bus|taxi|uber|fuel|petrol|train/.test(s))return'Transport';if(/book|course|uni|study/.test(s))return'Education';if(/gym|doctor|pharmacy|health/.test(s))return'Health';if(/rent|bill|electric|internet/.test(s))return'Bills';return'Other'}
@@ -423,7 +463,7 @@ function localAI(s){
     var b=s.replace(/^\s*(?:add\s+)?note\s*:?/i,'').trim();
     a.push({type:'add_note',title:b.slice(0,42)||'Quick note',body:b});
     reply='Saved that as a note.';
-  }else if(/\bshift\b/i.test(s)&&/(worked|work|log|add|did|today|shift)/i.test(s)){
+  }else if((m=s.match(/(?:saved|save|add(?:ed)?\s+(?:to\s+)?savings)\s*€?([0-9]+(?:\.[0-9]{1,2})?)(?:\s+(?:from|for)\s+(.+))?/i))){var desc=(m[2]||'Other savings').trim();a.push({type:'add_saving',date:iso(),amount:+m[1],source:'Other',description:desc});reply='Added '+euro(m[1])+' to other savings.';}else if(/\bshift\b/i.test(s)&&/(worked|work|log|add|did|today|shift)/i.test(s)){
     var hm=s.match(/(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)/i),h=hm?+hm[1]:STANDARD_SHIFT_HOURS;a.push({type:'add_shift',date:iso(),hours:h,rate:STANDARD_RATE,note:''});reply='Logged today’s '+h+' paid-hour shift.';
   }else{
     m=s.match(/(?:study|revise)\s+(.+?)(?:\s+for\s+(\d+)\s*(min|mins|minutes|h|hour|hours))?$/i);
@@ -447,7 +487,7 @@ function localAI(s){
 }
 q('#chatForm').onsubmit=function(ev){ev.preventDefault();var i=q('#chatInput'),s=i.value.trim();if(!s)return;i.value='';ask(s)};q('#quickForm').onsubmit=function(ev){ev.preventDefault();var i=q('#quickInput'),s=i.value.trim();if(!s)return;i.value='';ask(s)};qa('[data-prompt]').forEach(function(b){b.onclick=function(){ask(b.dataset.prompt)}});
 q('#exportBtn').onclick=function(){var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mind-backup-'+iso()+'.json';a.click();URL.revokeObjectURL(a.href)};
-q('#importFile').onchange=async function(ev){var f=ev.target.files[0];if(!f)return;try{data=Object.assign({day:[],study:[],tx:[],notes:[],rem:[],shifts:[],savings:{}},JSON.parse(await f.text()));save();tmsg('Backup imported')}catch(err){tmsg('Invalid backup file')}};
+q('#importFile').onchange=async function(ev){var f=ev.target.files[0];if(!f)return;try{data=Object.assign({day:[],study:[],tx:[],notes:[],rem:[],shifts:[],savings:{},otherSavings:[]},JSON.parse(await f.text()));save();tmsg('Backup imported')}catch(err){tmsg('Invalid backup file')}};
 seed();render();
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){})})}
 </script>
