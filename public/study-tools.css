@@ -1,0 +1,45 @@
+
+:root{--atlas-mod:#8f72f1;--atlas-mod2:#57d6b2;--atlas-mod-rgb:143,114,241}
+body[data-atlas-module="mdsa20030"]{--atlas-mod:#a784ff;--atlas-mod2:#5ed6bd;--atlas-mod-rgb:167,132,255}
+body[data-atlas-module="path30080"]{--atlas-mod:#ff7f82;--atlas-mod2:#f4b15f;--atlas-mod-rgb:255,127,130}
+body[data-atlas-module="mdsa20010"]{--atlas-mod:#69d39d;--atlas-mod2:#55b8aa;--atlas-mod-rgb:105,211,157}
+body[data-atlas-module="anat20060"]{--atlas-mod:#7da6ff;--atlas-mod2:#d6a86e;--atlas-mod-rgb:125,166,255}
+body[data-atlas-module="anat20040"]{--atlas-mod:#65cce8;--atlas-mod2:#7b8cff;--atlas-mod-rgb:101,204,232}
+body[data-atlas-module="nmhs10100"]{--atlas-mod:#ef92c9;--atlas-mod2:#79bce9;--atlas-mod-rgb:239,146,201}
+
+/* dark study controls / panels */
+.atlas-dock-main{background:rgba(10,16,28,.96)!important;border-color:#2a3852!important;box-shadow:0 18px 54px rgba(0,0,0,.38)!important}
+.atlas-rail-btn{background:#121d31!important;color:#dbe6f7!important;border-color:#243550!important}
+.atlas-rail-btn:hover{background:#1b2942!important;color:#fff!important}.atlas-rail-btn.active{background:linear-gradient(145deg,var(--atlas-mod),color-mix(in srgb,var(--atlas-mod) 72%,#293b65))!important;color:#fff!important}
+.atlas-zoom-rail{border-color:#26344d!important}.atlas-zoom-btn,.atlas-zoom-value{background:#0d1728!important;color:#d6e1f2!important}.atlas-zoom-btn:hover,.atlas-zoom-value:hover{background:#1a2943!important;color:#fff!important}
+#atlasQuickNotePanel,#atlasAIPanel{background:rgba(10,17,30,.985)!important;color:#eef4ff!important;border-color:#30405d!important;box-shadow:0 26px 78px rgba(0,0,0,.5)!important}
+.atlas-qn-close,.atlas-qn-mini,.atlas-qn-action{background:#17243a!important;color:#dce8f8!important}.atlas-qn-action.primary{background:linear-gradient(135deg,var(--atlas-mod),var(--atlas-mod2))!important;color:#07111f!important}
+.atlas-qn-text{background:#07111e!important;color:#eff5ff!important;border-color:#31415d!important}
+#atlasQuickSketch{background-color:#091321!important;background-image:linear-gradient(#1c2a3f 1px,transparent 1px),linear-gradient(90deg,#162339 1px,transparent 1px)!important;border-color:#31415d!important}
+#atlasNotesSummary,.atlas-note-card,.atlas-notes-empty{background:#0d1727!important;color:#eaf1fd!important;border-color:#2a3852!important}.atlas-note-text{color:#d6e1f1!important}
+#atlasUnifiedToast,.atlas-selection-toast{background:#111c30!important;color:#eef4ff!important;border-color:#31405c!important}
+
+/* per-module dashboard cards */
+.module[data-atlas-module],.library[data-atlas-module]{--mod:var(--atlas-mod);--mod2:var(--atlas-mod2);position:relative}
+.module[data-atlas-module]:after{content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--mod) 25%,transparent)}
+.module[data-atlas-module] .cover{background:linear-gradient(135deg,color-mix(in srgb,var(--mod) 36%,#101a2c),color-mix(in srgb,var(--mod2) 25%,#111827))!important}
+.module[data-atlas-module] .code,.library[data-atlas-module] .libhead small{color:color-mix(in srgb,var(--mod) 78%,#fff)!important}
+.module[data-atlas-module] .modbtn{background:linear-gradient(135deg,color-mix(in srgb,var(--mod) 55%,#17243c),color-mix(in srgb,var(--mod2) 30%,#17243c))!important;border-color:color-mix(in srgb,var(--mod) 40%,#30405f)!important}
+.atlas-module-progress{margin:2px 0 13px}.atlas-module-progress-head{display:flex;justify-content:space-between;gap:10px;color:#91a1b8;font-size:.68rem;font-weight:850}.atlas-module-progress-head b{color:#eaf1ff}.atlas-module-progress-track{height:8px;background:#0a1322;border:1px solid #263650;border-radius:99px;overflow:hidden;margin-top:6px}.atlas-module-progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--mod),var(--mod2));border-radius:inherit;transition:width .28s ease;box-shadow:0 0 18px color-mix(in srgb,var(--mod) 35%,transparent)}
+.atlas-module-time{margin-top:7px;font-size:.65rem;color:#7587a1;font-weight:800}.atlas-module-time strong{color:color-mix(in srgb,var(--mod2) 78%,#fff)}
+.atlas-complete-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:8px 10px;border:1px solid #28364f;background:#0c1626;border-radius:11px}.atlas-complete-row label{display:flex;align-items:center;gap:7px;color:#9eacc1;font-size:.72rem;font-weight:900;cursor:pointer}.atlas-complete-row input{accent-color:var(--mod);width:16px;height:16px}.atlas-complete-row.done{background:color-mix(in srgb,var(--mod2) 9%,#0c1626);border-color:color-mix(in srgb,var(--mod2) 35%,#28364f)}.atlas-complete-row.done label{color:#dff9ef}.atlas-complete-row small{font-size:.6rem;color:#6f8099}
+
+/* timer */
+#atlasTimerBtn{border:1px solid color-mix(in srgb,var(--atlas-mod) 45%,#33435f);background:linear-gradient(145deg,#13213a,color-mix(in srgb,var(--atlas-mod) 18%,#13213a));color:#eef4ff;border-radius:12px;padding:9px 12px;font:inherit;font-size:.74rem;font-weight:950;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+#atlasTimerBtn .live{width:7px;height:7px;border-radius:50%;background:#718198}#atlasTimerBtn.running .live{background:var(--atlas-mod2);box-shadow:0 0 0 4px color-mix(in srgb,var(--atlas-mod2) 15%,transparent)}
+#atlasTimerFloat{position:fixed;right:88px;bottom:18px;z-index:7600}
+#atlasTimerModal[hidden]{display:none!important}#atlasTimerModal{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;padding:18px}.atlas-timer-back{position:absolute;inset:0;background:rgba(2,6,14,.76);backdrop-filter:blur(13px)}
+.atlas-timer-panel{position:relative;width:min(520px,95vw);overflow:hidden;border-radius:25px;background:radial-gradient(circle at 85% 0,color-mix(in srgb,var(--atlas-mod) 17%,transparent),transparent 16rem),linear-gradient(180deg,#101a2c,#0a1220);border:1px solid color-mix(in srgb,var(--atlas-mod) 35%,#33435e);box-shadow:0 36px 120px rgba(0,0,0,.65);color:#eff5ff}
+.atlas-timer-head{display:flex;justify-content:space-between;gap:14px;padding:20px 21px 15px;border-bottom:1px solid #27354e}.atlas-timer-kicker{font-size:.62rem;letter-spacing:.16em;font-weight:950;color:var(--atlas-mod)}.atlas-timer-head h2{margin:4px 0 0;font-size:1.35rem}.atlas-timer-close{border:0;background:#18253b;color:#dce7f7;width:35px;height:35px;border-radius:11px;font-weight:950}
+.atlas-timer-body{padding:20px}.atlas-timer-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#091321;border:1px solid #27364f;border-radius:14px;padding:5px}.atlas-timer-mode{border:0;border-radius:10px;background:transparent;color:#8191a8;padding:9px;font-weight:900}.atlas-timer-mode.active{background:linear-gradient(135deg,color-mix(in srgb,var(--atlas-mod) 35%,#15233a),color-mix(in srgb,var(--atlas-mod2) 20%,#15233a));color:#fff}
+.atlas-timer-display{text-align:center;padding:28px 0 20px}.atlas-timer-display .digits{font:950 clamp(2.6rem,10vw,4.7rem)/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.07em;background:linear-gradient(120deg,#fff,var(--atlas-mod2));-webkit-background-clip:text;color:transparent;text-shadow:0 18px 40px rgba(var(--atlas-mod-rgb),.12)}.atlas-timer-display small{display:block;color:#75869e;margin-top:8px;font-size:.7rem}
+.atlas-timer-presets{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:15px}.atlas-timer-presets button{border:1px solid #2e3e59;background:#101c30;color:#aebed3;border-radius:99px;padding:6px 9px;font-size:.66rem;font-weight:900}.atlas-timer-presets button:hover{border-color:var(--atlas-mod);color:#fff}.atlas-timer-custom{display:flex;justify-content:center;gap:7px;align-items:center;margin-bottom:15px}.atlas-timer-custom input{width:82px;background:#08111e;color:#eef4ff;border:1px solid #31415d;border-radius:10px;padding:8px;text-align:center}.atlas-timer-custom span{color:#7f8fa5;font-size:.7rem}
+.atlas-timer-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.atlas-timer-actions button{border:0;border-radius:12px;padding:11px;font-weight:950}.atlas-timer-start{background:linear-gradient(135deg,var(--atlas-mod),var(--atlas-mod2));color:#06111e}.atlas-timer-reset{background:#18243a;color:#cdd9ea}
+.atlas-timer-total{margin-top:16px;border:1px solid #283750;background:#0b1525;border-radius:15px;padding:12px 13px;display:flex;justify-content:space-between;gap:12px;align-items:center}.atlas-timer-total span{color:#8292a9;font-size:.7rem}.atlas-timer-total b{font:900 1rem/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--atlas-mod2)}
+.atlas-timer-session{margin-top:8px;text-align:center;color:#61748f;font-size:.62rem}
+@media(max-width:680px){#atlasTimerFloat{right:74px;bottom:10px}.atlas-timer-body{padding:15px}.atlas-timer-display{padding:22px 0 17px}}
