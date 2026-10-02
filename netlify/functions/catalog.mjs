@@ -101,7 +101,8 @@ function scoreTitle(query,title){
   if(!a.size||!b.size)return 0;
   let hit=0;for(const x of a)if(b.has(x))hit++;
   const precision=hit/Math.max(1,a.size),recall=hit/Math.max(1,b.size);
-  return (2*precision*recall)/Math.max(.001,precision+recall);
+  // Token-only overlap is useful, but must never outrank an exact calendar title/alias.
+  return .86*((2*precision*recall)/Math.max(.001,precision+recall));
 }
 export function matchCalendarLecture(text='',moduleHint=''){
   const raw=norm(text);if(!raw)return null;
