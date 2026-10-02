@@ -8,9 +8,14 @@
     const cs=[...document.querySelectorAll('.chapter')], y=innerHeight*.42;
     return cs.find(c=>{const r=c.getBoundingClientRect();return r.top<=y&&r.bottom>=y})||cs[0];
   }
+  function currentVisual(){
+    const vs=[...document.querySelectorAll('.visualcard')],y=innerHeight*.45;
+    return vs.find(v=>{const r=v.getBoundingClientRect();return r.top<=y&&r.bottom>=y})||vs.find(v=>v.getBoundingClientRect().top>0)||vs[0];
+  }
   function chapterLabel(){
-    const c=currentChapter();
-    return (c?.querySelector('.kicker')?.textContent||c?.querySelector('h2')?.textContent||'Current chapter').trim();
+    const c=currentChapter(),v=currentVisual(),slide=(v?.querySelector('.visualtag')?.textContent||'').trim();
+    const ch=(c?.querySelector('.kicker')?.textContent||c?.querySelector('h2')?.textContent||'Current chapter').trim();
+    return slide?slide+' · '+ch:ch;
   }
   function boot(){
     if(document.getElementById('atlasGenDock')) return;
@@ -128,6 +133,21 @@
       const f=activeFrame||[...document.querySelectorAll('.visualframe')].find(x=>{const r=x.getBoundingClientRect();return r.top<innerHeight*.65&&r.bottom>100});
       if(f){strokes.get(f)?.pop();renderFrame(f);saveInk()}
     };
+    document.addEventListener('mouseup',()=>{
+      if(!draw||tool!=='highlighter')return;
+      const sel=getSelection();if(!sel||sel.isCollapsed||!sel.rangeCount)return;
+      const range=sel.getRangeAt(0),main=document.querySelector('main');
+      if(!main?.contains(range.commonAncestorContainer))return;
+      if(range.commonAncestorContainer.parentElement?.closest?.('#atlasGenDock,#atlasGenTools,#atlasGenNotes,#atlasGenBoard'))return;
+      const mark=document.createElement('mark');mark.className='atlas-gen-highlight';mark.style.background=color;
+      try{range.surroundContents(mark);sel.removeAllRanges()}catch{}
+    });
+    document.addEventListener('click',e=>{
+      const m=e.target.closest?.('mark.atlas-gen-highlight');if(m&&draw&&tool==='eraser'){m.replaceWith(...m.childNodes)}
+    });
+    tools.querySelector('[data-tool="eraser"]').addEventListener('click',()=>document.body.classList.add('atlas-gen-erase-text'));
+    tools.querySelectorAll('[data-tool]:not([data-tool="eraser"])').forEach(b=>b.addEventListener('click',()=>document.body.classList.remove('atlas-gen-erase-text')));
+
     document.getElementById('atlasGTClear').onclick=()=>{
       const f=activeFrame||[...document.querySelectorAll('.visualframe')].find(x=>{const r=x.getBoundingClientRect();return r.top<innerHeight*.65&&r.bottom>100});
       if(f){strokes.set(f,[]);renderFrame(f);saveInk()}
@@ -163,7 +183,7 @@
       document.getElementById('atlasGNList').innerHTML=arr.length?arr.map((n,i)=>`<div class="atlas-gn-card"><b>${esc(n.context)}</b>${n.text?`<p>${esc(n.text)}</p>`:''}${n.sketch?`<img src="${n.sketch}" alt="note sketch">`:''}<button data-del="${i}">Delete</button></div>`).join(''):'<div class="atlas-gn-context">No notes yet.</div>';
       document.querySelectorAll('#atlasGNList [data-del]').forEach(b=>b.onclick=()=>{const all=read(NOTE_KEY,{}),k=pageKey();all[k].splice(Number(b.dataset.del),1);write(NOTE_KEY,all);renderNotes()});
     }
-    document.getElementById('atlasGNote').onclick=()=>{notes.hidden=false;document.getElementById('atlasGNContext').textContent=chapterLabel();renderNotes()};
+    document.getElementById('atlasGNote').onclick=()=>{notes.hidden=false;document.getElementById('atlasGNContext').textContent=chapterLabel();requestAnimationFrame(resetSketchSize);renderNotes()};
     notes.querySelector('[data-close-note]').onclick=()=>notes.hidden=true;
     document.getElementById('atlasGNSave').onclick=()=>{
       const all=read(NOTE_KEY,{}),k=pageKey();all[k]=all[k]||[];const text=document.getElementById('atlasGNText').value.trim();
