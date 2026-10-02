@@ -45,7 +45,7 @@
     async function toB64(f){if(b64cache.has(f))return b64cache.get(f);const p=new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});b64cache.set(f,p);return p}
 
     file.addEventListener('change',async()=>{
-      const f=file.files?.[0];if(!f)return;const mine=++seq;
+      const f=file.files?.[0];if(!f)return;const mine=++seq;const ds=modal.querySelector('#atlasDropSub');if(ds)ds.textContent=(f.size/1048576).toFixed(1)+' MB · safe chunked upload';
       const q=quickGuess(f.name); if(q.m)sel.value=q.m.id;if(q.num)file.dataset.lectureNumber=String(q.num);
       main.textContent=q.m?(q.m.code+(q.num?' · Lecture '+q.num:'')):'Reading cover…';
       sub.textContent='Confirming module, lecture number and title with Study Atlas AI…';
@@ -70,14 +70,40 @@
 
     const realFetch=window.fetch.bind(window);
     window.fetch=async function(input,init){
-      try{
-        const url=typeof input==='string'?input:input?.url||'';
-        if(url.includes('/api/ai/build-lecture')&&init?.body&&typeof init.body==='string'){
+      const url=typeof input==='string'?input:input?.url||'';
+      if(url.includes('/api/ai/build-lecture')&&init?.body&&typeof init.body==='string'){
+        try{
           const body=JSON.parse(init.body),f=file.files?.[0];
           if(f?.dataset?.lectureNumber)body.lecture_number=Number(f.dataset.lectureNumber)||null;
+          if(body.pdf_data&&body.pdf_data.length>650000){
+            const uploadId='up-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
+            const chunkSize=600000,total=Math.ceil(body.pdf_data.length/chunkSize),admin=body.admin_key||'';
+            status.className='atlas-builder-status';
+            status.textContent='Uploading the lecture safely in '+total+' small parts…';
+            const jobs=[];
+            for(let i=0;i<total;i++){
+              const chunk=body.pdf_data.slice(i*chunkSize,(i+1)*chunkSize);
+              jobs.push((async()=>{
+                const rr=await realFetch('/api/ai/upload-part',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({upload_id:uploadId,index:i,total,chunk,admin_key:admin})});
+                const jj=await rr.json().catch(()=>({}));
+                if(!rr.ok)throw new Error(jj.error||('Upload part '+(i+1)+' failed'));
+                return i;
+              })());
+            }
+            let done=0;
+            await Promise.all(jobs.map(p=>p.then(v=>{done++;status.textContent='Uploading lecture safely… '+done+'/'+total+' parts';return v})));
+            delete body.pdf_data;
+            body.upload_id=uploadId;
+            body.chunk_count=total;
+            status.textContent='Upload complete. Creating the lecture…';
+          }
           init={...init,body:JSON.stringify(body)};
+        }catch(err){
+          status.className='atlas-builder-status bad';
+          status.textContent=err?.message||String(err);
+          throw err;
         }
-      }catch(_){}
+      }
       return realFetch(input,init);
     };
   };
