@@ -58,7 +58,7 @@ export const esc = (v='') => String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','
 
 export function lecturePrompt({title,moduleName,moduleCode}){
 return `Read the attached original university lecture PDF carefully. Build a visual-first, concise but COMPLETE Study Atlas teaching version for ${moduleCode||''} ${moduleName||''}. Title: ${title}.
-Cover every important source point: labels, arrows, diagrams, pathways, tables, comparisons, exceptions, mechanisms and lecturer notes. Group related details so it stays compact rather than becoming a long transcript.
+Cover every important TEACHING point: labels, arrows, diagrams, pathways, tables, comparisons, exceptions, mechanisms and lecturer notes. Skip title pages, learning outcomes/objectives, module administration, timetables, reading lists, references, copyright pages, blank pages and repeated divider slides unless they contain genuinely examinable content. Do not explain learning outcomes themselves. Group related details so it stays compact rather than becoming a long transcript.
 Use original lecture visuals frequently and explain what the learner should look at in each one.
 Do not create dictionary-style etymology blocks. Explain terminology naturally in context. Add a fun fact only when there is a genuinely memorable story, historical point, unusual clinical fact, clever connection or useful mnemonic; otherwise leave it empty.
 Keep the untouched original PDF available through Slides buttons and at the end. No markdown or code fences.`;
@@ -80,10 +80,7 @@ export function renderGenerated(data, originalUrl, moduleCode='', lectureId='gen
       if(Number.isFinite(slide)&&slide>=start&&slide<=end&&!chosen.some(x=>x.slide===slide)) chosen.push({...v,slide});
       if(chosen.length>=3) break;
     }
-    if(!chosen.length){
-      chosen.push({slide:start,title:'Original lecture visual',explain:'Use this original slide as the visual anchor for the explanation below.'});
-      if(end>start+1)chosen.push({slide:end,title:'Original lecture visual',explain:'Compare this later slide with the first visual to see how the idea develops.'});
-    }
+    // No forced fallback: skipped/admin slides should never be displayed just to fill space.
     const visuals=chosen.map(v=>`<article class="visualcard"><div class="visualframe"><iframe loading="lazy" src="${esc(originalUrl)}#page=${v.slide}&toolbar=0&navpanes=0&zoom=page-width" title="Original lecture slide ${v.slide}"></iframe></div><div class="visualcopy"><div class="visualtag">ORIGINAL SLIDE ${v.slide}</div><h4>${esc(v?.title||'Look at the original visual')}</h4><p>${esc(v?.explain||'Focus on the labels, arrows and relationships shown here.')}</p>${Array.isArray(v?.labels)&&v.labels.length?`<ul>${v.labels.slice(0,6).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}<button class="openvisual" data-slide="${v.slide}">Open larger</button></div></article>`).join('');
     const concepts=[];
     if(ch?.intro) concepts.push(`<p class="lead">${esc(ch.intro)}</p>`);
@@ -97,7 +94,7 @@ export function renderGenerated(data, originalUrl, moduleCode='', lectureId='gen
       const opts=(q?.options||[]).map((o,oi)=>`<label><input type="radio" name="q${i}_${qi}" value="${oi}"><span>${esc(o)}</span></label>`).join('');
       return `<div class="q" data-answer="${Number(q?.answer_index||0)}"><b>${esc(q?.question||'Check yourself')}</b><div class="opts">${opts}</div><button class="checkq">Check</button><div class="feedback" data-exp="${esc(q?.explanation||'')}"></div></div>`
     }).join('');
-    sections.push(`<section class="chapter" id="${cid}" data-start="${start}" data-end="${end}"><div class="chhead"><div><div class="kicker">CHAPTER ${String(i).padStart(2,'0')} · SLIDES ${start}–${end}</div><h2>${esc(ct)}</h2><p>${esc(ch?.summary||'')}</p></div><button class="slidesbtn">Slides ${start}–${end}</button></div><div class="origpane" hidden><div class="origbar"><b>Original lecture · slide ${start}</b><button class="closeorig">Close</button></div><iframe loading="lazy" src="${esc(originalUrl)}#page=${start}&toolbar=0&navpanes=0"></iframe></div>${concepts.shift()||''}<div class="visualgrid">${visuals}</div>${concepts.join('')}${qs?`<section class="chaptercheck"><h4>Quick chapter check</h4>${qs}</section>`:''}</section>`)
+    sections.push(`<section class="chapter" id="${cid}" data-start="${start}" data-end="${end}"><div class="chhead"><div><div class="kicker">CHAPTER ${String(i).padStart(2,'0')} · SLIDES ${start}–${end}</div><h2>${esc(ct)}</h2><p>${esc(ch?.summary||'')}</p></div><button class="slidesbtn">Slides ${start}–${end}</button></div><div class="origpane" hidden><div class="origbar"><b>Original lecture · slide ${start}</b><button class="closeorig">Close</button></div><iframe loading="lazy" src="${esc(originalUrl)}#page=${start}&toolbar=0&navpanes=0"></iframe></div>${concepts.shift()||''}${visuals?`<div class="visualgrid">${visuals}</div>`:''}${concepts.join('')}${qs?`<section class="chaptercheck"><h4>Quick chapter check</h4>${qs}</section>`:''}</section>`)
   });
   const cheat=(data?.cheat_sheet||[]).map(c=>`<div class="cheat"><h4>${esc(c?.heading||'Remember')}</h4><ul>${(c?.bullets||[]).map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('');
   const css=`
