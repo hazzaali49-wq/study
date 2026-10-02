@@ -9,9 +9,9 @@ export const MODULES = [
 
 export const LECTURE_CATALOG = {
   MDSA20030:[
-    [1,'Module Introduction / Principles of Endocrinology'],[2,'Hypothalamus and Pituitary - Anatomy'],
-    [3,'Hypothalamus and Posterior Pituitary - Physiology'],[4,'Anterior Pituitary - Physiology'],
-    [5,'Growth Hormone / IGF-I Axis'],[6,'Thyroid and Parathyroid Anatomy'],[7,'Thyroid Physiology'],
+    [1,'Module Introduction / Principles of Endocrinology'],[2,'Clinical Anatomy of the Pituitary'],
+    [3,'Hypothalamus and Pituitary'],[4,'Anterior Pituitary Physiology'],
+    [5,'Clinical Anatomy of the Thyroid & Parathyroid Glands'],[6,'Growth Hormone / IGF-I Axis'],[7,'Thyroid Physiology'],
     [8,'Calcium Regulation'],[9,'Adrenal Physiology'],[10,'Endocrine Pancreas'],[11,'Diabetes Mellitus'],
     [12,'Development of the Gonads'],[13,'Anatomy of Testis and Associated Structures'],
     [14,'Anatomy of Ovary and Associated Structures'],[15,'Male Reproductive Endocrinology'],
