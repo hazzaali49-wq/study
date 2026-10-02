@@ -156,7 +156,11 @@ export default async (req) => {
     const detectedNo=Number(job.lecture_number)||inferLectureNumber(moduleCode,obj.title||job.title,job.filename)||null;
     const lectureNo=detectedNo||sameModule+1;
     const meta={id:job.lecture_id,module_id:moduleId,module_name:moduleName,module_code:moduleCode,number:String(lectureNo).padStart(2,'0'),title:obj.title,slides:`${total} original slides`,chapters:`${chapters.length} AI chapters`,description:obj.description||obj.subtitle||'AI-generated Study Atlas lecture.',created:Date.now()};
-    const next=manifest.filter(x=>x.id!==meta.id);next.push(meta);await store.setJSON('manifest.json',next);
+    const oldMatch=manifest.find(x=>x.id!==meta.id&&x.module_id===meta.module_id&&String(x.number||'').replace(/^0+/,'')===String(meta.number||'').replace(/^0+/,''));
+    const next=manifest.filter(x=>x.id!==meta.id&&!(x.module_id===meta.module_id&&String(x.number||'').replace(/^0+/,'')===String(meta.number||'').replace(/^0+/,'')));next.push(meta);await store.setJSON('manifest.json',next);
+    if(oldMatch?.id){
+      Promise.allSettled([store.delete(`lectures/${oldMatch.id}.html`),store.delete(`originals/${oldMatch.id}.pdf`)]).catch(()=>{});
+    }
     job={...job,status:'complete',stage:'Lecture ready.',lecture:meta,completed:Date.now()};await store.setJSON(key,job);
   }catch(e){job={...job,status:'error',stage:'Build failed.',error:e?.message||String(e),completed:Date.now()};await store.setJSON(key,job)}
 };
