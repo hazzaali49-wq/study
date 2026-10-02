@@ -1,0 +1,31 @@
+name: Mind sanity check
+
+on:
+  push:
+    branches: [mind-app]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Extract browser JavaScript
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path("mind/index.html").read_text()
+          scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
+          assert scripts, "No inline script found"
+          Path("/tmp/mind-app.js").write_text("\n".join(scripts))
+          PY
+      - name: Check browser JavaScript
+        run: node --check /tmp/mind-app.js
+      - name: Check Netlify function
+        run: node --check mind/netlify/functions/assistant.mjs
+      - name: Check required files
+        run: test -f mind/index.html && test -f netlify.toml
