@@ -1,0 +1,18 @@
+{
+  "name": "Mind",
+  "short_name": "Mind",
+  "description": "Your personal command centre for planning, study, spending, notes and reminders.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#0c1233",
+  "theme_color": "#0f1538",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

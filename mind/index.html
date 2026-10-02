@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mind">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
 <meta name="theme-color" content="#0f1538">
 <title>Mind</title>
 <style>
@@ -14,6 +20,97 @@ button,input,textarea,select{font:inherit}.shell{display:grid;grid-template-colu
 .title{display:flex;justify-content:space-between;align-items:end;margin:5px 0 23px}.title p:not(.eyebrow){color:var(--muted);margin:9px 0 0}.pill{background:#20285e;border:1px solid #323b78;border-radius:999px;padding:8px 12px;color:#c8d0ed;font-size:11px}.cols{display:grid;grid-template-columns:350px 1fr;gap:17px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.form-grid label{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#8c97c1;font-weight:800}.form-grid input,.form-grid select,.search{width:100%;margin-top:6px;background:#0f1538;border:1px solid #2b346e;color:#f4f5ff;border-radius:10px;padding:10px;outline:0}.full{grid-column:1/-1}.tasklist{display:grid;gap:9px}.task{display:grid;grid-template-columns:auto 1fr auto;gap:11px;align-items:center;background:#10163a;border:1px solid #252d63;border-radius:13px;padding:12px}.task strong{font-size:12px}.task p{font-size:10px;color:#7e8ab7;margin:3px 0 0}.prio{font-size:9px;padding:5px 7px;border-radius:999px;background:#252d64}.prio.High{color:#ff969d;background:rgba(255,114,124,.13)}.prio.Medium{color:#ffe590;background:rgba(255,213,94,.12)}.bars{display:grid;gap:11px}.bar{display:grid;grid-template-columns:80px 1fr 62px;gap:9px;align-items:center;font-size:10px}.track{height:8px;border-radius:999px;background:#0f1538;overflow:hidden}.fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--blue));border-radius:999px}.bar span:last-child{text-align:right;color:#aeb8d9}.ledger{margin-top:17px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;font-size:9px;color:#7480ad;padding:9px;border-bottom:1px solid #29316a}td{padding:11px 9px;border-bottom:1px solid #222a60;color:#c6ceeb}.expense{color:#ff9098}.income{color:#7de1bf}.compose input,.compose textarea{width:100%;border:0;outline:0;background:transparent;color:#fff}.compose>form>input{font-size:19px;font-weight:800}.compose textarea{min-height:105px;resize:vertical;margin:10px 0;color:#c1c9e7;line-height:1.55}.compose .row input{background:#0f1538;border:1px solid var(--line);border-radius:10px;padding:9px}.row{display:flex;align-items:center;gap:8px}.between{justify-content:space-between}.notegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:17px}.note{background:#171e4d;border:1px solid #2a336d;border-radius:18px;padding:17px;min-height:155px;display:flex;flex-direction:column}.note h3{margin:0 0 7px;font-size:15px}.note p{font-size:11px;color:#a6b0d1;white-space:pre-wrap;line-height:1.5}.notefoot{margin-top:auto;display:flex;justify-content:space-between;color:#737eab;font-size:9px}.tag{background:#242d68;border-radius:999px;padding:4px 6px;margin-right:4px}.aiwrap{display:grid;grid-template-columns:330px 1fr;gap:20px;min-height:calc(100vh - 135px)}.ai-intro{padding:35px 15px}.orb{width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff5b4 0 8%,var(--yellow) 9% 28%,var(--coral) 57%,#735ad9 100%);display:grid;place-items:center;font-size:27px;box-shadow:0 0 0 9px rgba(156,134,255,.05);margin-bottom:22px}.ai-intro>p:not(.eyebrow){color:#9ba7cd;line-height:1.7}.suggest{display:grid;gap:7px;margin-top:20px}.suggest button{background:#171e4d;color:#b9c3e3;border:1px solid #2a336e;border-radius:11px;padding:10px;text-align:left;cursor:pointer}.chat{background:#f7f7fb;color:#242844;border-radius:23px;overflow:hidden;display:flex;flex-direction:column;min-height:595px}.chathead{height:58px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e0e3ef}.chathead b:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#53d89e;margin-right:8px}.messages{flex:1;padding:20px;display:flex;flex-direction:column;gap:11px;overflow:auto;max-height:calc(100vh - 270px)}.msg{max-width:78%;padding:11px 13px;border-radius:14px;font-size:12px;line-height:1.55;white-space:pre-wrap}.msg.ai{background:#e9ebf4;align-self:flex-start}.msg.user{background:#222a61;color:#fff;align-self:flex-end}.chat form{display:flex;gap:8px;padding:12px;border-top:1px solid #e0e3ef}.chat textarea{flex:1;border:1px solid #d4d8e6;border-radius:11px;padding:11px;resize:none;outline:0}.chat form button{width:42px;border:0;border-radius:11px;background:#252e68;color:#fff;cursor:pointer}.toast{position:fixed;right:22px;bottom:22px;background:#f7f7ff;color:#212642;padding:11px 15px;border-radius:11px;box-shadow:0 15px 40px rgba(0,0,0,.25);z-index:99;opacity:0;transform:translateY(20px);transition:.2s}.toast.show{opacity:1;transform:none}.menu{display:none}
 @media(max-width:980px){.metrics{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.cols,.aiwrap{grid-template-columns:1fr}.notegrid{grid-template-columns:1fr 1fr}.space-art{display:none}}
 @media(max-width:720px){.shell{display:block}.side{transform:translateX(-100%);transition:.2s}.side.open{transform:none}.menu{display:block}.top{padding:0 14px}.page{padding:18px 13px}.hero{padding:28px 22px}.hero h2,.title h2,.ai-intro h2{font-size:31px}.command{margin:-18px 10px 22px}.metrics{gap:9px}.metric{padding:13px}.grid{display:block}.grid .card{margin-bottom:12px}.span2{grid-column:auto}.cols{display:block}.cols .card{margin-bottom:13px}.notegrid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.full{grid-column:1}.ai-intro{padding:10px 4px}.chat{min-height:570px}.messages{max-height:420px}.date span{display:none}}
+
+/* Mind mobile app shell */
+@media(max-width:720px){
+  html,body{overscroll-behavior-y:none}
+  body{padding-bottom:calc(78px + env(safe-area-inset-bottom));background:radial-gradient(circle at 85% -10%,#263475 0,transparent 34%),var(--bg)}
+  body:before{opacity:.16}
+  .shell{display:block;min-height:100dvh}
+  main{display:block;width:100%}
+  .side{position:fixed!important;left:0;right:0;top:auto!important;bottom:0;width:100%!important;height:calc(70px + env(safe-area-inset-bottom))!important;padding:6px 6px calc(6px + env(safe-area-inset-bottom))!important;transform:none!important;border-right:0;border-top:1px solid rgba(255,255,255,.08);background:rgba(8,12,39,.94);backdrop-filter:blur(20px);z-index:60;display:block}
+  .brand,.side-bottom{display:none!important}
+  #nav{display:flex;gap:2px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;height:100%;align-items:center}
+  #nav::-webkit-scrollbar{display:none}
+  .nav{flex:1 0 54px;min-width:54px;max-width:78px;height:54px;padding:5px 2px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:14px;text-align:center;font-size:0!important;color:#8994c1}
+  .nav::before{content:attr(data-icon);display:block;font-size:20px;line-height:20px;font-weight:800}
+  .nav::after{content:attr(data-label);display:block;font-size:9px;line-height:10px;font-weight:800;letter-spacing:.1px}
+  .nav.active{background:#20295f;color:#fff;box-shadow:inset 0 -3px var(--yellow)}
+  .top{height:58px;padding:calc(env(safe-area-inset-top) + 2px) 14px 0;background:rgba(12,18,51,.9);z-index:40}
+  .menu,#notifyBtn{display:none!important}
+  .date{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+  .date span{display:none}
+  .top .primary{padding:9px 12px;min-height:38px;font-size:12px;border-radius:12px}
+  .page{padding:14px 12px 24px;max-width:none}
+  .hero{min-height:176px;padding:24px 20px 38px;border-radius:24px}
+  .hero h2,.title h2,.ai-intro h2{font-size:30px;letter-spacing:-1.2px}
+  .hero p{font-size:13px;line-height:1.55;margin-bottom:0}
+  .space-art{display:none}
+  .command{margin:-24px 8px 16px;padding:7px 7px 7px 13px;border-radius:16px;gap:7px;box-shadow:0 12px 30px rgba(0,0,0,.28)}
+  .command input{font-size:16px;height:42px}
+  .command button{height:42px;padding:0 12px;font-size:12px;border-radius:11px}
+  .metrics{grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+  .metric{padding:12px 11px;border-radius:16px;gap:9px;min-width:0}
+  .mi{width:38px;height:38px;border-radius:12px;flex:0 0 38px}
+  .metric strong{font-size:18px}
+  .metric p{font-size:10px}
+  .metric small{font-size:9px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+  .grid,.cols,.notegrid,.aiwrap{display:block}
+  .grid .card,.cols .card{margin-bottom:11px}
+  .card{padding:16px;border-radius:18px}
+  .span2{grid-column:auto}
+  .head{margin-bottom:13px}
+  .head h3,.card h3{font-size:16px}
+  .link{font-size:11px;padding:8px 0}
+  .title{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin:3px 0 16px}
+  .title p:not(.eyebrow){font-size:12px;margin:6px 0 0}
+  .title>.pill,.title>.search,#dayDate{align-self:flex-start;max-width:100%!important}
+  .form-grid{grid-template-columns:1fr;gap:10px}
+  .full{grid-column:1}
+  .form-grid input,.form-grid select,.search,.compose .row input{min-height:48px;font-size:16px;padding:11px 12px;border-radius:12px}
+  .primary,.ghost{min-height:44px}
+  .check{width:30px;height:30px;border-radius:9px}
+  .task{padding:12px 10px;gap:9px;border-radius:14px}
+  .task strong{font-size:13px}
+  .task p{font-size:10px;line-height:1.4}
+  .tinybtn{min-width:30px;min-height:30px;font-size:18px}
+  .tl{grid-template-columns:48px 10px 1fr auto;gap:7px}
+  .tl:not(:last-child):after{left:53px}
+  .time{font-size:10px}
+  .money3{grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .money3 div{padding:10px 8px}
+  .money3 strong{font-size:13px}
+  .money3 small{font-size:9px}
+  .bar{grid-template-columns:68px 1fr 58px}
+  .ledger{margin-left:-4px;margin-right:-4px;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:620px}
+  .notegrid{margin-top:12px}
+  .note{min-height:130px;margin-bottom:10px}
+  .compose>form>input{font-size:18px}
+  .compose textarea{font-size:16px;min-height:120px}
+  .compose .row{align-items:stretch;flex-direction:column}
+  .compose .row .primary{width:100%}
+  .ai-intro{display:none}
+  #p-ai{padding:9px 9px 12px}
+  .aiwrap{min-height:0}
+  .chat{min-height:calc(100dvh - 150px);height:calc(100dvh - 150px);border-radius:19px;box-shadow:0 14px 38px rgba(0,0,0,.22)}
+  .chathead{height:52px;padding:0 14px}
+  .messages{max-height:none;min-height:0;padding:14px;gap:9px}
+  .msg{max-width:90%;font-size:14px;padding:10px 12px}
+  .chat form{padding:9px;gap:7px}
+  .chat textarea{font-size:16px;min-height:46px;max-height:112px}
+  .chat form button{width:46px;height:46px;flex:0 0 46px}
+  .toast{left:12px;right:12px;bottom:calc(82px + env(safe-area-inset-bottom));text-align:center}
+}
+@media(max-width:390px){
+  .nav{flex-basis:50px;min-width:50px}
+  .nav::after{font-size:8px}
+  .metrics{gap:7px}
+  .metric{padding:10px 9px}
+  .metric small{max-width:78px}
+  .hero h2,.title h2{font-size:28px}
+}
+
 </style>
 </head>
 <body>
@@ -21,13 +118,13 @@ button,input,textarea,select{font:inherit}.shell{display:grid;grid-template-colu
 <aside class="side" id="side">
   <div class="brand"><div class="logo"></div><div><h1>mind</h1><small>life, in one place</small></div></div>
   <nav id="nav">
-    <button class="nav active" data-page="home">⌂ &nbsp; Overview</button>
-    <button class="nav" data-page="day">◷ &nbsp; My day</button>
-    <button class="nav" data-page="study">✦ &nbsp; Study</button>
-    <button class="nav" data-page="money">◉ &nbsp; Spending</button>
-    <button class="nav" data-page="notes">✎ &nbsp; Notes</button>
-    <button class="nav" data-page="reminders">◌ &nbsp; Reminders</button>
-    <button class="nav" data-page="ai">✺ &nbsp; Mind AI</button>
+    <button class="nav active" data-page="home" data-label="Home" data-icon="⌂">⌂ &nbsp; Overview</button>
+    <button class="nav" data-page="day" data-label="Day" data-icon="◷">◷ &nbsp; My day</button>
+    <button class="nav" data-page="study" data-label="Study" data-icon="✦">✦ &nbsp; Study</button>
+    <button class="nav" data-page="money" data-label="Spend" data-icon="€">◉ &nbsp; Spending</button>
+    <button class="nav" data-page="notes" data-label="Notes" data-icon="✎">✎ &nbsp; Notes</button>
+    <button class="nav" data-page="reminders" data-label="Remind" data-icon="◌">◌ &nbsp; Reminders</button>
+    <button class="nav" data-page="ai" data-label="AI" data-icon="✺">✺ &nbsp; Mind AI</button>
   </nav>
   <div class="side-bottom">
     <button class="ghost" id="exportBtn">Export backup</button>
@@ -213,5 +310,6 @@ q('#chatForm').onsubmit=function(ev){ev.preventDefault();var i=q('#chatInput'),s
 q('#exportBtn').onclick=function(){var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mind-backup-'+iso()+'.json';a.click();URL.revokeObjectURL(a.href)};
 q('#importFile').onchange=async function(ev){var f=ev.target.files[0];if(!f)return;try{data=Object.assign({day:[],study:[],tx:[],notes:[],rem:[]},JSON.parse(await f.text()));save();tmsg('Backup imported')}catch(err){tmsg('Invalid backup file')}};
 seed();render();
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){})})}
 </script>
 </body></html>
