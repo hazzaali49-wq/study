@@ -57,11 +57,11 @@ export function parseModelJSON(text=''){
 export const esc = (v='') => String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 export function lecturePrompt({title,moduleName,moduleCode}){
-return `Read the attached original university lecture PDF carefully. Build a Study Atlas teaching version for ${moduleCode||''} ${moduleName||''}. Title: ${title}.
-The AI study version comes FIRST. Do not reproduce the original slides in the normal lesson flow. Keep the untouched original PDF available only through each chapter's "Slides X–Y" button and at the very end.
-Return ONLY valid JSON with this shape:
-{"title":"...","subtitle":"one short inviting overview","description":"one concise dashboard sentence","slide_count":29,"chapters":[{"title":"memorable chapter title","slide_start":1,"slide_end":5,"summary":"one sentence","intro":"2-4 concise teaching sentences","concepts":[{"heading":"concept","explain":"clear concise explanation; define specialised nouns/abbreviations the first time","why_name":"meaningful why-it-is-called-that / etymology / story when useful, else empty","memory":"useful analogy or connection that genuinely aids memory","clinical":"brief clinical or real-world link when supported/relevant, else empty"}],"questions":[{"question":"short SBA-style check","options":["A","B","C","D"],"answer_index":0,"explanation":"1-2 lines"}]}],"cheat_sheet":[{"heading":"topic","bullets":["compact high-yield fact","mechanism/pathway"]}]}
-Preserve slide order and source terminology. Group roughly 3-6 slides per chapter. Explain unfamiliar concepts a little more than the slide but stay concise. Make it fun and memorable, not childish. Include meaningful name stories, links, analogies and clinical relevance. Put 2-3 questions under EACH chapter. Make the cheat sheet compact but complete. No markdown and no code fences.`;
+return `Read the attached original university lecture PDF carefully. Build a visual-first, concise but COMPLETE Study Atlas teaching version for ${moduleCode||''} ${moduleName||''}. Title: ${title}.
+Cover every important source point: labels, arrows, diagrams, pathways, tables, comparisons, exceptions, mechanisms and lecturer notes. Group related details so it stays compact rather than becoming a long transcript.
+Use original lecture visuals frequently and explain what the learner should look at in each one.
+Do not create dictionary-style etymology blocks. Explain terminology naturally in context. Add a fun fact only when there is a genuinely memorable story, historical point, unusual clinical fact, clever connection or useful mnemonic; otherwise leave it empty.
+Keep the untouched original PDF available through Slides buttons and at the end. No markdown or code fences.`;
 }
 
 export function renderGenerated(data, originalUrl, moduleCode='', lectureId='generated'){
