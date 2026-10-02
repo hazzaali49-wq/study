@@ -66,19 +66,86 @@ export const LECTURE_CATALOG = {
   ]
 };
 
+
+/*
+  Official course-calendar hints.
+  Lecture numbers follow the LMS/library numbering; scheduled dates come from the
+  module timetable where available. Aliases let the detector match the wording
+  actually used on lecture PDFs, even when it differs from the library card title.
+*/
+export const COURSE_CALENDAR = {
+  MDSA20030:[
+    {n:1,title:'Module Introduction / Principles of Endocrinology',date:'2026-09-09',aliases:['module introduction','principles of endocrinology']},
+    {n:2,title:'Clinical Anatomy of the Pituitary',date:'2026-09-11',aliases:['hypothalamus and pituitary anatomy','clinical anatomy of the pituitary gland and hypothalamus','clinical anatomy of the pituitary']},
+    {n:3,title:'Hypothalamus and Pituitary',date:'2026-09-16',aliases:['hypothalamus and posterior pituitary physiology','posterior pituitary physiology']},
+    {n:4,title:'Anterior Pituitary Physiology',date:'2026-09-18',aliases:['anterior pituitary physiology','anterior pituitary']},
+    {n:6,title:'Growth Hormone / IGF-I Axis',date:'2026-09-23',aliases:['growth hormone igf i axis','growth hormone igf-1 axis','gh igf i axis','gh igf-1 axis']},
+    {n:5,title:'Clinical Anatomy of the Thyroid & Parathyroid Glands',date:'2026-09-25',aliases:['thyroid and parathyroid anatomy','clinical anatomy of the thyroid and parathyroid glands']},
+    {n:7,title:'Thyroid Physiology',date:'2026-09-30',aliases:['thyroid physiology']},
+    {n:8,title:'Calcium Regulation',date:'2026-10-02',aliases:['calcium regulation','calcium homeostasis']}
+  ]
+};
+
 const norm=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,' ').trim();
 const tokens=s=>new Set(norm(s).split(/\s+/).filter(x=>x.length>2));
+
+const STOP=new Set(['lecture','clinical','anatomy','physiology','biology','module','gland','glands','the','and','of','to','in','a','an']);
+const usefulTokens=s=>new Set([...tokens(s)].filter(x=>!STOP.has(x)));
+function scoreTitle(query,title){
+  const q=norm(query),t=norm(title);
+  if(!q||!t)return 0;
+  if(q===t)return 1;
+  if(q.includes(t) && t.length>=10)return .97;
+  if(t.includes(q) && q.length>=10)return .93;
+  const a=usefulTokens(q),b=usefulTokens(t);
+  if(!a.size||!b.size)return 0;
+  let hit=0;for(const x of a)if(b.has(x))hit++;
+  const precision=hit/Math.max(1,a.size),recall=hit/Math.max(1,b.size);
+  return (2*precision*recall)/Math.max(.001,precision+recall);
+}
+export function matchCalendarLecture(text='',moduleHint=''){
+  const raw=norm(text);if(!raw)return null;
+  const candidates=[];
+  for(const [code,rows] of Object.entries(LECTURE_CATALOG)){
+    for(const [n,title] of rows){
+      let score=scoreTitle(raw,title),matched=title,date=null;
+      const cal=(COURSE_CALENDAR[code]||[]).find(x=>Number(x.n)===Number(n));
+      if(cal){
+        date=cal.date||null;
+        for(const alias of [cal.title,...(cal.aliases||[])]){
+          const a=scoreTitle(raw,alias);
+          if(a>score){score=a;matched=alias}
+        }
+      }
+      if(raw.includes(norm(code)))score=Math.max(score,.995);
+      if(moduleHint&&String(moduleHint).toUpperCase()===code)score=Math.min(1,score+.025);
+      candidates.push({module_code:code,number:Number(n),title,calendar_date:date,matched,score});
+    }
+  }
+  candidates.sort((a,b)=>b.score-a.score);
+  const best=candidates[0],second=candidates[1];
+  if(!best||best.score<.55)return null;
+  const margin=best.score-(second?.score||0);
+  const exact=best.score>=.92;
+  if(!exact&&margin<.12)return null;
+  return {...best,confidence:Math.max(.7,Math.min(.995,best.score+(margin>.2?.03:0))),method:'calendar'};
+}
+
 export function getModule(codeOrId=''){
   const q=norm(codeOrId); return MODULES.find(m=>norm(m.code)===q||norm(m.id)===q)||null;
 }
 export function inferModule(text=''){
   const n=norm(text); for(const m of MODULES)if(n.includes(norm(m.code)))return m;
+  const cal=matchCalendarLecture(text);
+  if(cal?.confidence>=.78)return MODULES.find(m=>m.code===cal.module_code)||null;
   let best=null,score=0; for(const m of MODULES){let s=0;for(const k of m.keywords||[])if(n.includes(norm(k)))s+=norm(k).split(' ').length+1;if(s>score){score=s;best=m}}
   return score?best:null;
 }
 export function inferLectureNumber(moduleCode='',title='',filename=''){
   const raw=norm(String(title)+' '+String(filename));
   const code=String(moduleCode||'').toUpperCase();
+  const cal=matchCalendarLecture(String(title)+' '+String(filename),code);
+  if(cal&&cal.module_code===code&&cal.confidence>=.72)return cal.number;
 
   // Course-specific aliases where fuzzy token matching is ambiguous.
   if(code==='MDSA20030'){
@@ -98,3 +165,13 @@ export function inferLectureNumber(moduleCode='',title='',filename=''){
   return bestScore>=.34?best:null;
 }
 export function compactCatalog(){return Object.fromEntries(Object.entries(LECTURE_CATALOG).map(([code,rows])=>[code,rows.map(([n,t])=>({n,t}))]));}
+export function compactCalendar(){
+  const out={};
+  for(const [code,rows] of Object.entries(LECTURE_CATALOG)){
+    out[code]=rows.map(([n,t])=>{
+      const c=(COURSE_CALENDAR[code]||[]).find(x=>Number(x.n)===Number(n));
+      return {n,t,date:c?.date||null,aliases:c?.aliases||[]};
+    });
+  }
+  return out;
+}
