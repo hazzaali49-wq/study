@@ -1,6 +1,7 @@
 import {getStore} from '@netlify/blobs';
 import {PDFDocument} from 'pdf-lib';
 import {MODEL, callOpenAI, outputText, parseModelJSON, renderGenerated} from './_shared.mjs';
+const BUILD_MODEL=process.env.OPENAI_BUILD_MODEL||MODEL;
 import {inferLectureNumber, getModule, inferModule} from './catalog.mjs';
 
 const escPrompt=(s='')=>String(s||'').replace(/\s+/g,' ').trim();
@@ -35,7 +36,7 @@ async function splitIntoSafeChunks(bytes){
   const chunks=[];
   let start=0;
   while(start<total){
-    let end=Math.min(total,start+5), data;
+    let end=Math.min(total,start+7), data;
     while(true){
       data=await makeChunkPdf(source,start,end);
       const b64Len=Math.ceil(data.byteLength/3)*4;
@@ -46,6 +47,20 @@ async function splitIntoSafeChunks(bytes){
     start=end;
   }
   return {total,chunks};
+}
+
+async function callFast(payload){
+  let last;
+  for(let attempt=0;attempt<3;attempt++){
+    try{return await callOpenAI(payload,420000)}
+    catch(e){
+      last=e;
+      const msg=String(e?.message||e);
+      if(!/429|rate|temporar|timeout|overload|5\d\d/i.test(msg)||attempt===2)throw e;
+      await new Promise(r=>setTimeout(r,900*(attempt+1)));
+    }
+  }
+  throw last;
 }
 
 async function runPool(items,limit,worker){
@@ -83,21 +98,21 @@ export default async (req) => {
     const arr=await store.get(`jobs/${jobId}/original.pdf`,{type:'arrayBuffer',consistency:'strong'}); if(!arr)throw new Error('Original PDF was not found.');
     const bytes=new Uint8Array(arr);
     const {total,chunks}=await splitIntoSafeChunks(bytes);
-    job={...job,stage:`Reading ${total} slides in ${chunks.length} safe sections…`};await store.setJSON(key,job);
+    job={...job,stage:`Fast build: reading ${total} slides in ${chunks.length} safe sections (${Math.min(4,chunks.length)} at once)…`};await store.setJSON(key,job);
 
     let finished=0;
-    const parts=await runPool(chunks,2,async ch=>{
+    const parts=await runPool(chunks,4,async ch=>{
       const b64=Buffer.from(ch.bytes).toString('base64');
       const payload={
-        model:MODEL,
+        model:BUILD_MODEL,
         instructions:'Build a concise, source-faithful medical study guide from this PDF section. Output only valid JSON.',
         input:[{role:'user',content:[
           {type:'input_file',filename:`${job.filename.replace(/\.pdf$/i,'')} slides ${ch.start}-${ch.end}.pdf`,file_data:`data:application/pdf;base64,${b64}`},
           {type:'input_text',text:chunkPrompt({title:job.title,moduleName:job.module_name,moduleCode:job.module_code,start:ch.start,end:ch.end,total})}
         ]}],
-        max_output_tokens:5200
+        max_output_tokens:4400
       };
-      const data=await callOpenAI(payload,420000);
+      const data=await callFast(payload);
       const obj=parseModelJSON(outputText(data));
       finished++;
       job={...job,stage:`AI finished ${finished}/${chunks.length} slide sections…`};await store.setJSON(key,job);
