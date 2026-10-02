@@ -77,6 +77,29 @@ async function callFast(payload){
   throw last;
 }
 
+async function buildChunk(payload){
+  let lastError;
+  for(let attempt=0;attempt<2;attempt++){
+    const request={
+      ...payload,
+      text:{format:{type:'json_object'}},
+      max_output_tokens:attempt===0?(payload.max_output_tokens||5600):7200,
+      instructions:attempt===0
+        ? payload.instructions
+        : 'Return one COMPLETE valid JSON object only. Keep explanations compact so the JSON finishes. Do not use markdown, comments, or trailing text.'
+    };
+    try{
+      const data=await callFast(request);
+      if(data?.status==='incomplete') throw new Error('AI response was incomplete');
+      return parseModelJSON(outputText(data));
+    }catch(e){
+      lastError=e;
+      if(attempt===0) await new Promise(r=>setTimeout(r,500));
+    }
+  }
+  throw new Error('AI could not produce valid lecture data after an automatic retry. Please press Build lecture once more.');
+}
+
 async function runPool(items,limit,worker){
   const results=new Array(items.length); let cursor=0;
   async function lane(){
@@ -126,8 +149,7 @@ export default async (req) => {
         ]}],
         max_output_tokens:5600
       };
-      const data=await callFast(payload);
-      const obj=parseModelJSON(outputText(data));
+      const obj=await buildChunk(payload);
       finished++;
       job={...job,stage:`AI finished ${finished}/${chunks.length} slide sections…`};await store.setJSON(key,job);
       return obj;
