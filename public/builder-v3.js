@@ -6,6 +6,18 @@
     if(!modal||!file||!sel||!title||!status||!form)return setTimeout(wait,80);
     if(modal.dataset.autoDetectReady)return; modal.dataset.autoDetectReady='1';
 
+    // Keep lecture creation only on the main dashboard.
+    document.querySelectorAll('.atlas-builder-fab,.atlas-lib-add').forEach(x=>x.remove());
+    const head=document.querySelector('#rootPage .head');
+    if(head&&!head.querySelector('.atlas-top-add')){
+      const actions=document.createElement('div');actions.className='atlas-top-actions';
+      const add=document.createElement('button');add.type='button';add.className='atlas-top-add';
+      add.innerHTML='<span>✦</span> Add lecture';
+      add.onclick=()=>window.StudyAtlasLectureBuilder?.open?.();
+      actions.appendChild(add);head.appendChild(actions);
+    }
+
+
     const grid=modal.querySelector('.atlas-builder-grid');
     const summary=document.createElement('div'); summary.className='atlas-auto-detect full';
     summary.innerHTML='<div class="atlas-auto-icon">✦</div><div class="atlas-auto-copy"><small>AUTO DETECT</small><strong id="atlasAutoMain">Drop a lecture and I’ll identify it.</strong><span id="atlasAutoSub">Module, lecture number and title will be filled automatically.</span></div><button type="button" id="atlasAutoEdit">Edit</button>';
