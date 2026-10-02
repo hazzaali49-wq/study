@@ -43,3 +43,9 @@ body[data-atlas-module="nmhs10100"]{--atlas-mod:#ef92c9;--atlas-mod2:#79bce9;--a
 .atlas-timer-total{margin-top:16px;border:1px solid #283750;background:#0b1525;border-radius:15px;padding:12px 13px;display:flex;justify-content:space-between;gap:12px;align-items:center}.atlas-timer-total span{color:#8292a9;font-size:.7rem}.atlas-timer-total b{font:900 1rem/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--atlas-mod2)}
 .atlas-timer-session{margin-top:8px;text-align:center;color:#61748f;font-size:.62rem}
 @media(max-width:680px){#atlasTimerFloat{right:74px;bottom:10px}.atlas-timer-body{padding:15px}.atlas-timer-display{padding:22px 0 17px}}
+
+.library[data-atlas-module]{background:radial-gradient(circle at 96% 0,color-mix(in srgb,var(--mod) 10%,transparent),transparent 22rem),linear-gradient(180deg,#111a2b,#0d1524)!important;border-color:color-mix(in srgb,var(--mod) 22%,#273149)!important}
+.library[data-atlas-module] .libhead .icon{background:linear-gradient(145deg,color-mix(in srgb,var(--mod) 30%,#1a2440),color-mix(in srgb,var(--mod2) 18%,#1a2440))!important;color:#f0f5ff!important}
+.library[data-atlas-module] .lecturevisual{background:linear-gradient(120deg,color-mix(in srgb,var(--mod) 28%,#14243d),color-mix(in srgb,var(--mod2) 20%,#213650))!important}
+.module[data-atlas-module] .modbody{background:radial-gradient(circle at 105% 105%,color-mix(in srgb,var(--mod) 8%,transparent),transparent 13rem),linear-gradient(180deg,#121929,#0f1625)!important}
+.atlas-timer-total-stack{display:grid;gap:8px;margin-top:16px}.atlas-timer-total-stack .atlas-timer-total{margin-top:0}
