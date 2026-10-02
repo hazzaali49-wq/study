@@ -1,5 +1,5 @@
 import {getStore} from '@netlify/blobs';
-import {MODEL, callOpenAI, outputText, parseModelJSON, lecturePrompt, renderGenerated} from './_shared.mjs';
+import {MODEL, OPENAI_KEY, OPENAI_API_ROOT, callOpenAI, outputText, parseModelJSON, lecturePrompt, renderGenerated} from './_shared.mjs';
 import {inferLectureNumber, getModule, inferModule} from './catalog.mjs';
 export default async (req) => {
   const body=await req.json().catch(()=>({})); const jobId=String(body.job_id||''); if(!jobId)return;
@@ -8,9 +8,25 @@ export default async (req) => {
   try{
     job={...job,status:'processing',stage:'AI is reading the original slides and building the fun teaching version…',started:Date.now()};await store.setJSON(key,job);
     const arr=await store.get(`jobs/${jobId}/original.pdf`,{type:'arrayBuffer',consistency:'strong'}); if(!arr)throw new Error('Original PDF was not found.');
-    const b64=Buffer.from(new Uint8Array(arr)).toString('base64');
-    const payload={model:MODEL,instructions:'Build a concise, source-faithful medical study guide from the PDF. Output only JSON.',input:[{role:'user',content:[{type:'input_file',filename:job.filename,file_data:b64},{type:'input_text',text:lecturePrompt({title:job.title,moduleName:job.module_name,moduleCode:job.module_code})}]}],max_output_tokens:12000};
-    const data=await callOpenAI(payload,780000); const obj=parseModelJSON(outputText(data)); obj.title=obj.title||job.title;
+    job={...job,stage:'Uploading the original PDF to the AI file service…'};await store.setJSON(key,job);
+    const form=new FormData();
+    form.append('purpose','user_data');
+    form.append('expires_after[anchor]','created_at');
+    form.append('expires_after[seconds]','3600');
+    form.append('file',new Blob([new Uint8Array(arr)],{type:'application/pdf'}),job.filename);
+    const fr=await fetch(`${OPENAI_API_ROOT}/files`,{method:'POST',headers:{authorization:`Bearer ${OPENAI_KEY}`},body:form});
+    const fj=await fr.json().catch(()=>({}));
+    if(!fr.ok||!fj.id) throw new Error(fj?.error?.message||`AI file upload failed (${fr.status})`);
+    const fileId=fj.id;
+    let data;
+    try{
+      job={...job,stage:'AI is reading the slides and building your Study Atlas version…'};await store.setJSON(key,job);
+      const payload={model:MODEL,instructions:'Build a concise, source-faithful medical study guide from the PDF. Output only JSON.',input:[{role:'user',content:[{type:'input_file',file_id:fileId},{type:'input_text',text:lecturePrompt({title:job.title,moduleName:job.module_name,moduleCode:job.module_code})}]}],max_output_tokens:12000};
+      data=await callOpenAI(payload,780000);
+    } finally {
+      fetch(`${OPENAI_API_ROOT}/files/${encodeURIComponent(fileId)}`,{method:'DELETE',headers:{authorization:`Bearer ${OPENAI_KEY}`}}).catch(()=>{});
+    }
+    const obj=parseModelJSON(outputText(data)); obj.title=obj.title||job.title;
     job={...job,stage:'Formatting chapters, slide links, questions and cheat sheet…'};await store.setJSON(key,job);
     const originalUrl=`/api/original?id=${encodeURIComponent(job.lecture_id)}`;
     const html=renderGenerated(obj,originalUrl,job.module_code,job.lecture_id);
