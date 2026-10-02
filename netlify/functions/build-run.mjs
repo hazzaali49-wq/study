@@ -2,7 +2,7 @@ import {getStore} from '@netlify/blobs';
 import {PDFDocument} from 'pdf-lib';
 import {MODEL, callOpenAI, outputText, parseModelJSON, renderGenerated} from './_shared.mjs';
 const BUILD_MODEL=process.env.OPENAI_BUILD_MODEL||MODEL;
-import {inferLectureNumber, getModule, inferModule} from './catalog.mjs';
+import {inferLectureNumber, getModule, inferModule, matchCalendarLecture} from './catalog.mjs';
 
 const escPrompt=(s='')=>String(s||'').replace(/\s+/g,' ').trim();
 
@@ -176,12 +176,13 @@ export default async (req) => {
     await store.set(`originals/${job.lecture_id}.pdf`,bytes.buffer,{metadata:{filename:job.filename,title:obj.title}});
     await store.set(`lectures/${job.lecture_id}.html`,html,{metadata:{title:obj.title,module_id:job.module_id}});
     const manifest=(await store.get('manifest.json',{type:'json',consistency:'strong'}))||[];
-    const resolvedModule=getModule(job.module_code)||getModule(job.module_id)||inferModule((obj.title||'')+' '+job.filename);
+    const calendarMatch=matchCalendarLecture((obj.title||job.title||'')+' '+(job.filename||''));
+    const resolvedModule=calendarMatch?.confidence>=.72?getModule(calendarMatch.module_code):(getModule(job.module_code)||getModule(job.module_id)||inferModule((obj.title||'')+' '+job.filename));
     const moduleId=resolvedModule?.id||job.module_id,moduleCode=resolvedModule?.code||job.module_code,moduleName=resolvedModule?.name||job.module_name;
     const sameModule=manifest.filter(x=>x.module_id===moduleId).length;
-    const detectedNo=inferLectureNumber(moduleCode,obj.title||job.title,job.filename)||Number(job.lecture_number)||null;
+    const detectedNo=calendarMatch?.module_code===moduleCode&&calendarMatch?.confidence>=.72?calendarMatch.number:(inferLectureNumber(moduleCode,obj.title||job.title,job.filename)||Number(job.lecture_number)||null);
     const lectureNo=detectedNo||sameModule+1;
-    const meta={id:job.lecture_id,module_id:moduleId,module_name:moduleName,module_code:moduleCode,number:String(lectureNo).padStart(2,'0'),title:obj.title,slides:`${total} original slides`,chapters:`${chapters.length} AI chapters`,description:obj.description||obj.subtitle||'AI-generated Study Atlas lecture.',created:Date.now()};
+    const meta={id:job.lecture_id,module_id:moduleId,module_name:moduleName,module_code:moduleCode,number:String(lectureNo).padStart(2,'0'),calendar_date:calendarMatch?.calendar_date||null,title:obj.title,slides:`${total} original slides`,chapters:`${chapters.length} AI chapters`,description:obj.description||obj.subtitle||'AI-generated Study Atlas lecture.',created:Date.now()};
     const oldMatch=manifest.find(x=>x.id!==meta.id&&x.module_id===meta.module_id&&String(x.number||'').replace(/^0+/,'')===String(meta.number||'').replace(/^0+/,''));
     const next=manifest.filter(x=>x.id!==meta.id&&!(x.module_id===meta.module_id&&String(x.number||'').replace(/^0+/,'')===String(meta.number||'').replace(/^0+/,'')));next.push(meta);await store.setJSON('manifest.json',next);
     if(oldMatch?.id){
