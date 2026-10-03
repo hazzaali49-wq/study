@@ -45,7 +45,7 @@ async function boot(){
  const l=await window.StudyAtlasLocalDB.get(id);if(!l){document.getElementById('localLectureApp').innerHTML='<div class="atlas-local-loading"><b>This local lecture is not on this device.</b><a href="/">Return to Study Atlas</a></div>';return}
  pdfUrl=URL.createObjectURL(l.pdf);renderLecture(l);
  const loadScript=src=>new Promise((resolve,reject)=>{const x=document.createElement('script');x.src=src;x.onload=resolve;x.onerror=reject;document.body.appendChild(x)});
- await loadScript('/study-tools.js?v=6');await loadScript('/generated-tools.js?v=6');
+ await loadScript('/study-tools.js?v=6');await loadScript('/generated-tools.js?v=7');
  addEventListener('beforeunload',()=>URL.revokeObjectURL(pdfUrl),{once:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

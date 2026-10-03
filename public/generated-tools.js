@@ -49,7 +49,7 @@
         ${['#ff4f70','#ffd04a','#61e0b6','#6aa8ff','#a785ff','#ffffff'].map((c,i)=>`<button class="atlas-gt-swatch ${i===0?'active':''}" data-color="${c}" style="--c:${c}"></button>`).join('')}
       </div>
       <label class="atlas-gt-size">Size <input id="atlasGTSize" type="range" min="2" max="24" value="6"></label>
-      <div class="atlas-gt-actions"><button id="atlasGTUndo">Undo</button><button id="atlasGTClear">Clear slide</button></div>`;
+      <div class="atlas-gt-actions"><button id="atlasGTUndo">Undo</button><button id="atlasGTClear">Clear area</button></div>`;
     document.body.appendChild(tools);
 
     const notes=document.createElement('div');
@@ -68,57 +68,94 @@
     board.innerHTML=`<div class="atlas-panel-head"><div><h3>Study board</h3><small>Keep important visuals beside you</small></div><button data-close-board>×</button></div><div id="atlasGBList"></div>`;
     document.body.appendChild(board);
 
-    let zoom=1, draw=false, tool='pen', color='#ff4f70', size=6, activeFrame=null;
-    const canvases=new Map(), strokes=new Map();
+    let zoom=1, draw=false, tool='pen', color='#ff4f70', size=6, activeZone=null;
+    const zones=[], strokeMap=new Map();
 
-    function setCanvasSize(frame,canvas){
-      const r=frame.getBoundingClientRect(), d=window.devicePixelRatio||1;
-      canvas.width=Math.max(1,Math.round(r.width*d));
-      canvas.height=Math.max(1,Math.round(r.height*d));
-      canvas.style.width=r.width+'px'; canvas.style.height=r.height+'px';
-      canvas.dataset.dpr=String(d);
+    function zoneId(el,i){
+      if(el.id)return 'id:'+el.id;
+      if(el.classList.contains('hero'))return 'hero';
+      if(el.classList.contains('originalend'))return 'original';
+      if(el.classList.contains('chapter'))return 'chapter:'+(el.dataset.start||el.querySelector('.kicker')?.textContent||i);
+      return 'main:'+i+':'+([...el.classList].slice(0,2).join('.')||el.tagName.toLowerCase());
     }
-    function renderFrame(frame){
-      const c=canvases.get(frame); if(!c)return;
-      const ctx=c.getContext('2d'), d=Number(c.dataset.dpr||1), r=frame.getBoundingClientRect();
-      ctx.setTransform(d,0,0,d,0,0); ctx.clearRect(0,0,r.width,r.height);
-      for(const s of strokes.get(frame)||[]){
-        if(!s.pts?.length) continue;
-        ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
-        if(s.tool==='eraser'){ctx.globalCompositeOperation='destination-out';ctx.lineWidth=s.size*2.4;ctx.strokeStyle='#000'}
-        else{ctx.globalCompositeOperation='source-over';ctx.lineWidth=s.tool==='highlighter'?s.size*2:s.size;ctx.strokeStyle=s.color;ctx.globalAlpha=s.tool==='highlighter'?.3:1}
-        ctx.beginPath();s.pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.restore();
+    function canvasSize(z){
+      const d=Math.min(2,window.devicePixelRatio||1),w=Math.max(1,z.el.clientWidth||Math.round(z.el.getBoundingClientRect().width)),h=Math.max(1,z.el.scrollHeight||z.el.clientHeight||Math.round(z.el.getBoundingClientRect().height));
+      const nw=Math.round(w*d),nh=Math.round(h*d);
+      if(z.c.width!==nw||z.c.height!==nh){z.c.width=nw;z.c.height=nh;z.c.dataset.dpr=String(d);renderZone(z)}
+    }
+    function renderZone(z){
+      if(!z?.c)return;const c=z.c,ctx=c.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,c.width,c.height);
+      for(const s of strokeMap.get(z.id)||[]){
+        if(!s.pts?.length)continue;
+        const scale=c.width/Math.max(1,c.getBoundingClientRect().width);
+        ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+        if(s.tool==='eraser'){ctx.globalCompositeOperation='destination-out';ctx.lineWidth=Math.max(8,s.size*2.4)*scale;ctx.strokeStyle='#000'}
+        else{ctx.globalCompositeOperation='source-over';ctx.lineWidth=(s.tool==='highlighter'?Math.max(12,s.size*2):s.size)*scale;ctx.strokeStyle=s.color;ctx.globalAlpha=s.tool==='highlighter'?.3:1}
+        ctx.beginPath();
+        s.pts.forEach((p,i)=>i?ctx.lineTo(p.x*c.width,p.y*c.height):ctx.moveTo(p.x*c.width,p.y*c.height));
+        if(s.pts.length===1)ctx.lineTo(s.pts[0].x*c.width+.1,s.pts[0].y*c.height+.1);
+        ctx.stroke();ctx.restore();
       }
     }
     function saveInk(){
-      const all=read(INK_KEY,{}), k=pageKey();
-      all[k]=[...document.querySelectorAll('.visualframe')].map(f=>strokes.get(f)||[]);
-      write(INK_KEY,all);
+      const all=read(INK_KEY,{}),k=pageKey(),payload={version:4,zones:{}};
+      zones.forEach(z=>payload.zones[z.id]=strokeMap.get(z.id)||[]);
+      all[k]=payload;write(INK_KEY,all);
     }
-    function prepareVisual(v){
-      const frame=v.querySelector('.visualframe'); if(!frame)return;
-      frame.classList.add('atlas-gdraw-wrap');
-      const c=document.createElement('canvas'); c.className='atlas-gcanvas'; frame.appendChild(c);
-      setCanvasSize(frame,c); canvases.set(frame,c); strokes.set(frame,[]);
-      let drawing=false,current=null;
+    function pointFor(c,e){
+      const r=c.getBoundingClientRect();
+      return{x:Math.max(0,Math.min(1,(e.clientX-r.left)/Math.max(1,r.width))),y:Math.max(0,Math.min(1,(e.clientY-r.top)/Math.max(1,r.height)))};
+    }
+    function prepareZone(el,i){
+      const id=zoneId(el,i);el.classList.add('atlas-gdraw-zone');el.dataset.atlasGDrawZone=id;
+      const c=document.createElement('canvas');c.className='atlas-gpage-canvas';c.dataset.zone=id;el.appendChild(c);
+      const z={el,c,id};zones.push(z);strokeMap.set(id,[]);
+      let drawing=false,current=null,pid=null;
       c.addEventListener('pointerdown',e=>{
-        if(!draw)return; e.preventDefault(); activeFrame=frame; drawing=true; c.setPointerCapture?.(e.pointerId);
-        current={tool,color,size,pts:[{x:e.offsetX,y:e.offsetY}]}; strokes.get(frame).push(current); renderFrame(frame);
+        if(!draw||e.button>0)return;e.preventDefault();e.stopPropagation();activeZone=z;drawing=true;pid=e.pointerId;c.setPointerCapture?.(pid);
+        current={tool,color,size,pts:[pointFor(c,e)]};strokeMap.get(id).push(current);renderZone(z);
       });
-      c.addEventListener('pointermove',e=>{if(!drawing||!draw)return;e.preventDefault();current.pts.push({x:e.offsetX,y:e.offsetY});renderFrame(frame)});
-      const end=e=>{if(!drawing)return;drawing=false;try{c.releasePointerCapture?.(e.pointerId)}catch{}saveInk()};
-      c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);
-      const pin=document.createElement('button');pin.className='atlas-pin-btn-gen';pin.textContent='Pin to board';v.querySelector('.visualcopy')?.appendChild(pin);pin.onclick=()=>togglePin(v,pin);
+      c.addEventListener('pointermove',e=>{
+        if(!drawing||!draw||e.pointerId!==pid)return;e.preventDefault();
+        const batch=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():[e];
+        for(const p of (batch.length?batch:[e]))current.pts.push(pointFor(c,p));
+        renderZone(z);
+      });
+      const finish=e=>{if(!drawing||e.pointerId!==pid)return;drawing=false;try{c.releasePointerCapture?.(pid)}catch{}pid=null;saveInk()};
+      c.addEventListener('pointerup',finish);c.addEventListener('pointercancel',finish);c.addEventListener('lostpointercapture',e=>{if(drawing&&e.pointerId===pid){drawing=false;pid=null;saveInk()}});
+      if(window.ResizeObserver)new ResizeObserver(()=>canvasSize(z)).observe(el);else addEventListener('resize',()=>canvasSize(z),{passive:true});
+      canvasSize(z);
     }
-    document.querySelectorAll('.visualcard').forEach(prepareVisual);
-    const saved=read(INK_KEY,{})[pageKey()]||[];
-    [...document.querySelectorAll('.visualframe')].forEach((f,i)=>{if(saved[i])strokes.set(f,saved[i]);renderFrame(f)});
-    addEventListener('resize',()=>document.querySelectorAll('.visualframe').forEach(f=>{const c=canvases.get(f);if(c){setCanvasSize(f,c);renderFrame(f)}}));
+    const main=document.querySelector('main');
+    const drawable=main?[...main.children].filter(el=>!['SCRIPT','STYLE'].includes(el.tagName)&&el.offsetHeight>8):[];
+    (drawable.length?drawable:[main].filter(Boolean)).forEach(prepareZone);
 
+    // Migrate the previous visual-only ink format into the containing page zones.
+    const saved=read(INK_KEY,{})[pageKey()];
+    if(saved?.version===4&&saved.zones){
+      zones.forEach(z=>{if(Array.isArray(saved.zones[z.id]))strokeMap.set(z.id,saved.zones[z.id]);renderZone(z)});
+    }else if(Array.isArray(saved)){
+      [...document.querySelectorAll('.visualframe')].forEach((frame,i)=>{
+        const old=saved[i];if(!Array.isArray(old)||!old.length)return;
+        const z=zones.find(x=>x.el.contains(frame));if(!z)return;
+        const zr=z.el.getBoundingClientRect(),fr=frame.getBoundingClientRect();
+        const converted=old.map(s=>({...s,pts:(s.pts||[]).map(p=>({x:Math.max(0,Math.min(1,(fr.left-zr.left+p.x)/Math.max(1,zr.width))),y:Math.max(0,Math.min(1,(fr.top-zr.top+p.y)/Math.max(1,zr.height)))}))}));
+        strokeMap.set(z.id,[...(strokeMap.get(z.id)||[]),...converted]);
+      });
+      saveInk();zones.forEach(renderZone);
+    }
+
+    document.querySelectorAll('.visualcard').forEach(v=>{
+      const pin=document.createElement('button');pin.className='atlas-pin-btn-gen';pin.textContent='Pin to board';v.querySelector('.visualcopy')?.appendChild(pin);pin.onclick=()=>togglePin(v,pin);
+    });
+
+    function visibleZone(){
+      return activeZone||zones.find(z=>{const r=z.el.getBoundingClientRect();return r.top<innerHeight*.62&&r.bottom>innerHeight*.18})||zones[0]||null;
+    }
     function toggleDraw(){
-      draw=!draw; document.body.classList.toggle('atlas-gdrawing',draw);
+      draw=!draw;document.body.classList.toggle('atlas-gdrawing',draw);
       document.getElementById('atlasGDraw').classList.toggle('active',draw);
-      if(draw) tools.hidden=false;
+      if(draw)tools.hidden=false;
     }
     document.getElementById('atlasGDraw').onclick=toggleDraw;
     document.getElementById('atlasGTools').onclick=()=>tools.hidden=!tools.hidden;
@@ -130,27 +167,10 @@
     });
     document.getElementById('atlasGTSize').oninput=e=>size=Number(e.target.value);
     document.getElementById('atlasGTUndo').onclick=()=>{
-      const f=activeFrame||[...document.querySelectorAll('.visualframe')].find(x=>{const r=x.getBoundingClientRect();return r.top<innerHeight*.65&&r.bottom>100});
-      if(f){strokes.get(f)?.pop();renderFrame(f);saveInk()}
+      const z=visibleZone();if(!z)return;strokeMap.get(z.id)?.pop();renderZone(z);saveInk();
     };
-    document.addEventListener('mouseup',()=>{
-      if(!draw||tool!=='highlighter')return;
-      const sel=getSelection();if(!sel||sel.isCollapsed||!sel.rangeCount)return;
-      const range=sel.getRangeAt(0),main=document.querySelector('main');
-      if(!main?.contains(range.commonAncestorContainer))return;
-      if(range.commonAncestorContainer.parentElement?.closest?.('#atlasGenDock,#atlasGenTools,#atlasGenNotes,#atlasGenBoard'))return;
-      const mark=document.createElement('mark');mark.className='atlas-gen-highlight';mark.style.background=color;
-      try{range.surroundContents(mark);sel.removeAllRanges()}catch{}
-    });
-    document.addEventListener('click',e=>{
-      const m=e.target.closest?.('mark.atlas-gen-highlight');if(m&&draw&&tool==='eraser'){m.replaceWith(...m.childNodes)}
-    });
-    tools.querySelector('[data-tool="eraser"]').addEventListener('click',()=>document.body.classList.add('atlas-gen-erase-text'));
-    tools.querySelectorAll('[data-tool]:not([data-tool="eraser"])').forEach(b=>b.addEventListener('click',()=>document.body.classList.remove('atlas-gen-erase-text')));
-
     document.getElementById('atlasGTClear').onclick=()=>{
-      const f=activeFrame||[...document.querySelectorAll('.visualframe')].find(x=>{const r=x.getBoundingClientRect();return r.top<innerHeight*.65&&r.bottom>100});
-      if(f){strokes.set(f,[]);renderFrame(f);saveInk()}
+      const z=visibleZone();if(!z)return;strokeMap.set(z.id,[]);renderZone(z);saveInk();
     };
 
     document.getElementById('atlasGFocus').onclick=()=>{
