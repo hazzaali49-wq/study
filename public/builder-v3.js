@@ -1,111 +1,73 @@
 (()=>{
-  const wait=()=>{
-    const modal=document.querySelector('.atlas-builder-modal'),file=document.getElementById('atlasBuilderFile'),
-      sel=document.getElementById('atlasBuilderModule'),title=document.getElementById('atlasBuilderName'),
-      status=document.getElementById('atlasBuilderStatus'),form=document.getElementById('atlasBuilderForm');
-    if(!modal||!file||!sel||!title||!status||!form)return setTimeout(wait,80);
-    if(modal.dataset.autoDetectReady)return; modal.dataset.autoDetectReady='1';
+ const nativeFetch=window.fetch.bind(window);
+ window.fetch=async function(input,init){
+   const url=typeof input==='string'?input:input?.url||'';
+   if(url.includes('/api/ai/status')){
+     return new Response(JSON.stringify({ready:true,free_branch_mode:true,admin_required:false,model:'On-device AI · no credits'}),{status:200,headers:{'content-type':'application/json'}});
+   }
+   return nativeFetch(input,init);
+ };
+ const wait=()=>{
+   const modal=document.querySelector('.atlas-builder-modal'),file=document.getElementById('atlasBuilderFile'),
+     sel=document.getElementById('atlasBuilderModule'),title=document.getElementById('atlasBuilderName'),
+     status=document.getElementById('atlasBuilderStatus'),form=document.getElementById('atlasBuilderForm'),
+     go=modal?.querySelector('.atlas-builder-go'),admin=document.getElementById('atlasBuilderAdmin');
+   if(!modal||!file||!sel||!title||!status||!form||!go||!window.StudyAtlasLocalBuilder)return setTimeout(wait,80);
+   if(modal.dataset.localReady)return;modal.dataset.localReady='1';
 
-    // Keep lecture creation only on the main dashboard.
-    document.querySelectorAll('.atlas-builder-fab,.atlas-lib-add').forEach(x=>x.remove());
-    const head=document.querySelector('#rootPage .head');
-    if(head&&!head.querySelector('.atlas-top-add')){
-      const actions=document.createElement('div');actions.className='atlas-top-actions';
-      const add=document.createElement('button');add.type='button';add.className='atlas-top-add';
-      add.innerHTML='<span>✦</span> Add lecture';
-      add.onclick=()=>window.StudyAtlasLectureBuilder?.open?.();
-      actions.appendChild(add);head.appendChild(actions);
-    }
+   document.querySelectorAll('.atlas-builder-fab,.atlas-lib-add').forEach(x=>x.remove());
+   const head=document.querySelector('#rootPage .head');
+   if(head&&!head.querySelector('.atlas-top-add')){
+     const actions=head.querySelector('.atlas-top-actions')||Object.assign(document.createElement('div'),{className:'atlas-top-actions'});
+     const add=document.createElement('button');add.type='button';add.className='atlas-top-add';add.innerHTML='<span>✦</span> Add lecture';
+     add.onclick=()=>window.StudyAtlasLectureBuilder?.open?.();actions.appendChild(add);if(!actions.parentNode)head.appendChild(actions);
+   }
 
+   const grid=modal.querySelector('.atlas-builder-grid');
+   const summary=document.createElement('div');summary.className='atlas-auto-detect full';
+   summary.innerHTML='<div class="atlas-auto-icon">✦</div><div class="atlas-auto-copy"><small>LOCAL AUTO DETECT</small><strong id="atlasAutoMain">Drop a lecture and I’ll identify it.</strong><span id="atlasAutoSub">Calendar + PDF text · no paid AI credits.</span></div><button type="button" id="atlasAutoEdit">Edit</button>';
+   grid.prepend(summary);
+   const fields=[sel.closest('.atlas-builder-field'),title.closest('.atlas-builder-field')].filter(Boolean);fields.forEach(x=>x.classList.add('atlas-auto-manual'));
+   const edit=summary.querySelector('#atlasAutoEdit'),main=summary.querySelector('#atlasAutoMain'),sub=summary.querySelector('#atlasAutoSub');
+   let manual=false,seq=0;edit.onclick=()=>{manual=!manual;modal.classList.toggle('atlas-auto-editing',manual);edit.textContent=manual?'Done':'Edit'};
 
-    const grid=modal.querySelector('.atlas-builder-grid');
-    const summary=document.createElement('div'); summary.className='atlas-auto-detect full';
-    summary.innerHTML='<div class="atlas-auto-icon">✦</div><div class="atlas-auto-copy"><small>AUTO DETECT</small><strong id="atlasAutoMain">Drop a lecture and I’ll identify it.</strong><span id="atlasAutoSub">Module, lecture number and title will be filled automatically.</span></div><button type="button" id="atlasAutoEdit">Edit</button>';
-    grid.prepend(summary);
-    const fields=[sel.closest('.atlas-builder-field'),title.closest('.atlas-builder-field')].filter(Boolean);
-    fields.forEach(x=>x.classList.add('atlas-auto-manual'));
-    const edit=summary.querySelector('#atlasAutoEdit'),main=summary.querySelector('#atlasAutoMain'),sub=summary.querySelector('#atlasAutoSub');
-    let manual=false,seq=0;
-    edit.onclick=()=>{manual=!manual;modal.classList.toggle('atlas-auto-editing',manual);edit.textContent=manual?'Done':'Edit'};
+   const originalOpen=window.StudyAtlasLectureBuilder?.open;
+   if(originalOpen)window.StudyAtlasLectureBuilder.open=(mid)=>{originalOpen(mid);setTimeout(()=>{status.className='atlas-builder-status good';status.textContent='Local mode · no OpenAI key and no AI credits. Chrome on-device AI is used when available.'},80)};
 
-    function quickGuess(name){
-      const n=name.toLowerCase(),mods=window.__ATLAS_MODULES__||[];
-      const rules=[
-        ['mdsa20030',['endocrine','pituitary','thyroid','parathyroid','adrenal','growth hormone','igf','calcium regulation','calcium homeostasis','endocrine pancreas','diabetes','gonad','testis','ovary','puberty','lactation']],
-        ['mdsa20010',['ingestion','git','gastro','liver','abdominal','peritoneum','stomach','intestin']],
-        ['anat20060',['locomotor','lower limb','hip','thigh','knee','foot','gait']],
-        ['anat20040',['neuro','brain','cranial','cerebell','synapse']],
-        ['path30080',['path','pharmacol','microbi','immun','inflammation']]
-      ];
-      let id='';for(const [mid,ks] of rules)if(ks.some(k=>n.includes(k))){id=mid;break}
-      const m=mods.find(x=>x.id===id);const lm=name.match(/(?:^|[^a-z0-9])(?:lecture|lec|l)\s*0*(\d{1,2})(?:[^a-z0-9]|$)/i);
-      return {m,num:lm?Number(lm[1]):null};
-    }
-    const b64cache=new WeakMap();
-    async function toB64(f){if(b64cache.has(f))return b64cache.get(f);const p=new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});b64cache.set(f,p);return p}
+   file.addEventListener('change',async()=>{
+     const f=file.files?.[0];if(!f)return;const mine=++seq;
+     main.textContent='Reading lecture locally…';sub.textContent='Checking your course calendar and first slides · no credits used.';
+     summary.classList.add('detecting');summary.classList.remove('good','bad');
+     status.className='atlas-builder-status';status.textContent='Reading PDF text on this device…';
+     try{
+       const pages=await window.StudyAtlasLocalBuilder.extractText(f,t=>{if(mine===seq)status.textContent=t});
+       if(mine!==seq)return;
+       const sample=pages.slice(0,6).map(p=>'SLIDE '+p.n+': '+p.text).join('\n').slice(0,18000);
+       const rr=await nativeFetch('/api/ai/detect-lecture',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({filename:f.name,text:sample})});
+       const j=await rr.json();if(!rr.ok)throw new Error(j.error||'Could not identify lecture');
+       if(j.module_id)sel.value=j.module_id;if(j.title)title.value=j.title;if(j.lecture_number)file.dataset.lectureNumber=String(j.lecture_number);
+       main.textContent=(j.module_code||'')+(j.lecture_number?' · Lecture '+j.lecture_number:'');
+       sub.textContent=(j.title||f.name.replace(/\.pdf$/i,''))+' · '+(j.method?.startsWith('calendar')?'calendar matched':'local match')+(j.calendar_date?' · '+new Date(j.calendar_date+'T12:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'}):'');
+       summary.classList.remove('detecting','bad');summary.classList.add('good');
+       status.className='atlas-builder-status good';status.textContent='Matched locally. Building will use on-device AI when Chrome provides it; otherwise Study Atlas uses a source-faithful local fallback.';
+     }catch(err){
+       summary.classList.remove('detecting','good');summary.classList.add('bad');
+       main.textContent='Needs a quick check';sub.textContent='Use Edit to choose the module/title. No paid AI was called.';
+       status.className='atlas-builder-status';status.textContent=err.message||String(err);manual=true;modal.classList.add('atlas-auto-editing');edit.textContent='Done';
+     }
+   });
 
-    file.addEventListener('change',async()=>{
-      const f=file.files?.[0];if(!f)return;const mine=++seq;const ds=modal.querySelector('#atlasDropSub');if(ds)ds.textContent=(f.size/1048576).toFixed(1)+' MB · safe chunked upload';
-      const q=quickGuess(f.name); if(q.m)sel.value=q.m.id;if(q.num)file.dataset.lectureNumber=String(q.num);
-      main.textContent=q.m?(q.m.code+(q.num?' · Lecture '+q.num:'')):'Reading cover…';
-      sub.textContent='Confirming module, lecture number and title with Study Atlas AI…';
-      summary.classList.add('detecting');summary.classList.remove('good','bad');
-      status.className='atlas-builder-status';status.textContent='Identifying this lecture first — no module picking needed.';
-      try{
-        const pdf=await toB64(f); if(mine!==seq)return;
-        const r=await fetch('/api/ai/detect-lecture',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pdf_data:pdf,filename:f.name})});
-        const j=await r.json(); if(mine!==seq)return;if(!r.ok)throw new Error(j.error||'Could not identify lecture');
-        if(j.module_id)sel.value=j.module_id;if(j.title)title.value=j.title;if(j.lecture_number)file.dataset.lectureNumber=String(j.lecture_number);
-        const conf=Math.round((Number(j.confidence)||0)*100);
-        main.textContent=(j.module_code||'')+(j.lecture_number?' · Lecture '+j.lecture_number:'');
-        sub.textContent=(j.title||f.name.replace(/\.pdf$/i,''))+' · '+(j.method?.startsWith('calendar')?'calendar matched':(conf?conf+'% confidence':'matched automatically'))+(j.calendar_date?' · '+new Date(j.calendar_date+'T12:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'}):'');
-        summary.classList.remove('detecting','bad');summary.classList.add('good');
-        status.className='atlas-builder-status good';status.textContent=j.method?.startsWith('calendar')?'Matched against your course calendar. Press Build lecture — module and lecture number are locked to the calendar match.':'Detected. Press Build lecture — it will be filed into the correct module automatically.';
-      }catch(err){
-        summary.classList.remove('detecting','good');summary.classList.add('bad');
-        main.textContent='Couldn’t fully identify it';sub.textContent='Use Edit to choose the module/title manually, then build as normal.';
-        status.className='atlas-builder-status bad';status.textContent=err.message||String(err);manual=true;modal.classList.add('atlas-auto-editing');edit.textContent='Done';
-      }
-    });
-
-    const realFetch=window.fetch.bind(window);
-    window.fetch=async function(input,init){
-      const url=typeof input==='string'?input:input?.url||'';
-      if(url.includes('/api/ai/build-lecture')&&init?.body&&typeof init.body==='string'){
-        try{
-          const body=JSON.parse(init.body),f=file.files?.[0];
-          if(f?.dataset?.lectureNumber)body.lecture_number=Number(f.dataset.lectureNumber)||null;
-          if(body.pdf_data&&body.pdf_data.length>650000){
-            const uploadId='up-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
-            const chunkSize=600000,total=Math.ceil(body.pdf_data.length/chunkSize),admin=body.admin_key||'';
-            status.className='atlas-builder-status';
-            status.textContent='Uploading the lecture safely in '+total+' small parts…';
-            const jobs=[];
-            for(let i=0;i<total;i++){
-              const chunk=body.pdf_data.slice(i*chunkSize,(i+1)*chunkSize);
-              jobs.push((async()=>{
-                const rr=await realFetch('/api/ai/upload-part',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({upload_id:uploadId,index:i,total,chunk,admin_key:admin})});
-                const jj=await rr.json().catch(()=>({}));
-                if(!rr.ok)throw new Error(jj.error||('Upload part '+(i+1)+' failed'));
-                return i;
-              })());
-            }
-            let done=0;
-            await Promise.all(jobs.map(p=>p.then(v=>{done++;status.textContent='Uploading lecture safely… '+done+'/'+total+' parts';return v})));
-            delete body.pdf_data;
-            body.upload_id=uploadId;
-            body.chunk_count=total;
-            status.textContent='Upload complete. Creating the lecture…';
-          }
-          init={...init,body:JSON.stringify(body)};
-        }catch(err){
-          status.className='atlas-builder-status bad';
-          status.textContent=err?.message||String(err);
-          throw err;
-        }
-      }
-      return realFetch(input,init);
-    };
-  };
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wait,{once:true});else wait();
+   form.onsubmit=async e=>{
+     e.preventDefault();const f=file.files?.[0],mods=window.__ATLAS_MODULES__||[],m=mods.find(x=>x.id===sel.value);if(!f||!m)return;
+     if(f.size>50000000){status.className='atlas-builder-status bad';status.textContent='This lecture PDF is over 50 MB. Compress it first.';return}
+     go.disabled=true;go.textContent='Building locally…';status.className='atlas-builder-status';
+     try{
+       const j=await window.StudyAtlasLocalBuilder.build({file:f,module:m,title:title.value.trim()||f.name.replace(/\.pdf$/i,''),lectureNumber:file.dataset.lectureNumber,admin:admin?.value||'',onProgress:t=>status.textContent=t});
+       status.className='atlas-builder-status good';status.textContent='Built '+(j.lecture?.title||title.value)+' without paid AI credits. Refreshing…';setTimeout(()=>location.reload(),900);
+     }catch(err){
+       status.className='atlas-builder-status bad';status.textContent=err?.message||String(err);go.disabled=false;go.textContent='✦ Build lecture';
+     }
+   };
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wait,{once:true});else wait();
 })();
