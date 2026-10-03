@@ -49,3 +49,5 @@ body[data-atlas-module="nmhs10100"]{--atlas-mod:#ef92c9;--atlas-mod2:#79bce9;--a
 .library[data-atlas-module] .lecturevisual{background:linear-gradient(120deg,color-mix(in srgb,var(--mod) 28%,#14243d),color-mix(in srgb,var(--mod2) 20%,#213650))!important}
 .module[data-atlas-module] .modbody{background:radial-gradient(circle at 105% 105%,color-mix(in srgb,var(--mod) 8%,transparent),transparent 13rem),linear-gradient(180deg,#121929,#0f1625)!important}
 .atlas-timer-total-stack{display:grid;gap:8px;margin-top:16px}.atlas-timer-total-stack .atlas-timer-total{margin-top:0}
+
+#atlasAICloud{display:none!important}
