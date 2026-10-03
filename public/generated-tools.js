@@ -30,7 +30,7 @@
     const dock=document.createElement('div');
     dock.id='atlasGenDock';
     dock.innerHTML=`
-      <button class="atlas-gbtn" id="atlasGFocus"><span class="atlas-gicon">▣</span><span>Panels</span></button>
+      <button class="atlas-gbtn" id="atlasGFocus" aria-pressed="false" title="Hide navigation and open panels"><span class="atlas-gicon">▣</span><span>Hide panels</span></button>
       <div class="atlas-gprogress"><i id="atlasGFill"></i><b id="atlasGPct">0%</b></div>
       <button class="atlas-gbtn" id="atlasGDraw"><span class="atlas-gicon">✎</span><span>Draw</span></button>
       <div class="atlas-gzoom"><button id="atlasGZm">−</button><span id="atlasGZ">100%</span><button id="atlasGZp">+</button></div>
@@ -153,10 +153,17 @@
       const z=visibleZone();if(!z)return;strokeMap.set(z.id,[]);renderZone(z);saveInk();
     };
 
-    document.getElementById('atlasGFocus').onclick=()=>{
-      document.body.classList.toggle('atlas-gen-focus');
-      document.getElementById('atlasGFocus').classList.toggle('active');
-    };
+    function focusPanels(focus){
+      document.body.classList.toggle('atlas-gen-focus',focus);
+      const b=document.getElementById('atlasGFocus');b.classList.toggle('active',focus);b.setAttribute('aria-pressed',String(focus));
+      b.lastElementChild.textContent=focus?'Show panels':'Hide panels';b.title=focus?'Restore navigation (Escape)':'Hide navigation and open panels';
+      if(focus){tools.hidden=true;notes.hidden=true;board.hidden=true;const ai=document.querySelector('.atlas-reader-ai,.ai');if(ai)ai.hidden=true;}
+      // The same control must also hide the shell when a lecture is in the library iframe.
+      if(window.parent!==window)window.parent.postMessage({source:'study-atlas-focus',focus},location.origin);
+      window.dispatchEvent(new Event('resize'));
+    }
+    document.getElementById('atlasGFocus').onclick=()=>focusPanels(!document.body.classList.contains('atlas-gen-focus'));
+    addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('atlas-gen-focus'))focusPanels(false);});
     document.getElementById('atlasGZm').onclick=()=>{if(document.body.classList.contains('atlas-slide-mode'))return window.StudyAtlasReader.zoom(-1);zoom=Math.max(.7,+(zoom-.1).toFixed(1));document.querySelector('main').style.zoom=zoom;document.getElementById('atlasGZ').textContent=Math.round(zoom*100)+'%'};
     document.getElementById('atlasGZp').onclick=()=>{if(document.body.classList.contains('atlas-slide-mode'))return window.StudyAtlasReader.zoom(1);zoom=Math.min(1.5,+(zoom+.1).toFixed(1));document.querySelector('main').style.zoom=zoom;document.getElementById('atlasGZ').textContent=Math.round(zoom*100)+'%'};
     document.getElementById('atlasGAI').onclick=()=>document.body.classList.contains('atlas-slide-mode')?window.StudyAtlasReader.ai():document.getElementById('aiBtn')?.click();

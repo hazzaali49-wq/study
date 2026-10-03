@@ -22,15 +22,15 @@ async function refresh(){
   }
  }
 
+ window.StudyAtlasLibraryCards?.restore();
  document.querySelectorAll('[data-local-lecture]').forEach(x=>x.remove());
- const active=new Map();for(const x of items){const key=x.module_id+'::'+(Number(x.number)>0?Number(x.number):x.id);const old=active.get(key);if(!old||(x.updated||x.created||0)>(old.updated||old.created||0))active.set(key,x);}
- const by=new Map();for(const x of active.values()){if(!by.has(x.module_id))by.set(x.module_id,[]);by.get(x.module_id).push(x)}
+ const by=new Map();for(const x of items){if(!by.has(x.module_id))by.set(x.module_id,[]);by.get(x.module_id).push(x)}
  for(const [mid,ls] of by){
    const lib=document.getElementById('module-'+mid);if(!lib)continue;
    let grid=lib.querySelector('.lecturegrid');if(!grid){lib.querySelector('.nolectures')?.remove();grid=document.createElement('div');grid.className='lecturegrid';lib.appendChild(grid)}
    ls.sort((a,b)=>(Number(a.number)||999)-(Number(b.number)||999)||(a.created||0)-(b.created||0));
    for(const l of ls){
-     const card=document.createElement('article');card.className='lecture';card.dataset.localLecture=l.id;
+     const card=document.createElement('article');card.className='lecture';card.dataset.localLecture=l.id;card.dataset.savedAt=l.updated||l.created||0;
      card.innerHTML=`<div class="lecturevisual"><b>LECTURE ${esc(l.number||'—')} · ${esc(l.module_code||'')}</b><span aria-hidden="true">✦</span></div><div class="lecturebody"><h3>${esc(l.title)}</h3><p>${esc(l.description||'Local Study Atlas lecture.')}</p><div class="micro">${esc(l.slides||'Original lecture preserved')} · ${esc(l.chapters||'local chapters')} · on this device</div><div class="lecturelinks"><a class="primary" href="/local-lecture.html?id=${encodeURIComponent(l.id)}">Study lecture ↗</a><button class="secondary" type="button" data-local-original="${esc(l.id)}">Original slides ↗</button><button class="secondary atlas-local-delete" type="button" data-local-delete="${esc(l.id)}">Remove</button></div></div>`;
      grid.appendChild(card);
    }
@@ -40,6 +40,7 @@ async function refresh(){
  }
  document.querySelectorAll('[data-local-original]').forEach(b=>b.onclick=()=>openOriginal(b.dataset.localOriginal));
  document.querySelectorAll('[data-local-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('Remove this locally saved lecture from this device?'))return;await window.StudyAtlasLocalDB.remove(b.dataset.localDelete);refresh()});
+ window.StudyAtlasLibraryCards?.reconcile();
  window.dispatchEvent(new CustomEvent('atlas:local-library-updated',{detail:{count:items.length}}));
 }
 window.StudyAtlasLocalLibrary={refresh,openOriginal};

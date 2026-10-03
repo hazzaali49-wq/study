@@ -38,3 +38,14 @@ not eliminate ordinary website hosting or bandwidth usage.
 Verification: npm test; npm run check. These cover matching, source retention,
 manual identity, rebuild identity, streaming, cancellation, timeouts, local-only
 chat interception, script escaping and drawing cost with a large saved history.
+
+## Reader regression repairs
+
+- Hide panels closes open tools/notes/board/AI panels, hides reader navigation, and notifies the library iframe shell. The dock stays available; Show panels or Escape restores navigation.
+- Read legacy answer keys and flashcards directly from the original lecture data. Preserve rich cheat-sheet paragraphs, lists and tables. Place questions at their referenced slides and provide direct navigation to final understanding, detailed revision, flashcards and complete chapter guides.
+- Source recall, full revision points and takeaways are included for local uploads. On-device enrichment adds slide questions and revision content, resumes old local lectures, and continues after a failed batch. Existing cloud lectures use the shared adapter without needing a cloud rebuild.
+- The study pane never adds a plain duplicate bitmap. It produces caption label keys, explicit source relationship schematics, and mechanism chains. Located labels receive numbered spotlights on a cropped source detail. Raster label OCR runs in one browser worker using pinned Tesseract.js 6.0.1; it downloads runtime/language assets from public CDNs and does not send lecture images to a service. Only confident exact label matches are highlighted. Unreadable labels retain their source key without invented positions.
+- Library cards reconcile across bundled, cloud and local lectures using module + known lecture number. Latest uploads lead; alternative sources, study guides and note buttons remain in an expandable versions section. Completion migrates to a stable identity and each lecture counts once. Unknown lecture numbers remain separate.
+- Paid AI remains disabled. Local uploads and enhancements do not invoke Netlify AI/upload functions.
+
+Validation includes DOM regressions for both original lectures, interactive question feedback and panel toggling, cross-source library reconciliation, visual evidence matching, builder enrichment/failure recovery, existing AI/ink/calendar checks and syntax checks. Live browser layout validation remains blocked by the site's Netlify team-protection screen and the preview URL policy.

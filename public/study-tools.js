@@ -19,7 +19,7 @@ function currentModule(){
  return moduleFromText(text)||'';
 }
 function applyModule(id){if(!id||!MODS[id])return;document.body.dataset.atlasModule=id;document.documentElement.style.setProperty('--atlas-mod',MODS[id].a);document.documentElement.style.setProperty('--atlas-mod2',MODS[id].b)}
-function keyFor(card,id){const a=card.querySelector('a.primary,[href*="/generated/"],[href*="/lectures/"]');const href=a?.getAttribute('href')||'';const title=card.querySelector('h3')?.textContent?.trim()||href||'lecture';return id+'::'+(href||title)}
+function keyFor(card,id){if(card.dataset.progressKey)return card.dataset.progressKey;const a=card.querySelector('a.primary,[href*="/generated/"],[href*="/lectures/"]');const href=a?.getAttribute('href')||'';const title=card.querySelector('h3')?.textContent?.trim()||href||'lecture';return id+'::'+(href||title)}
 function decorateDashboard(){
  const modules=[...document.querySelectorAll('#modules .module')];
  modules.forEach(card=>{const id=moduleFromText(card.textContent);if(!id)return;card.dataset.atlasModule=id;card.style.setProperty('--mod',MODS[id].a);card.style.setProperty('--mod2',MODS[id].b)});
@@ -35,7 +35,8 @@ function refreshLectures(){
      card.style.setProperty('--mod',MODS[id].a);card.style.setProperty('--mod2',MODS[id].b);
      const k=keyFor(card,id);
      let row=card.querySelector('.atlas-complete-row');
-     if(!row){row=document.createElement('div');row.className='atlas-complete-row';row.innerHTML='<label><input type="checkbox"> <span>Completed</span></label><small>progress</small>';const body=card.querySelector('.lecturebody');body?.insertBefore(row,body.querySelector('.lecturelinks'));row.querySelector('input').onchange=e=>{p[k]=!!e.target.checked;write(PROG,p);refreshLectures()}}
+     if(!row){row=document.createElement('div');row.className='atlas-complete-row';row.innerHTML='<label><input type="checkbox"> <span>Completed</span></label><small>progress</small>';const body=card.querySelector('.lecturebody');body?.insertBefore(row,body.querySelector('.lecturelinks'));}
+     row.querySelector('input').onchange=e=>{const latest=read(PROG,{});latest[keyFor(card,id)]=!!e.target.checked;write(PROG,latest);refreshLectures();};
      const chk=row.querySelector('input');chk.checked=!!p[k];row.classList.toggle('done',chk.checked);
    });
    const done=cards.filter(c=>p[keyFor(c,id)]).length,total=cards.length,pct=total?Math.round(done/total*100):0;
@@ -49,6 +50,7 @@ function refreshLectures(){
    }
  });
 }
+addEventListener('atlas:library-reconciled',decorateDashboard);
 function timerUI(){
  if(document.getElementById('atlasTimerModal'))return;
  const id=currentModule()||'mdsa20030';applyModule(id);

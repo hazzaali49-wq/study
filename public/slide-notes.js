@@ -35,7 +35,7 @@
     const points=lines.slice(1).filter(x=>x.length>12&&!/^\d+$/.test(x));
     return {n:page.n,title:(lines[0]||'Slide '+page.n).slice(0,140),kind,
       explain:kind==='admin'||kind==='cover'?'Source slide preserved for reference.':kind==='visual'?'This slide is mainly visual. Use the picture and its labels; text extraction cannot explain an unlabelled image.':'',
-      key_points:points.slice(0,6),source:page.text||'',source_lines:lines,
+      key_points:points,source:page.text||'',source_lines:lines,
       definitions:definitions(page.text||''),labels:[],origin:'source'};
   }
   function selectSource(context,question,max=1800){

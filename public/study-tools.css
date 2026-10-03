@@ -51,3 +51,5 @@ body[data-atlas-module="nmhs10100"]{--atlas-mod:#ef92c9;--atlas-mod2:#79bce9;--a
 .atlas-timer-total-stack{display:grid;gap:8px;margin-top:16px}.atlas-timer-total-stack .atlas-timer-total{margin-top:0}
 
 #atlasAICloud{display:none!important}
+
+.atlas-saved-versions{border-top:1px solid #35415b;padding-top:14px;margin-top:18px}.atlas-saved-versions>summary{cursor:pointer;color:#b9acd9;font-size:12px;font-weight:700}.atlas-lecture-version{margin-top:14px;border:1px solid #35415b;border-radius:12px;overflow:hidden}.atlas-lecture-version .lecturevisual{padding:12px;min-height:0;height:auto;font-size:11px}.atlas-lecture-version .lecturebody{padding:16px}.atlas-lecture-version h3{font-size:16px}.atlas-lecture-version p,.atlas-lecture-version .micro{font-size:12px}.atlas-lecture-version .lecturelinks{margin-top:12px;gap:7px}.atlas-lecture-version .lecturelinks>*{font-size:11px;padding:8px 10px}
