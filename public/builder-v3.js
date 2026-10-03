@@ -2,9 +2,6 @@
  const nativeFetch=window.fetch.bind(window);
  window.fetch=async function(input,init){
    const url=typeof input==='string'?input:input?.url||'';
-   if(url.includes('/api/ai/status')){
-     return new Response(JSON.stringify({ready:true,free_branch_mode:true,admin_required:false,model:'On-device AI · no credits'}),{status:200,headers:{'content-type':'application/json'}});
-   }
    return nativeFetch(input,init);
  };
  const wait=()=>{
