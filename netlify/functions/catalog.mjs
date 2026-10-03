@@ -118,8 +118,10 @@ export function matchCalendarLecture(text='',moduleHint=''){
           if(a>score){score=a;matched=alias}
         }
       }
-      if(raw.includes(norm(code)))score=Math.max(score,.995);
-      if(moduleHint&&String(moduleHint).toUpperCase()===code)score=Math.min(1,score+.025);
+      // A module code is strong MODULE evidence, not lecture-number evidence.
+      // Boost matching titles inside that module without making every lecture tie.
+      if(raw.includes(norm(code)))score=Math.min(1,score+.08);
+      if(moduleHint&&String(moduleHint).toUpperCase()===code)score=Math.min(1,score+.04);
       candidates.push({module_code:code,number:Number(n),title,calendar_date:date,matched,score});
     }
   }
