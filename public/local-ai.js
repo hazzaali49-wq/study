@@ -20,7 +20,6 @@
  }
  window.fetch=async function(input,init){
    const url=typeof input==='string'?input:input?.url||'';
-   if(url.includes('/api/ai/status'))return new Response(JSON.stringify({ready:true,free_branch_mode:true,local_only:true,admin_required:false,model:'On-device AI · no credits'}),{status:200,headers:{'content-type':'application/json'}});
    if(url.includes('/api/ai/chat')){
      try{const answer=await localAnswer(init);return new Response(JSON.stringify({answer,local:true}),{status:200,headers:{'content-type':'application/json'}})}
      catch(e){return new Response(JSON.stringify({error:e?.message||String(e),local:true}),{status:503,headers:{'content-type':'application/json'}})}
