@@ -8,7 +8,7 @@ export default async (req)=>{
     const filename=String(body.filename||'lecture.pdf');
     const sample=String(body.text||'').slice(0,18000);
     const explicitCode=(filename+' '+sample).match(/(?:NMHS|PATH|MDSA|ANAT)\d{5}/i)?.[0]?.toUpperCase()||'';
-    const match=matchCalendarLecture(filename+' '+sample,explicitCode);
+    const match=matchCalendarLecture([filename,sample],explicitCode);
     if(match?.confidence>=.72){
       const m=getModule(match.module_code);
       return json({ok:true,module_id:m.id,module_code:m.code,module_name:m.name,title:match.title,lecture_number:match.number,calendar_date:match.calendar_date,confidence:match.confidence,method:'calendar-local'});
@@ -17,7 +17,7 @@ export default async (req)=>{
     if(!m)return json({error:'Could not match this lecture automatically. Use Edit to choose the module and title.'},422);
     const num=inferLectureNumber(m.code,sample,filename)||null;
     const title=filename.replace(/\.pdf$/i,'').replace(/[_-]+/g,' ').replace(/\s*\(\d+\)\s*$/,'').trim();
-    return json({ok:true,module_id:m.id,module_code:m.code,module_name:m.name,title,lecture_number:num,confidence:num?.88:.7,method:'local-match'});
+    return json({ok:true,module_id:m.id,module_code:m.code,module_name:m.name,title,lecture_number:num,confidence:.6,needs_review:true,method:'module-code-local'});
   }catch(e){return json({error:e?.message||String(e)},500)}
 };
 export const config={path:'/api/ai/detect-lecture',method:'POST'};

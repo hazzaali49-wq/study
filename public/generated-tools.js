@@ -1,14 +1,18 @@
 (function generatedTools(){
   const NOTE_KEY='atlasGeneratedNotes.v3', PIN_KEY='atlasGeneratedPins.v3', INK_KEY='atlasGeneratedInk.v3';
   const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
-  const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-  const pageKey=()=>location.pathname+'::'+(document.querySelector('h1')?.textContent||document.title);
+  const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{document.getElementById('atlasGTStatus')?.replaceChildren(document.createTextNode('Storage full — export or clear old notes.'));}};
+  const legacyKey=()=>location.pathname+'::'+(document.querySelector('h1')?.textContent||document.title);
+  const pageKey=()=>window.StudyAtlasReader?.id()?'lecture:'+window.StudyAtlasReader.id():legacyKey();
+  const forPage=(key)=>{const all=read(key,{}),aliases=[legacyKey(),...(window.StudyAtlasReader?.aliases?.()||[]),...[...document.querySelectorAll('h1')].map(h=>location.pathname+'::'+h.textContent)];return all[pageKey()]||aliases.map(k=>all[k]).find(Boolean);};
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function currentChapter(){
+    if(window.StudyAtlasReader?.current())return window.StudyAtlasReader.current().row;
     const cs=[...document.querySelectorAll('.chapter')], y=innerHeight*.42;
     return cs.find(c=>{const r=c.getBoundingClientRect();return r.top<=y&&r.bottom>=y})||cs[0];
   }
   function currentVisual(){
+    if(window.StudyAtlasReader?.current())return window.StudyAtlasReader.current().row;
     const vs=[...document.querySelectorAll('.visualcard')],y=innerHeight*.45;
     return vs.find(v=>{const r=v.getBoundingClientRect();return r.top<=y&&r.bottom>=y})||vs.find(v=>v.getBoundingClientRect().top>0)||vs[0];
   }
@@ -17,7 +21,8 @@
     const ch=(c?.querySelector('.kicker')?.textContent||c?.querySelector('h2')?.textContent||'Current chapter').trim();
     return slide?slide+' · '+ch:ch;
   }
-  function boot(){
+  async function boot(){
+    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=1';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
     if(document.getElementById('atlasGenDock')) return;
     if(!(document.querySelector('.visualcard')&&document.querySelector('.rail'))) return;
     document.body.classList.add('atlas-generated-v3');
@@ -49,7 +54,7 @@
         ${['#ff4f70','#ffd04a','#61e0b6','#6aa8ff','#a785ff','#ffffff'].map((c,i)=>`<button class="atlas-gt-swatch ${i===0?'active':''}" data-color="${c}" style="--c:${c}"></button>`).join('')}
       </div>
       <label class="atlas-gt-size">Size <input id="atlasGTSize" type="range" min="2" max="24" value="6"></label>
-      <div class="atlas-gt-actions"><button id="atlasGTUndo">Undo</button><button id="atlasGTClear">Clear area</button></div>`;
+      <div class="atlas-gt-actions"><button id="atlasGTUndo">Undo</button><button id="atlasGTClear">Clear area</button></div><small id="atlasGTStatus"></small>`;
     document.body.appendChild(tools);
 
     const notes=document.createElement('div');
@@ -79,59 +84,34 @@
       return 'main:'+i+':'+([...el.classList].slice(0,2).join('.')||el.tagName.toLowerCase());
     }
     function canvasSize(z){
-      const d=Math.min(2,window.devicePixelRatio||1),w=Math.max(1,z.el.clientWidth||Math.round(z.el.getBoundingClientRect().width)),h=Math.max(1,z.el.scrollHeight||z.el.clientHeight||Math.round(z.el.getBoundingClientRect().height));
+      if(!z.near)return;
+      const w=Math.max(1,z.el.clientWidth),h=Math.max(1,z.el.clientHeight),d=Math.min(2,devicePixelRatio||1,Math.sqrt(3000000/(w*h)));
       const nw=Math.round(w*d),nh=Math.round(h*d);
-      if(z.c.width!==nw||z.c.height!==nh){z.c.width=nw;z.c.height=nh;z.c.dataset.dpr=String(d);renderZone(z)}
+      if(z.c.width!==nw||z.c.height!==nh){z.c.width=nw;z.c.height=nh;renderZone(z);}
     }
-    function renderZone(z){
-      if(!z?.c)return;const c=z.c,ctx=c.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,c.width,c.height);
-      for(const s of strokeMap.get(z.id)||[]){
-        if(!s.pts?.length)continue;
-        const scale=c.width/Math.max(1,c.getBoundingClientRect().width);
-        ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-        if(s.tool==='eraser'){ctx.globalCompositeOperation='destination-out';ctx.lineWidth=Math.max(8,s.size*2.4)*scale;ctx.strokeStyle='#000'}
-        else{ctx.globalCompositeOperation='source-over';ctx.lineWidth=(s.tool==='highlighter'?Math.max(12,s.size*2):s.size)*scale;ctx.strokeStyle=s.color;ctx.globalAlpha=s.tool==='highlighter'?.3:1}
-        ctx.beginPath();
-        s.pts.forEach((p,i)=>i?ctx.lineTo(p.x*c.width,p.y*c.height):ctx.moveTo(p.x*c.width,p.y*c.height));
-        if(s.pts.length===1)ctx.lineTo(s.pts[0].x*c.width+.1,s.pts[0].y*c.height+.1);
-        ctx.stroke();ctx.restore();
-      }
-    }
+    function renderZone(z){z?.ink?.redraw();}
+    let saveTimer;
+    function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveInk,250);}
+    addEventListener('pagehide',()=>{clearTimeout(saveTimer);saveInk();});
     function saveInk(){
-      const all=read(INK_KEY,{}),k=pageKey(),payload={version:4,zones:{}};
+      const all=read(INK_KEY,{}),k=pageKey(),payload={version:4,zones:{...(forPage(INK_KEY)?.zones||{})}};
       zones.forEach(z=>payload.zones[z.id]=strokeMap.get(z.id)||[]);
       all[k]=payload;write(INK_KEY,all);
     }
-    function pointFor(c,e){
-      const r=c.getBoundingClientRect();
-      return{x:Math.max(0,Math.min(1,(e.clientX-r.left)/Math.max(1,r.width))),y:Math.max(0,Math.min(1,(e.clientY-r.top)/Math.max(1,r.height)))};
-    }
+    const inkObserver=new IntersectionObserver(entries=>{for(const entry of entries){const z=zones.find(z=>z.el===entry.target);if(!z)continue;z.near=entry.isIntersecting;if(z.near)canvasSize(z);else if(!z.ink?.isDrawing()){z.c.width=1;z.c.height=1;z.ink.sync();}}},{rootMargin:'800px 0px'});
     function prepareZone(el,i){
-      const id=zoneId(el,i);el.classList.add('atlas-gdraw-zone');el.dataset.atlasGDrawZone=id;
-      const c=document.createElement('canvas');c.className='atlas-gpage-canvas';c.dataset.zone=id;el.appendChild(c);
-      const z={el,c,id};zones.push(z);strokeMap.set(id,[]);
-      let drawing=false,current=null,pid=null;
-      c.addEventListener('pointerdown',e=>{
-        if(!draw||e.button>0)return;e.preventDefault();e.stopPropagation();activeZone=z;drawing=true;pid=e.pointerId;c.setPointerCapture?.(pid);
-        current={tool,color,size,pts:[pointFor(c,e)]};strokeMap.get(id).push(current);renderZone(z);
-      });
-      c.addEventListener('pointermove',e=>{
-        if(!drawing||!draw||e.pointerId!==pid)return;e.preventDefault();
-        const batch=typeof e.getCoalescedEvents==='function'?e.getCoalescedEvents():[e];
-        for(const p of (batch.length?batch:[e]))current.pts.push(pointFor(c,p));
-        renderZone(z);
-      });
-      const finish=e=>{if(!drawing||e.pointerId!==pid)return;drawing=false;try{c.releasePointerCapture?.(pid)}catch{}pid=null;saveInk()};
-      c.addEventListener('pointerup',finish);c.addEventListener('pointercancel',finish);c.addEventListener('lostpointercapture',e=>{if(drawing&&e.pointerId===pid){drawing=false;pid=null;saveInk()}});
-      if(window.ResizeObserver)new ResizeObserver(()=>canvasSize(z)).observe(el);else addEventListener('resize',()=>canvasSize(z),{passive:true});
-      canvasSize(z);
+      const id=el.dataset.inkId||zoneId(el,i);el.classList.add('atlas-gdraw-zone');el.dataset.atlasGDrawZone=id;
+      const c=document.createElement('canvas');c.className='atlas-gpage-canvas';c.dataset.zone=id;c.width=1;c.height=1;el.appendChild(c);
+      const z={el,c,id,near:false};zones.push(z);strokeMap.set(id,[]);
+      z.ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>strokeMap.get(id)||[],isEnabled:()=>draw,getTool:()=>{activeZone=z;return {tool,color,size};},onChange:scheduleSave});
+      new ResizeObserver(()=>{if(!z.ink.isDrawing())canvasSize(z);}).observe(el);inkObserver.observe(el);
     }
-    const main=document.querySelector('main');
-    const drawable=main?[...main.children].filter(el=>!['SCRIPT','STYLE'].includes(el.tagName)&&el.offsetHeight>8):[];
+    const main=document.querySelector('main'),reader=document.getElementById('atlasSlideReader');
+    const drawable=reader?[...reader.querySelectorAll('[data-ink-id]')]:main?[...main.children].filter(el=>!['SCRIPT','STYLE'].includes(el.tagName)&&el.offsetHeight>8):[];
     (drawable.length?drawable:[main].filter(Boolean)).forEach(prepareZone);
 
     // Migrate the previous visual-only ink format into the containing page zones.
-    const saved=read(INK_KEY,{})[pageKey()];
+    const saved=forPage(INK_KEY);
     if(saved?.version===4&&saved.zones){
       zones.forEach(z=>{if(Array.isArray(saved.zones[z.id]))strokeMap.set(z.id,saved.zones[z.id]);renderZone(z)});
     }else if(Array.isArray(saved)){
@@ -150,7 +130,7 @@
     });
 
     function visibleZone(){
-      return activeZone||zones.find(z=>{const r=z.el.getBoundingClientRect();return r.top<innerHeight*.62&&r.bottom>innerHeight*.18})||zones[0]||null;
+      return (activeZone?.near?activeZone:null)||zones.find(z=>{const r=z.el.getBoundingClientRect();return r.top<innerHeight*.62&&r.bottom>innerHeight*.18})||zones[0]||null;
     }
     function toggleDraw(){
       draw=!draw;document.body.classList.toggle('atlas-gdrawing',draw);
@@ -177,9 +157,9 @@
       document.body.classList.toggle('atlas-gen-focus');
       document.getElementById('atlasGFocus').classList.toggle('active');
     };
-    document.getElementById('atlasGZm').onclick=()=>{zoom=Math.max(.7,+(zoom-.1).toFixed(1));document.querySelector('main').style.zoom=zoom;document.getElementById('atlasGZ').textContent=Math.round(zoom*100)+'%'};
-    document.getElementById('atlasGZp').onclick=()=>{zoom=Math.min(1.5,+(zoom+.1).toFixed(1));document.querySelector('main').style.zoom=zoom;document.getElementById('atlasGZ').textContent=Math.round(zoom*100)+'%'};
-    document.getElementById('atlasGAI').onclick=()=>document.getElementById('aiBtn')?.click();
+    document.getElementById('atlasGZm').onclick=()=>{if(document.body.classList.contains('atlas-slide-mode'))return window.StudyAtlasReader.zoom(-1);zoom=Math.max(.7,+(zoom-.1).toFixed(1));document.querySelector('main').style.zoom=zoom;document.getElementById('atlasGZ').textContent=Math.round(zoom*100)+'%'};
+    document.getElementById('atlasGZp').onclick=()=>{if(document.body.classList.contains('atlas-slide-mode'))return window.StudyAtlasReader.zoom(1);zoom=Math.min(1.5,+(zoom+.1).toFixed(1));document.querySelector('main').style.zoom=zoom;document.getElementById('atlasGZ').textContent=Math.round(zoom*100)+'%'};
+    document.getElementById('atlasGAI').onclick=()=>document.body.classList.contains('atlas-slide-mode')?window.StudyAtlasReader.ai():document.getElementById('aiBtn')?.click();
     document.getElementById('atlasGTimer').onclick=()=>document.getElementById('atlasTimerBtn')?.click();
 
     function progress(){
@@ -190,40 +170,46 @@
 
     const sketch=document.getElementById('atlasGNSketch'),ctx=sketch.getContext('2d');
     function resetSketchSize(){
-      const r=sketch.getBoundingClientRect(),d=devicePixelRatio||1;sketch.width=r.width*d;sketch.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=4;ctx.strokeStyle='#ff5b7c';
+      const r=sketch.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);if(!r.width||!r.height)return;
+      const w=Math.round(r.width*d),h=Math.round(r.height*d);if(sketch.width===w&&sketch.height===h)return;
+      const backup=document.createElement('canvas');backup.width=sketch.width;backup.height=sketch.height;backup.getContext('2d').drawImage(sketch,0,0);
+      sketch.width=w;sketch.height=h;ctx.drawImage(backup,0,0,w,h);ctx.setTransform(d,0,0,d,0,0);ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=4;ctx.strokeStyle='#ff5b7c';
     }
-    resetSketchSize(); let sketching=false;
-    sketch.onpointerdown=e=>{sketching=true;sketch.setPointerCapture?.(e.pointerId);ctx.beginPath();ctx.moveTo(e.offsetX,e.offsetY)};
-    sketch.onpointermove=e=>{if(sketching){ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke()}};
-    sketch.onpointerup=sketch.onpointercancel=()=>sketching=false;
+    resetSketchSize();let sketching=false,sketchPointer=null,previous;
+    sketch.onpointerdown=e=>{e.preventDefault();sketching=true;sketchPointer=e.pointerId;sketch.setPointerCapture?.(e.pointerId);previous={x:e.offsetX,y:e.offsetY};};
+    sketch.onpointermove=e=>{if(!sketching||e.pointerId!==sketchPointer)return;e.preventDefault();ctx.beginPath();ctx.moveTo(previous.x,previous.y);ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke();previous={x:e.offsetX,y:e.offsetY};};
+    sketch.onpointerup=sketch.onpointercancel=()=>{sketching=false;sketchPointer=null;};
     document.getElementById('atlasGNClear').onclick=()=>ctx.clearRect(0,0,sketch.width,sketch.height);
 
     function renderNotes(){
-      const arr=read(NOTE_KEY,{})[pageKey()]||[];
-      document.getElementById('atlasGNList').innerHTML=arr.length?arr.map((n,i)=>`<div class="atlas-gn-card"><b>${esc(n.context)}</b>${n.text?`<p>${esc(n.text)}</p>`:''}${n.sketch?`<img src="${n.sketch}" alt="note sketch">`:''}<button data-del="${i}">Delete</button></div>`).join(''):'<div class="atlas-gn-context">No notes yet.</div>';
-      document.querySelectorAll('#atlasGNList [data-del]').forEach(b=>b.onclick=()=>{const all=read(NOTE_KEY,{}),k=pageKey();all[k].splice(Number(b.dataset.del),1);write(NOTE_KEY,all);renderNotes()});
+      const arr=forPage(NOTE_KEY)||[];
+      document.getElementById('atlasGNList').innerHTML=arr.length?arr.map((n,i)=>`<div class="atlas-gn-card"><b>${esc(n.context)}</b>${n.text?`<p>${esc(n.text)}</p>`:''}${n.sketch?`<img src="${n.sketch}" alt="note sketch">`:''}${n.slide?`<button data-note-go="${n.slide}">Go to slide ${n.slide}</button>`:''}<button data-del="${i}">Delete</button></div>`).join(''):'<div class="atlas-gn-context">No notes yet.</div>';
+      document.querySelectorAll('#atlasGNList [data-note-go]').forEach(b=>b.onclick=()=>window.StudyAtlasReader?.go(Number(b.dataset.noteGo)));
+      document.querySelectorAll('#atlasGNList [data-del]').forEach(b=>b.onclick=()=>{const all=read(NOTE_KEY,{}),k=pageKey();all[k]=all[k]||forPage(NOTE_KEY)||[];all[k].splice(Number(b.dataset.del),1);write(NOTE_KEY,all);renderNotes()});
     }
     document.getElementById('atlasGNote').onclick=()=>{notes.hidden=false;document.getElementById('atlasGNContext').textContent=chapterLabel();requestAnimationFrame(resetSketchSize);renderNotes()};
     notes.querySelector('[data-close-note]').onclick=()=>notes.hidden=true;
     document.getElementById('atlasGNSave').onclick=()=>{
-      const all=read(NOTE_KEY,{}),k=pageKey();all[k]=all[k]||[];const text=document.getElementById('atlasGNText').value.trim();
-      all[k].unshift({context:chapterLabel(),text,sketch:sketch.toDataURL(),date:Date.now()});write(NOTE_KEY,all);document.getElementById('atlasGNText').value='';document.getElementById('atlasGNClear').click();renderNotes();
+      const all=read(NOTE_KEY,{}),k=pageKey();all[k]=all[k]||forPage(NOTE_KEY)||[];const text=document.getElementById('atlasGNText').value.trim();
+      all[k].unshift({context:chapterLabel(),slide:window.StudyAtlasReader?.current()?.n||null,text,sketch:sketch.toDataURL(),date:Date.now()});write(NOTE_KEY,all);document.getElementById('atlasGNText').value='';document.getElementById('atlasGNClear').click();renderNotes();
     };
 
-    function pinKey(v){return v.querySelector('.visualtag')?.textContent||v.querySelector('h4')?.textContent||'visual'}
-    function togglePin(v){
-      const all=read(PIN_KEY,{}),k=pageKey(),arr=all[k]||[],pk=pinKey(v),idx=arr.findIndex(x=>x.key===pk);
-      if(idx>=0)arr.splice(idx,1);else{const f=v.querySelector('iframe');arr.push({key:pk,title:v.querySelector('h4')?.textContent||pk,src:f?.src||'',text:v.querySelector('.visualcopy p')?.textContent||''})}
+    function pinKey(v){if(v.dataset.slide)return 'ORIGINAL SLIDE '+v.dataset.slide;return v.querySelector('.visualtag')?.textContent||v.querySelector('h4')?.textContent||'visual'}
+    async function togglePin(v){
+      if(document.body.classList.contains('atlas-slide-mode')&&v.dataset.slide)await window.StudyAtlasReader.render(Number(v.dataset.slide));
+      const all=read(PIN_KEY,{}),k=pageKey(),arr=all[k]||forPage(PIN_KEY)||[],pk=pinKey(v),idx=arr.findIndex(x=>x.key===pk);
+      if(idx>=0)arr.splice(idx,1);else{const f=v.querySelector('iframe'),image=v.querySelector('.atlas-slide-bitmap'),readerUrl=window.StudyAtlasReader?.source();arr.push({image:image&&image.width>1?image.toDataURL('image/webp',.8):'',slide:Number(v.dataset.slide)||null,key:pk,title:v.querySelector('h4')?.textContent||pk,src:f?.src||(readerUrl?readerUrl+'#page='+v.dataset.slide:''),text:v.querySelector('.visualcopy p')?.textContent||''})}
       all[k]=arr;write(PIN_KEY,all);renderBoard();syncPins();
     }
     function syncPins(){
-      const arr=read(PIN_KEY,{})[pageKey()]||[];
+      const arr=forPage(PIN_KEY)||[];
       document.querySelectorAll('.visualcard').forEach(v=>{const b=v.querySelector('.atlas-pin-btn-gen');if(!b)return;const on=arr.some(x=>x.key===pinKey(v));b.classList.toggle('pinned',on);b.textContent=on?'Pinned ✓':'Pin to board'});
     }
     function renderBoard(){
-      const arr=read(PIN_KEY,{})[pageKey()]||[];
-      document.getElementById('atlasGBList').innerHTML=arr.length?arr.map((x,i)=>`<article class="atlas-gb-card">${x.src?`<iframe src="${esc(x.src)}"></iframe>`:''}<div class="atlas-gb-copy"><b>${esc(x.title)}</b><p>${esc(x.text)}</p><button data-unpin="${i}">Remove</button></div></article>`).join(''):'<div class="atlas-gn-context">Pin important visuals from the lecture and they will stay here.</div>';
-      document.querySelectorAll('[data-unpin]').forEach(b=>b.onclick=()=>{const all=read(PIN_KEY,{}),k=pageKey();all[k].splice(Number(b.dataset.unpin),1);write(PIN_KEY,all);renderBoard();syncPins()});
+      const arr=forPage(PIN_KEY)||[];
+      document.getElementById('atlasGBList').innerHTML=arr.length?arr.map((x,i)=>`<article class="atlas-gb-card">${x.image?`<img src="${esc(x.image)}" alt="${esc(x.title)}" style="width:100%">`:x.src?`<iframe src="${esc(x.src)}"></iframe>`:''}<div class="atlas-gb-copy"><b>${esc(x.title)}</b><p>${esc(x.text)}</p>${x.slide?`<button data-board-go="${x.slide}">Go to slide</button>`:''}<button data-unpin="${i}">Remove</button></div></article>`).join(''):'<div class="atlas-gn-context">Pin important visuals from the lecture and they will stay here.</div>';
+      document.querySelectorAll('[data-board-go]').forEach(b=>b.onclick=()=>window.StudyAtlasReader?.go(Number(b.dataset.boardGo)));
+      document.querySelectorAll('[data-unpin]').forEach(b=>b.onclick=()=>{const all=read(PIN_KEY,{}),k=pageKey();all[k]=all[k]||forPage(PIN_KEY)||[];all[k].splice(Number(b.dataset.unpin),1);write(PIN_KEY,all);renderBoard();syncPins()});
     }
     document.getElementById('atlasGBoard').onclick=()=>{board.hidden=false;renderBoard()};
     board.querySelector('[data-close-board]').onclick=()=>board.hidden=true;

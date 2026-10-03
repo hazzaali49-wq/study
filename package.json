@@ -2,9 +2,13 @@
   "name": "study-atlas-netlify",
   "private": true,
   "version": "1.0.0",
-  "description": "Study Atlas with Netlify Functions, persistent AI lecture builder and cloud AI tutor.",
+  "description": "Study Atlas with source-preserving slide study views and free on-device AI",
   "dependencies": {
     "@netlify/blobs": "latest",
     "pdf-lib": "^1.17.1"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node tests/check-syntax.mjs"
   }
 }

@@ -29,20 +29,23 @@ export default async (req)=>{
 
     const filename=String(body.filename||'lecture.pdf');
     const requestedTitle=String(data.title||body.title||filename.replace(/\.pdf$/i,''));
-    const calendar=matchCalendarLecture(requestedTitle+' '+filename);
+    const calendar=body.metadata_confirmed===true?null:matchCalendarLecture([filename,requestedTitle]);
     const resolved=calendar?.confidence>=.72?getModule(calendar.module_code):(getModule(body.module_code)||getModule(body.module_id)||inferModule(requestedTitle+' '+filename));
     const moduleId=resolved?.id||String(body.module_id||''),moduleCode=resolved?.code||String(body.module_code||''),moduleName=resolved?.name||String(body.module_name||'');
     const manifest=(await store.get('manifest.json',{type:'json',consistency:'strong'}))||[];
-    const number=calendar?.module_code===moduleCode&&calendar?.confidence>=.72?calendar.number:(inferLectureNumber(moduleCode,requestedTitle,filename)||Number(body.lecture_number)||manifest.filter(x=>x.module_id===moduleId).length+1);
-    const id=slugify(requestedTitle);
+    if(!getModule(moduleCode))return json({error:'Choose a module before saving this lecture.'},422);
+    const number=calendar?.module_code===moduleCode&&calendar?.confidence>=.72?calendar.number:((body.metadata_confirmed===true?Number(body.lecture_number):(inferLectureNumber(moduleCode,requestedTitle,filename)||Number(body.lecture_number)))||null);
+    const existing=manifest.find(x=>x.module_id===moduleId&&(number?Number(x.number)===number:x.filename===filename));
+    const id=existing?.id||slugify(requestedTitle);
+    data.title=calendar?.module_code===moduleCode?calendar.title:requestedTitle;
     const originalUrl=`/api/original?id=${encodeURIComponent(id)}`;
     const html=renderGenerated(data,originalUrl,moduleCode,id);
 
     await store.set(`originals/${id}.pdf`,bytes.buffer,{metadata:{filename,title:requestedTitle}});
     await store.set(`lectures/${id}.html`,html,{metadata:{title:requestedTitle,module_id:moduleId}});
-    const meta={id,module_id:moduleId,module_name:moduleName,module_code:moduleCode,number:String(number).padStart(2,'0'),calendar_date:calendar?.calendar_date||null,title:requestedTitle,slides:`${Number(data.slide_count)||0} original slides`,chapters:`${data.chapters.length} local AI chapters`,description:data.description||data.subtitle||'Locally generated Study Atlas lecture.',created:Date.now(),builder:'local'};
-    const old=manifest.find(x=>x.id!==id&&x.module_id===moduleId&&String(x.number||'').replace(/^0+/,'')===String(number));
-    const next=manifest.filter(x=>x.id!==id&&!(x.module_id===moduleId&&String(x.number||'').replace(/^0+/,'')===String(number)));next.push(meta);
+    const meta={id,module_id:moduleId,module_name:moduleName,module_code:moduleCode,number:number?String(number).padStart(2,'0'):'—',filename,metadata_confirmed:body.metadata_confirmed===true,calendar_date:calendar?.calendar_date||null,title:data.title,slides:`${Number(data.slide_count)||0} original slides`,chapters:`${data.chapters.length} local AI chapters`,description:data.description||data.subtitle||'Locally generated Study Atlas lecture.',created:Date.now(),builder:'local'};
+    const old=manifest.find(x=>x.id!==id&&x.module_id===moduleId&&number&&Number(x.number)===number);
+    const next=manifest.filter(x=>x.id!==id&&!(x.module_id===moduleId&&number&&Number(x.number)===number));next.push(meta);
     await store.setJSON('manifest.json',next);
     if(old?.id)Promise.allSettled([store.delete(`lectures/${old.id}.html`),store.delete(`originals/${old.id}.pdf`)]).catch(()=>{});
     if(uploadId&&chunkCount)Promise.allSettled(Array.from({length:chunkCount},(_,i)=>store.delete(`uploads/${uploadId}/part-${String(i).padStart(4,'0')}.b64`))).catch(()=>{});

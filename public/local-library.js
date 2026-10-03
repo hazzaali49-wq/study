@@ -10,8 +10,21 @@ async function openOriginal(id){
 async function refresh(){
  if(!window.StudyAtlasLocalDB)return;
  const items=await window.StudyAtlasLocalDB.all();
+ for(const lecture of items){
+  if(lecture.metadata_confirmed)continue;
+  const match=window.StudyAtlasCatalog?.matchCalendarLecture([lecture.filename||lecture.title,lecture.title||'']);
+  if(match?.confidence<.78||!match)continue;
+  const m=window.StudyAtlasCatalog.getModule(match.module_code);
+  if(lecture.module_id!==m.id||Number(lecture.number)!==match.number||lecture.title!==match.title){
+   lecture.previous_titles=[...new Set([...(lecture.previous_titles||[]),lecture.title])];
+   Object.assign(lecture,{module_id:m.id,module_code:m.code,module_name:m.name,number:String(match.number).padStart(2,'0'),title:match.title,calendar_date:match.calendar_date});
+   if(lecture.data)lecture.data.title=match.title;await window.StudyAtlasLocalDB.put(lecture);
+  }
+ }
+
  document.querySelectorAll('[data-local-lecture]').forEach(x=>x.remove());
- const by=new Map();for(const x of items){if(!by.has(x.module_id))by.set(x.module_id,[]);by.get(x.module_id).push(x)}
+ const active=new Map();for(const x of items){const key=x.module_id+'::'+(Number(x.number)>0?Number(x.number):x.id);const old=active.get(key);if(!old||(x.updated||x.created||0)>(old.updated||old.created||0))active.set(key,x);}
+ const by=new Map();for(const x of active.values()){if(!by.has(x.module_id))by.set(x.module_id,[]);by.get(x.module_id).push(x)}
  for(const [mid,ls] of by){
    const lib=document.getElementById('module-'+mid);if(!lib)continue;
    let grid=lib.querySelector('.lecturegrid');if(!grid){lib.querySelector('.nolectures')?.remove();grid=document.createElement('div');grid.className='lecturegrid';lib.appendChild(grid)}
