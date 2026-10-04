@@ -60,7 +60,7 @@ function timerUI(){
  if(head){const b=makeBtn();if(head.querySelector('.atlas-top-actions'))head.querySelector('.atlas-top-actions').prepend(b);else head.appendChild(b)}
  else{const wrap=document.createElement('div');wrap.id='atlasTimerFloat';wrap.appendChild(makeBtn());document.body.appendChild(wrap)}
  modal.querySelectorAll('[data-tclose]').forEach(x=>x.onclick=()=>modal.hidden=true);
- modal.querySelectorAll('.atlas-timer-mode').forEach(b=>b.onclick=()=>{let ses=read(SESSION,null),id=currentModule()||'mdsa20030';if(ses?.running&&ses.module===id)return;modal.querySelectorAll('.atlas-timer-mode').forEach(x=>x.classList.toggle('active',x===b));modal.dataset.mode=b.dataset.mode;renderTimer()});
+ modal.querySelectorAll('.atlas-timer-mode').forEach(b=>b.onclick=()=>{let ses=read(SESSION,null),id=currentModule()||'mdsa20030';if(ses?.running&&ses.module===id)return;modal.dataset.mode=b.dataset.mode;if(ses&&ses.module===id&&ses.mode!==b.dataset.mode&&!ses.running){const mins=cleanMinutes(document.getElementById('atlasTimerMinutes')?.value);ses={module:id,mode:b.dataset.mode,elapsed:0,duration:b.dataset.mode==='countdown'?mins*60:0,running:false,completed:false,lastTick:Date.now()};write(SESSION,ses)}modal.querySelectorAll('.atlas-timer-mode').forEach(x=>x.classList.toggle('active',x===b));renderTimer()});
  modal.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>setCountdownMinutes(b.dataset.min));
  const minutes=document.getElementById('atlasTimerMinutes');minutes.addEventListener('change',()=>setCountdownMinutes(minutes.value));
  document.getElementById('atlasTimerStart').onclick=toggleTimer;
@@ -68,13 +68,14 @@ function timerUI(){
 }
 function sessionMode(){const modal=document.getElementById('atlasTimerModal');return modal?.dataset.mode||'stopwatch'}
 function cleanMinutes(v){return Math.min(600,Math.max(1,Math.round(Number(v)||45)))}
+let alarmCtx;
+function primeAlarm(){
+ try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!alarmCtx)alarmCtx=new AC();if(alarmCtx.state==='suspended')alarmCtx.resume?.()}catch{}
+}
 function alarm(){
  try{
-   navigator.vibrate?.([160,80,160]);
-   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-   const ctx=new AC(),start=ctx.currentTime;
+   navigator.vibrate?.([160,80,160]);primeAlarm();const ctx=alarmCtx;if(!ctx)return;const start=ctx.currentTime;
    [0,.24,.48].forEach((offset,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=start+offset;o.type='sine';o.frequency.value=i===2?880:660;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.2)});
-   setTimeout(()=>ctx.close?.(),900);
  }catch{}
 }
 function setCountdownMinutes(value){
@@ -100,7 +101,7 @@ function toggleTimer(){
  if(ses?.running){ses.running=false;write(SESSION,ses)}
  if(!matching){const mins=cleanMinutes(document.getElementById('atlasTimerMinutes')?.value);ses={module:id,mode,elapsed:0,duration:mode==='countdown'?mins*60:0,running:false,completed:false,lastTick:Date.now()}}
  if(mode==='countdown'&&(ses.completed||ses.elapsed>=ses.duration)){ses.elapsed=0;ses.completed=false}
- ses.running=true;ses.lastTick=Date.now();write(SESSION,ses);renderTimer()
+ if(mode==='countdown')primeAlarm();ses.running=true;ses.lastTick=Date.now();write(SESSION,ses);renderTimer()
 }
 function resetTimer(){const id=currentModule()||'mdsa20030',mode=sessionMode(),mins=cleanMinutes(document.getElementById('atlasTimerMinutes')?.value);write(SESSION,{module:id,mode,elapsed:0,duration:mode==='countdown'?mins*60:0,running:false,completed:false,lastTick:Date.now()});renderTimer()}
 function updateStudyTimeUI(){
