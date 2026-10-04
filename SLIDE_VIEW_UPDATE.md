@@ -15,9 +15,11 @@ remain available. The interface distinguishes source notes from AI explanations.
 Unreadable images cannot be fully interpreted without a supported vision model.
 The Enable button can prepare Chrome's local model; it does not call Netlify AI.
 
-Detailed slides can show a study copy of the original with highlighted text labels
-and a numbered explanation. Highlight locations come from actual PDF text boxes;
-the AI cannot invent image coordinates. The untouched source remains on the left.
+Detailed slides keep the untouched original on the left and put the slide-specific
+explanation underneath any teaching aid on the right. Anatomy and histology slides
+can show a small, source-linked teaching drawing with selectable structures,
+recognition cues and a practical takeaway. The reader never creates a noisy crop of
+isolated PDF words or presents a second unedited copy of the source picture.
 
 Drawing uses a separate active-stroke layer and paints new segments once per
 animation frame. History is replayed only for restoration, resize or undo. Canvas
@@ -44,11 +46,12 @@ chat interception, script escaping and drawing cost with a large saved history.
 - Hide panels closes open tools/notes/board/AI panels, hides reader navigation, and notifies the library iframe shell. The dock stays available; Show panels or Escape restores navigation.
 - Read legacy answer keys and flashcards directly from the original lecture data. Preserve rich cheat-sheet paragraphs, lists and tables. Place questions at their referenced slides and provide direct navigation to final understanding, detailed revision, flashcards and complete chapter guides.
 - Source recall, full revision points and takeaways are included for local uploads. On-device enrichment adds slide questions and revision content, resumes old local lectures, and continues after a failed batch. Existing cloud lectures use the shared adapter without needing a cloud rebuild.
-- The study pane never adds a plain duplicate bitmap. It produces caption label keys, explicit source relationship schematics, and mechanism chains. Located labels receive numbered spotlights on a cropped source detail. Raster label OCR runs in one browser worker using pinned Tesseract.js 6.0.1; it downloads runtime/language assets from public CDNs and does not send lecture images to a service. Only confident exact label matches are highlighted. Unreadable labels retain their source key without invented positions.
+- The study pane never adds a plain duplicate bitmap or word-level spotlight. It produces original anatomy/histology teaching drawings when the slide gives enough evidence, plus explicit source relationship schematics and mechanism chains. Drawings are local inline SVG, have selectable structures and include references; the original PDF remains the visual source of record.
+- Slide rendering uses a prioritized queue, bounded canvas resolution and far-slide bitmap release. A requested slide renders first, and background on-device enrichment pauses while a student asks a question. Answers stream with a short source preview and fall back locally without paid AI.
 - Library cards reconcile across bundled, cloud and local lectures using module + known lecture number. Latest uploads lead; alternative sources, study guides and note buttons remain in an expandable versions section. Completion migrates to a stable identity and each lecture counts once. Unknown lecture numbers remain separate.
 - Paid AI remains disabled. Local uploads and enhancements do not invoke Netlify AI/upload functions.
 
-Validation includes DOM regressions for both original lectures, interactive question feedback and panel toggling, cross-source library reconciliation, visual evidence matching, builder enrichment/failure recovery, existing AI/ink/calendar checks and syntax checks. Live browser layout validation remains blocked by the site's Netlify team-protection screen and the preview URL policy.
+Validation includes DOM regressions for both original lectures, interactive question feedback and panel toggling, cross-source library reconciliation, visual teaching drawing selection, builder enrichment/failure recovery, existing AI/ink/calendar checks and syntax checks. Live browser layout validation remains blocked by the site's Netlify team-protection screen and the preview URL policy.
 
 
 ## Notebook and navigation repair (4 October)
@@ -60,4 +63,4 @@ Validation includes DOM regressions for both original lectures, interactive ques
 - Move Pin slide beside the original slide, save a durable image rather than an ephemeral blob URL, show the board immediately, and synchronize pin state/counts. Notes, drawing tools, board and AI share predictable close behavior; panels scroll within the viewport with larger close/save controls and reduced-motion support.
 - All new note/pin storage, snapshots and searches stay on the device. Paid AI remains disabled. Existing cloud PDF delivery still follows the original hosting routes.
 
-Validation: 40 regression tests, including real IndexedDB semantics via fake-indexeddb, cross-page persistence, legacy migration, full-slide capture, quota/capture failures, pin toggling, lecture/module notebook entry points, menu controls and exact-slide return links. Syntax checks cover 62 browser and Netlify scripts. Live browser layout validation remains limited by the Netlify protection and preview policy described above.
+Validation: 41 regression tests, including real IndexedDB semantics via fake-indexeddb, cross-page persistence, legacy migration, full-slide capture, quota/capture failures, pin toggling, lecture/module notebook entry points, menu controls, exact-slide return links and teaching drawing interaction. Syntax checks cover 63 browser and Netlify scripts. Live browser layout validation remains limited by the Netlify protection and preview policy described above.

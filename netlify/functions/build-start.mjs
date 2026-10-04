@@ -1,7 +1,8 @@
 import {getStore} from '@netlify/blobs';
-import {json, MODEL, OPENAI_KEY, adminOK, slugify} from './_shared.mjs';
+import {json, MODEL, OPENAI_KEY, PAID_AI_ALLOWED, adminOK, slugify} from './_shared.mjs';
 export default async (req) => {
   if(req.method!=='POST') return json({error:'Method not allowed'},405);
+  if(!PAID_AI_ALLOWED) return json({error:'Paid cloud AI is disabled. Use the local browser builder; no Netlify AI credits were used.'},503);
   if(!OPENAI_KEY) return json({error:'OPENAI_API_KEY is not configured in Netlify.'},503);
   try{
     const body=await req.json();

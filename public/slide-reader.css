@@ -85,7 +85,7 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
 #atlasSlideReader .atlas-slide-row{display:block!important}
 #atlasSlideReader .atlas-reader-head{position:static!important;top:auto!important;background:none!important;border:0!important}
 
-/* Teaching visuals contain useful overlays or a newly laid-out mechanism/key. */
+/* Original teaching drawings sit above the explanation of the same slide. */
 #atlasSlideReader .atlas-study-visuals{padding:16px;border-bottom:1px solid var(--reader-line)}
 #atlasSlideReader .atlas-focus-caption,.atlas-section-kicker{color:var(--atlas-mod2,#72e8c3);font-size:11px;font-weight:800;letter-spacing:.06em;margin:0 0 9px}
 #atlasSlideReader .atlas-study-visual{border:1px solid #41516e;border-radius:12px;overflow:hidden;max-height:none}
@@ -142,3 +142,22 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
 #atlasSlideReader #atlas-saved-notes{scroll-margin-top:100px}
 @media(max-width:1120px){#atlasSlideReader .atlas-reader-hint{display:none}}
 @media(max-width:760px){#atlasSlideReader .atlas-reader-nav{gap:6px}#atlasSlideReader .atlas-module-button{display:none}#atlasSlideReader .atlas-reader-nav select{flex-basis:100%}#atlasSlideReader .atlas-slide-row{scroll-margin-top:126px}}
+
+#atlasSlideReader .atlas-teaching-figure{margin:0 0 12px;background:#0c1627;border:1px solid #354864;border-radius:15px;overflow:hidden}
+#atlasSlideReader .atlas-teaching-figure figcaption{padding:15px 16px 10px}
+#atlasSlideReader .atlas-teaching-figure figcaption>span{font-size:10px;color:var(--atlas-mod2,#75d6b7);letter-spacing:.07em;text-transform:uppercase;font-weight:800}
+#atlasSlideReader .atlas-teaching-figure h4{font-size:17px;line-height:1.4;margin:6px 0;color:#eef2fd}
+#atlasSlideReader .atlas-teaching-figure figcaption p{font-size:12px;line-height:1.6;margin:5px 0;color:#b7c5d9}
+#atlasSlideReader .atlas-structure-drawing{display:block;position:static;width:100%;height:auto;max-height:none;overflow:hidden;touch-action:pan-y}
+#atlasSlideReader .atlas-figure-label{font:14px system-ui,sans-serif;font-weight:700;fill:#e9effa;paint-order:stroke;stroke:#102037;stroke-width:3px;stroke-linejoin:round}
+#atlasSlideReader .atlas-figure-region.is-muted{opacity:.2}
+#atlasSlideReader .atlas-figure-region.is-selected{filter:drop-shadow(0 0 4px #ffe5a5)}
+#atlasSlideReader .atlas-structure-buttons{display:flex;flex-wrap:wrap;gap:7px;padding:10px 14px}
+#atlasSlideReader .atlas-structure-buttons button{display:flex;align-items:center;gap:7px;min-height:39px;font-size:11px;text-align:left;flex:1 1 42%;line-height:1.4;padding:8px}
+#atlasSlideReader .atlas-structure-buttons button b{flex-shrink:0;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#384361;color:#faf0d1;font-size:11px}
+#atlasSlideReader .atlas-structure-buttons [aria-pressed=true]{border-color:var(--atlas-mod2,#75d6b7);background:#183137}
+#atlasSlideReader .atlas-structure-explanation{margin:0 14px 12px;padding:12px;border-left:3px solid var(--atlas-mod2,#75d6b7);border-radius:8px;background:#172639;font-size:12px;color:#dce9f6;min-height:88px}
+#atlasSlideReader .atlas-structure-explanation p{margin:5px 0 0;line-height:1.6}
+#atlasSlideReader .atlas-figure-footnote{display:block;padding:0 14px 14px;color:#93a5bc;font-size:10px;line-height:1.6}
+@media(prefers-reduced-motion:no-preference){#atlasSlideReader .atlas-figure-region{transition:opacity .12s ease}}
+@media(max-width:500px){#atlasSlideReader .atlas-structure-buttons button{flex-basis:100%}}

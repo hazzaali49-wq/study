@@ -1,6 +1,7 @@
-import {json, MODEL, OPENAI_KEY, callOpenAI, outputText} from './_shared.mjs';
+import {json, MODEL, OPENAI_KEY, PAID_AI_ALLOWED, callOpenAI, outputText} from './_shared.mjs';
 export default async (req) => {
   if(req.method!=='POST') return json({error:'Method not allowed'},405);
+  if(!PAID_AI_ALLOWED) return json({error:'Paid cloud AI is disabled. Study Atlas is using the local/source tutor.'},503);
   if(!OPENAI_KEY) return json({error:'OPENAI_API_KEY is not configured in Netlify.'},503);
   try{
     const body=await req.json();

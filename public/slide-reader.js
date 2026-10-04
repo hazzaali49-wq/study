@@ -6,7 +6,7 @@ const PALETTES={nmhs10100:['#ef92c9','#79bce9'],path30080:['#ff7f82','#f4b15f'],
 let state=null;
 const script=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});
 async function dependencies(){
- for(const [name,src] of [['StudyAtlasSlideNotes','slide-notes.js'],['StudyAtlasLearning','study-learning.js'],['StudyAtlasVisuals','slide-visuals.js'],['StudyAtlasFigureLabels','figure-labels.js'],['StudyAtlasPDF','pdf-source.js'],['StudyAtlasStudyStore','study-store.js'],['StudyAtlasNotebook','study-notebook.js'],['StudyAtlasLocalAI','local-ai.js']])if(!window[name])await script('/'+src+'?v=10');
+ for(const [name,src] of [['StudyAtlasSlideNotes','slide-notes.js'],['StudyAtlasLearning','study-learning.js'],['StudyAtlasVisuals','slide-visuals.js'],['StudyAtlasTeachingFigures','teaching-figures.js'],['StudyAtlasPDF','pdf-source.js'],['StudyAtlasStudyStore','study-store.js'],['StudyAtlasNotebook','study-notebook.js'],['StudyAtlasLocalAI','local-ai.js']])if(!window[name])await script('/'+src+'?v=11');
 }
 function fromData(data,n){
  const note=(data.slides||[]).find(s=>Number(s.n)===n);if(note)return {...note};
@@ -63,7 +63,7 @@ function noteHTML(note){
  return `<div class="atlas-teaching-copy"><h3>${esc(note.title||'Slide '+note.n)}</h3>${preview?`<p>${esc(preview).replace(/\n\n/g,'</p><p>')}</p>`:''}${points.length?`<ul>${points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`:''}${note.takeaway?`<div class="atlas-definitions"><b>Takeaway</b><p>${esc(note.takeaway)}</p></div>`:''}${note.visual_explain?`<p>${esc(note.visual_explain)}</p>`:''}${defs.length?`<div class="atlas-definitions">${defs.map(d=>`<p><b>${esc(d.term)}</b> — ${esc(d.meaning)}</p>`).join('')}</div>`:''}${note.extra?`<details><summary>Memory / clinical link</summary><p>${esc(note.extra)}</p></details>`:''}${short.length>900?`<details><summary>Complete existing explanation</summary><p>${esc(short).replace(/\n/g,'<br>')}</p></details>`:''}<details><summary>Exact source text · slide ${note.n}</summary><div class="atlas-source-text">${esc(source||'No extractable text on this slide.')}</div></details></div>`;
 }
 function rowHTML(n){const note=state.notes.get(n);
- return `<section class="chapter visualcard atlas-slide-row" id="atlas-slide-${n}" data-slide="${n}" data-start="${n}" data-end="${n}"><div class="atlas-row-head"><h2><span class="atlas-slide-number">${String(n).padStart(2,'0')}</span><span class="atlas-row-title">${esc(note.title||'Slide '+n)}</span></h2><span class="atlas-origin-badge">${note.origin==='on-device'?'On-device explanation':note.origin==='existing'?'Existing guide':'Source notes'}</span></div><div class="atlas-pair"><div class="atlas-pane visualframe" data-side="original">${toolbar('original')}<div class="atlas-zoom-viewport"><div class="atlas-zoom-space"><div class="atlas-zoom-content"><div class="atlas-source-stage" data-ink-id="slide-${n}-original"><canvas class="atlas-slide-bitmap" aria-label="Original slide ${n}"></canvas><span class="atlas-source-loading">Original slide ${n} · loading…</span></div></div></div></div><div class="atlas-pane-footer"><a href="${esc(state.pdfUrl)}#page=${n}" target="_blank" rel="noopener">Open untouched slide ↗</a><span>Pinch to zoom · drag to pan</span></div></div><div class="atlas-pane visualcopy" data-side="teaching">${toolbar('teaching')}<div class="atlas-zoom-viewport"><div class="atlas-zoom-space"><div class="atlas-zoom-content"><div class="atlas-teaching-stage" data-ink-id="slide-${n}-teaching">${noteHTML(note)}</div></div></div></div><div class="atlas-pane-footer"><span class="visualtag">SLIDE ${n}</span><button class="atlas-explain-picture" data-explain="${n}">Explain picture</button><button data-labels="${n}">Highlight picture</button><span class="atlas-visual-status" role="status"></span></div></div></div><div class="atlas-slide-checks">${checksFor(n)}</div></section>`;
+ return `<section class="chapter visualcard atlas-slide-row" id="atlas-slide-${n}" data-slide="${n}" data-start="${n}" data-end="${n}"><div class="atlas-row-head"><h2><span class="atlas-slide-number">${String(n).padStart(2,'0')}</span><span class="atlas-row-title">${esc(note.title||'Slide '+n)}</span></h2><span class="atlas-origin-badge">${note.origin==='on-device'?'On-device explanation':note.origin==='existing'?'Existing guide':'Source notes'}</span></div><div class="atlas-pair"><div class="atlas-pane visualframe" data-side="original">${toolbar('original')}<div class="atlas-zoom-viewport"><div class="atlas-zoom-space"><div class="atlas-zoom-content"><div class="atlas-source-stage" data-ink-id="slide-${n}-original"><canvas class="atlas-slide-bitmap" aria-label="Original slide ${n}"></canvas><span class="atlas-source-loading">Original slide ${n} · loading…</span></div></div></div></div><div class="atlas-pane-footer"><a href="${esc(state.pdfUrl)}#page=${n}" target="_blank" rel="noopener">Open untouched slide ↗</a><span>Pinch to zoom · drag to pan</span></div></div><div class="atlas-pane visualcopy" data-side="teaching">${toolbar('teaching')}<div class="atlas-zoom-viewport"><div class="atlas-zoom-space"><div class="atlas-zoom-content"><div class="atlas-teaching-stage" data-ink-id="slide-${n}-teaching">${noteHTML(note)}</div></div></div></div><div class="atlas-pane-footer"><span class="visualtag">SLIDE ${n}</span><button class="atlas-explain-picture" data-explain="${n}">Explain slide</button><button data-study-picture="${n}" hidden>Open teaching drawing</button><span class="atlas-visual-status" role="status"></span></div></div></div><div class="atlas-slide-checks">${checksFor(n)}</div></section>`;
 }
 function current(){
  if(!state)return null;const y=innerHeight*.4;
@@ -101,79 +101,47 @@ function setupZoom(pane){
  viewport.addEventListener('touchmove',e=>{if(e.touches.length!==2||!gesture)return;e.preventDefault();const [a,b]=e.touches;zoom(gesture.scale*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/Math.max(1,gesture.distance),(a.clientX+b.clientX)/2,(a.clientY+b.clientY)/2);},{passive:false});viewport.addEventListener('touchend',()=>gesture=null,{passive:true});
  new ResizeObserver(()=>update()).observe(content);new ResizeObserver(()=>update()).observe(viewport);update();pane.atlasZoom=delta=>zoom(scale*Math.pow(1.15,delta));
 }
-function teachingVisualHTML(plan,note){
- const key=plan.labels.length?`<div class="atlas-visual-key"><h4>Read the picture · label key</h4><div>${plan.labels.map(l=>`<button data-focus-label="${l.index}" style="--label-color:${l.color}"><b>${esc(l.text)}</b><span>${esc(l.explain)}</span></button>`).join('')}</div><p>Labels and meanings from the slide or its study guide. Select a located label to spotlight it.</p></div>`:'';
+function teachingVisualHTML(plan){
  const flow=plan.sequences.map(steps=>`<figure class="atlas-mechanism"><figcaption>Trace the mechanism</figcaption><ol>${steps.map(step=>`<li>${esc(step)}</li>`).join('')}</ol></figure>`).join('');
- const relations=plan.relationships.map(r=>`<figure class="atlas-relation"><figcaption>Spatial relationship from the guide</figcaption><div><b>${esc(r.subject)}</b><span>↓ ${esc(r.relation)}</span><b>${esc(r.object)}</b></div></figure>`).join('');
- return key+relations+flow;
-}
-function drawFocus(holder,source,labels){
- const V=window.StudyAtlasVisuals,crop=V.cropFor(labels);if(!crop||!source.width||source.width<2)return;
- const canvas=document.createElement('canvas');canvas.className='atlas-slide-bitmap';canvas.setAttribute('aria-label','Source figure with numbered label highlights');
- const sw=source.width,sh=source.height;canvas.width=Math.max(1,Math.round(sw*crop.w));canvas.height=Math.max(1,Math.round(sh*crop.h));
- const ctx=canvas.getContext('2d');ctx.drawImage(source,sw*crop.x,sh*crop.y,sw*crop.w,sh*crop.h,0,0,canvas.width,canvas.height);
- ctx.fillStyle='rgba(10,18,35,.34)';ctx.fillRect(0,0,canvas.width,canvas.height);
- for(const l of labels)for(const b of l.boxes){
-  const x=(b.x-crop.x)*sw-5,y=(b.y-crop.y)*sh-5,w=b.w*sw+10,h=b.h*sh+10;
-  ctx.drawImage(source,b.x*sw-5,b.y*sh-5,w,h,x,y,w,h);ctx.strokeStyle=l.color;ctx.lineWidth=3;ctx.strokeRect(x,y,w,h);
-  const r=Math.max(9,sw*.010),cx=Math.max(r+1,x-r),cy=Math.max(r+1,y+h/2);ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=l.color;ctx.fill();ctx.fillStyle='#08101d';ctx.font='bold '+Math.round(r*1.25)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(l.index,cx,cy);
- }
- holder.replaceChildren(canvas);holder.style.aspectRatio=canvas.width+'/'+canvas.height;
+ const relations=plan.relationships.map(r=>`<figure class="atlas-relation"><figcaption>Spatial relationship from this slide</figcaption><div><b>${esc(r.subject)}</b><span>${esc(r.relation)}</span><b>${esc(r.object)}</b></div></figure>`).join('');
+ return relations+flow;
 }
 function setVisual(row,note,page){
- const teaching=row.querySelector('.atlas-teaching-stage'),V=window.StudyAtlasVisuals,plan=V.plan(note,page);
- teaching.querySelector('.atlas-study-visuals')?.remove();
- if(!plan.labels.length&&!plan.sequences.length&&!plan.relationships.length)return;
- const block=document.createElement('div');block.className='atlas-study-visuals';block.innerHTML=(plan.located.length?'<div class="atlas-focus-caption">Highlighted source detail · select a label below</div><div class="atlas-source-stage atlas-study-visual"></div>':'')+teachingVisualHTML(plan,note);teaching.prepend(block);
- const source=row.querySelector('[data-side="original"] .atlas-slide-bitmap'),holder=block.querySelector('.atlas-study-visual');
- if(holder)drawFocus(holder,source,plan.located);
- block.querySelectorAll('[data-focus-label]').forEach(b=>{
-  const located=plan.located.find(l=>l.index===Number(b.dataset.focusLabel));b.dataset.located=String(!!located);b.setAttribute('aria-pressed','false');
-  b.onclick=()=>{if(!located){readFigure(row,note,page,true);return;}block.querySelectorAll('[data-focus-label]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));drawFocus(holder,source,[located]);};
- });
- const status=row.querySelector('.atlas-visual-status');status.textContent=plan.located.length?plan.located.length+' labels located':plan.labels.length+' labels decoded';
+ const teaching=row.querySelector('.atlas-teaching-stage'),Figures=window.StudyAtlasTeachingFigures,plan=window.StudyAtlasVisuals.plan(note,page),drawing=Figures.select(note,page),button=row.querySelector('[data-study-picture]');
+ teaching.querySelector('.atlas-study-visuals')?.remove();button.hidden=!drawing;
+ const status=row.querySelector('.atlas-visual-status');status.textContent='';
+ if(Figures.isReference(note,page))return;
+ const markup=Figures.html(drawing,note.n)+teachingVisualHTML(plan);
+ if(!markup)return;
+ const block=document.createElement('div');block.className='atlas-study-visuals';block.innerHTML=markup;teaching.prepend(block);
+ if(drawing){Figures.bind(block.querySelector('.atlas-teaching-figure'),drawing);status.textContent='Select a structure in the drawing';}
 }
-async function readFigure(row,note,page,manual=false){
- const S=state,n=note.n,V=window.StudyAtlasVisuals,labels=V.candidates(note,page),status=row.querySelector('.atlas-visual-status');
- if(S.ocrPending.has(n)||(!manual&&S.ocrTried.has(n)))return;
- if(!manual&&(!labels.length||V.locate(labels,page.boxes).length===labels.length))return;
- S.ocrTried.add(n);S.ocrPending.add(n);status.textContent='Reading picture labels locally…';
- const keep=()=>state===S&&S.rendered.has(n)&&(manual||(()=>{const r=row.getBoundingClientRect();return r.top<innerHeight+200&&r.bottom>0;})());
- try{
-  const canvas=row.querySelector('[data-side="original"] .atlas-slide-bitmap');
-  // The canvas is copied before queueing so lazy bitmap eviction cannot change OCR input.
-  const copy=document.createElement('canvas');copy.width=canvas.width;copy.height=canvas.height;copy.getContext('2d').drawImage(canvas,0,0);
-  const result=await window.StudyAtlasFigureLabels.read(copy,(S.pdf.fingerprints?.[0]||S.id)+':'+n,labels,keep);
-  if(!result){S.ocrTried.delete(n);status.textContent='';return;}
-  if(!keep())return;page.ocrBoxes=result.boxes;
-  if(!page.text.trim()&&result.text.trim()){
-   page.text=result.text;page.lines=result.text.split('\n');const fallback=window.StudyAtlasSlideNotes.fromPage(page);Object.assign(note,{source:result.text,key_points:fallback.key_points,definitions:fallback.definitions,kind:'teaching'});
-   row.querySelector('.atlas-teaching-copy').outerHTML=noteHTML(note);refreshChecks(row,note);
-  }
-  setVisual(row,note,page);const located=V.plan(note,page).located.length;status.textContent=located?located+' labels highlighted · read on this device':'No reliable label positions found. Use the label key and source explanation.';
- }catch{status.textContent='Picture labels could not be read here. The source label key is still available.';S.ocrTried.delete(n);}
- finally{S.ocrPending.delete(n);}
-}
-async function render(n){
- const S=state;if(!S||S.rendered.has(n))return;if(S.pending.has(n))return S.tasks.get(n);
+async function render(n,urgent=false){
+ const S=state;if(!S||S.rendered.has(n))return;if(urgent)S.priority=n;if(S.pending.has(n))return S.tasks.get(n);
  S.pending.add(n);
  const job=async()=>{
   try{
-   const page=await S.pdf.getPage(n),source=await window.StudyAtlasPDF.readPage(page),row=S.root.querySelector('#atlas-slide-'+n),old=S.notes.get(n),fallback=window.StudyAtlasSlideNotes.fromPage(source);
-   source.ocrBoxes=S.sources.get(n)?.ocrBoxes||[];
-   const note={...fallback,...old,source:source.text,source_lines:source.lines};if(!old.explain&&!old.key_points?.length){note.key_points=fallback.key_points;note.explain=fallback.explain;}if(old.title==='Slide '+n)note.title=fallback.title;
+   const page=await S.pdf.getPage(n),source=S.sources.get(n)||await window.StudyAtlasPDF.readPage(page),row=S.root.querySelector('#atlas-slide-'+n),old=S.notes.get(n),fallback=window.StudyAtlasSlideNotes.fromPage(source);
+   const note={...fallback,...old,source:source.text,source_lines:source.lines};if(!old.explain&&!old.key_points?.length){note.key_points=fallback.key_points;note.explain=fallback.explain;}if(old.title==='Slide '+n)note.title=fallback.title;if(['admin','cover'].includes(fallback.kind))note.kind=fallback.kind;
    S.notes.set(n,note);S.sources.set(n,source);refreshChecks(row,note);row.querySelector('.atlas-row-title').textContent=note.title;
    const teaching=row.querySelector('.atlas-teaching-copy');teaching.outerHTML=noteHTML(note);
    const stage=row.querySelector('.atlas-source-stage'),canvas=stage.querySelector('.atlas-slide-bitmap');stage.style.aspectRatio=source.width+'/'+source.height;
-   const scale=Math.min(2.5,Math.max(1,stage.clientWidth*Math.min(2,devicePixelRatio||1)/source.width)),vp=page.getViewport({scale});canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);
+   const scale=Math.min(2.5,Math.sqrt(2200000/(source.width*source.height)),Math.max(1,stage.clientWidth*Math.min(1.6,devicePixelRatio||1)/source.width)),vp=page.getViewport({scale});canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);
    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;stage.querySelector('.atlas-source-loading')?.remove();page.cleanup();setVisual(row,S.notes.get(n)||note,source);S.rendered.add(n);
-   setTimeout(()=>{if(!document.body.classList.contains('atlas-gdrawing'))readFigure(row,note,source);},700);
    // Release far-away bitmaps; annotations are separate vector strokes and stay saved.
    if(S.rendered.size>8){for(const oldN of S.rendered){const el=S.root.querySelector('#atlas-slide-'+oldN),r=el.getBoundingClientRect();if(r.bottom< -1500||r.top>innerHeight+1500){el.querySelectorAll('.atlas-slide-bitmap').forEach(c=>{c.width=1;c.height=1;});S.rendered.delete(oldN);if(S.rendered.size<=8)break;}}}
   }catch(e){const el=S.root.querySelector('#atlas-slide-'+n+' .atlas-source-loading');if(el){el.textContent='Could not render this slide. Open the untouched source or retry.';el.style.pointerEvents='auto';el.onclick=()=>render(n);}}
   finally{S.pending.delete(n);S.tasks.delete(n);}
  };
- S.queue=S.queue.then(job,job);S.tasks.set(n,S.queue);return S.queue;
+ const done=new Promise(resolve=>S.renderQueue.push({n,job,resolve}));S.tasks.set(n,done);
+ Promise.resolve().then(()=>pumpRenders(S));return done;
+}
+async function pumpRenders(S){
+ if(S.rendering)return;S.rendering=true;
+ try{while(S.renderQueue.length){
+  const preferred=S.priority||S.focused,index=S.renderQueue.findIndex(task=>task.n===preferred),task=S.renderQueue.splice(Math.max(0,index),1)[0];
+  await task.job();if(S.priority===task.n)S.priority=null;task.resolve();
+ }}finally{S.rendering=false;}
 }
 function aiPanel(n){window.dispatchEvent(new Event('atlas:close-panels'));const currentSlide=n?{n,row:state.root.querySelector('#atlas-slide-'+n),note:state.notes.get(n)}:current();if(!currentSlide)return;state.aiSlide=currentSlide.n;state.root.querySelector('.atlas-reader-ai').hidden=false;state.root.querySelector('.atlas-ai-status').textContent='Slide '+currentSlide.n+' · free local tutor';}
 async function ask(question,{image=false}={}){
@@ -181,13 +149,15 @@ async function ask(question,{image=false}={}){
  S.controller?.abort();S.controller=new AbortController();const controller=S.controller;
  const buttons=S.root.querySelectorAll('[data-ask]');buttons.forEach(b=>b.disabled=true);S.root.querySelector('[data-stop]').hidden=false;
  try{
-  await render(n);const note=S.notes.get(n),source=S.sources.get(n);
+  const preview=S.notes.get(n);out.textContent=window.StudyAtlasLocalAI.sourceAnswer(question,[preview?.source,preview?.explain,...(preview?.key_points||[])].filter(Boolean).join('\n'));status.textContent='Slide '+n+' · source preview';
+  await render(n,true);const note=S.notes.get(n),source=S.sources.get(n);
   const context='Lecture: '+S.title+'\nSlide '+n+'\n'+(note.source||'')+'\nExisting explanation:\n'+(note.explain||'');
   out.textContent=window.StudyAtlasLocalAI.sourceAnswer(question,context);status.textContent='Slide '+n+' · source preview';
-  const imageCanvas=image&&await window.StudyAtlasLocalAI.availability(true)==='available'?S.root.querySelector('#atlas-slide-'+n+' .atlas-slide-bitmap'):undefined;
+  const imageNeeded=image&&(note.kind==='visual'||/histolog|anatom|micrograph/i.test(note.title+' '+note.source));
+  const imageCanvas=imageNeeded&&await window.StudyAtlasLocalAI.availability(true)==='available'?S.root.querySelector('#atlas-slide-'+n+' .atlas-slide-bitmap'):undefined;
   const result=await window.StudyAtlasLocalAI.askWithMeta(question,{context,image:imageCanvas,cacheKey:S.id+':'+n,signal:controller.signal,onUpdate:t=>{if(S.controller===controller)out.textContent=t;},onStatus:t=>status.textContent='Slide '+n+' · '+t});
   status.textContent='Slide '+n+' · '+(result.mode==='source'?'Source answer · on-device model unavailable or timed out':result.mode==='on-device-vision'?'On-device vision':'On-device AI')+' · no paid calls';
-  if(image&&source){const row=S.root.querySelector('#atlas-slide-'+n);setVisual(row,note,source);readFigure(row,note,source,true);}
+
  }catch(e){if(e.name==='AbortError')status.textContent='Stopped · slide '+n;else out.textContent=e.message;}
  finally{if(S.controller===controller){buttons.forEach(b=>b.disabled=false);S.root.querySelector('[data-stop]').hidden=true;}}
 }
@@ -209,7 +179,7 @@ function extras(data){
 }
 async function open(config){
  if(state)return;await dependencies();const data=config.data||{},root=document.createElement('div');root.id='atlasSlideReader';
- state={...config,title:config.title||data.title||'Lecture',root,count:0,learning:window.StudyAtlasLearning.prepare(data),ocrPending:new Set(),ocrTried:new Set(),notes:new Map(),sources:new Map(),rendered:new Set(),pending:new Set(),tasks:new Map(),queue:Promise.resolve(),pdfUrl:config.pdfUrl};
+ state={...config,title:config.title||data.title||'Lecture',root,count:0,learning:window.StudyAtlasLearning.prepare(data),notes:new Map(),sources:new Map(),rendered:new Set(),pending:new Set(),tasks:new Map(),renderQueue:[],rendering:false,pdfUrl:config.pdfUrl};
  document.body.prepend(root);document.body.classList.add('atlas-slide-mode');document.body.dataset.atlasModule=config.module_id||'';
  const colors=PALETTES[config.module_id]||PALETTES.mdsa20030;document.documentElement.style.setProperty('--atlas-mod',colors[0]);document.documentElement.style.setProperty('--atlas-mod2',colors[1]);
  root.innerHTML='<div class="atlas-reader-head"><div><div class="atlas-reader-brand">✦ studyatlas</div><h1>'+esc(state.title)+'</h1><p class="atlas-reader-sub">Opening original slides…</p></div></div>';
@@ -224,11 +194,11 @@ async function open(config){
  root.querySelector('[data-prev]').onclick=()=>go((current()?.n||1)-1);root.querySelector('[data-next]').onclick=()=>go((current()?.n||1)+1);
  const jump=root.querySelector('nav input');jump.onchange=()=>go(jump.value);root.querySelector('nav select').onchange=e=>{const target=e.target.value;if(target.startsWith('atlas-'))root.querySelector('#'+target)?.scrollIntoView({behavior:'smooth'});else go(target);};
  root.querySelector('[data-ai-close]').onclick=()=>{state.controller?.abort();root.querySelector('.atlas-reader-ai').hidden=true;};
- root.querySelectorAll('[data-ask]').forEach(b=>b.onclick=()=>ask(b.dataset.ask==='picture'?'Explain this picture clearly. Describe the visible labels and arrows, and what matters on this slide.':root.querySelector('textarea').value.trim()||'Explain this slide simply.',{image:b.dataset.ask==='picture'}));
+ root.querySelectorAll('[data-ask]').forEach(b=>b.onclick=()=>ask(b.dataset.ask==='picture'?'Explain the visual in this slide clearly. Describe the important structures, arrows or relationships and why they matter; do not just repeat labels.':root.querySelector('textarea').value.trim()||'Explain this slide simply.',{image:b.dataset.ask==='picture'}));
  root.querySelector('[data-stop]').onclick=()=>state.controller?.abort();
  root.querySelector('[data-enable]').onclick=async()=>{const status=root.querySelector('.atlas-ai-status');status.textContent='Preparing on-device model…';try{await window.StudyAtlasLocalAI.enable({onProgress:p=>status.textContent='One-time on-device model download · '+p+'%'});status.textContent='On-device model ready · free';}catch(e){status.textContent='On-device model is unavailable here. Source answers are ready.';}};
- root.querySelectorAll('[data-explain]').forEach(b=>b.onclick=()=>{aiPanel(Number(b.dataset.explain));ask('Explain the picture on this slide. Describe supported labels, arrows and relationships in 3 short points.',{image:true});});
- root.querySelectorAll('[data-labels]').forEach(b=>b.onclick=async()=>{const n=Number(b.dataset.labels);await render(n);const source=state.sources.get(n);if(source){const row=root.querySelector('#atlas-slide-'+n),note=state.notes.get(n);setVisual(row,note,source);await readFigure(row,note,source,true);}});
+ root.querySelectorAll('[data-explain]').forEach(b=>b.onclick=()=>{aiPanel(Number(b.dataset.explain));ask('Explain this slide in 3 short points. For anatomy or histology, explain the structures, how to recognise them and why they matter. Do not repeat isolated labels.',{image:true});});
+ root.querySelectorAll('[data-study-picture]').forEach(b=>b.onclick=()=>{const row=b.closest('.atlas-slide-row'),pane=row.querySelector('[data-side="teaching"]');pane.querySelector('[data-fit]').click();pane.querySelector('.atlas-zoom-viewport').scrollTo({top:0,left:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});row.querySelector('[data-structure]')?.focus({preventScroll:true});});
  root.addEventListener('click',e=>{
   const b=e.target.closest('[data-check],[data-go]');if(!b)return;
   if(b.dataset.go){go(Number(b.dataset.go));return;}
@@ -236,14 +206,14 @@ async function open(config){
   feedback.textContent=picked?(Number(picked.value)===Number(q.dataset.answer)?'Correct. ':'Not quite. Correct answer: '+feedback.dataset.correct+'. ')+feedback.dataset.exp:'Choose an answer first.';
  });
  root.addEventListener('input',e=>{if(!e.target.matches('[data-revision-search]'))return;const term=e.target.value.toLowerCase();root.querySelectorAll('.atlas-revision-card').forEach(c=>c.hidden=!c.textContent.toLowerCase().includes(term));});
- const observer=new IntersectionObserver(entries=>{entries.filter(e=>e.isIntersecting).forEach(e=>render(Number(e.target.dataset.slide)));},{rootMargin:'800px 0px'});root.querySelectorAll('.atlas-slide-row').forEach(r=>observer.observe(r));
+ const observer=new IntersectionObserver(entries=>{entries.filter(e=>e.isIntersecting).forEach(e=>render(Number(e.target.dataset.slide)));},{rootMargin:'450px 0px'});root.querySelectorAll('.atlas-slide-row').forEach(r=>observer.observe(r));
  let scrolling=false;addEventListener('scroll',()=>{if(scrolling)return;scrolling=true;requestAnimationFrame(()=>{scrolling=false;const n=current()?.n||1;jump.value=n;sessionStorage.setItem('atlas-reader-position:'+state.id,String(n));});},{passive:true});
  addEventListener('keydown',e=>{if(document.body.classList.contains('atlas-notebook-open')||e.target.closest('input,textarea,select,summary')||e.ctrlKey||e.metaKey||e.altKey||document.body.classList.contains('atlas-gdrawing'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go((current()?.n||1)+(e.key==='ArrowRight'?1:-1));}});
  if(!document.getElementById('atlasTimerModal'))await script('/study-tools.js?v=8');
  if(!document.getElementById('atlasGenDock'))await script('/generated-tools.js?v=10');
  await window.StudyAtlasNotebook.mountEnd().catch(()=>{});
  const requested=Number(new URLSearchParams(location.search).get('slide'));let saved=0;try{saved=Number(sessionStorage.getItem('atlas-reader-position:'+state.id));}catch{}
- const start=Math.max(1,Math.min(state.count,Math.round(requested||saved||1)));await render(start);if(start>1)go(start);
+ const start=Math.max(1,Math.min(state.count,Math.round(requested||saved||1)));await render(start,true);if(start>1)go(start);
  addEventListener('pagehide',()=>{state.controller?.abort();state.pdf?.destroy();},{once:true});
 }
 addEventListener('atlas:lecture-enhanced',e=>{

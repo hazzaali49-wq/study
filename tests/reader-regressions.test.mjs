@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import learning from '../public/study-learning.js';
 import visuals from '../public/slide-visuals.js';
+import figures from '../public/teaching-figures.js';
 import {dom,read} from './dom.mjs';
 
 const flush=async()=>{for(let i=0;i<180;i++)await Promise.resolve();};
@@ -42,11 +43,27 @@ test('focus closes open panels, signals the containing library and restores with
 test('caption labels become a teaching key; raster boxes require a high-confidence exact match',()=>{
  const text='SMG submandibular gland, OH omohyoid muscle, HB hyoid bone, SC sternocleidomastoid muscle, TC thyroid cartilage, CT cricothyroid muscle, VN vagus nerve, CCA common carotid artery, IJV internal jugular vein, TG thyroid gland, SH sternohyoid muscle, ST sternothyroid muscle';
  const p=visuals.plan({labels:[]},{text,boxes:[{text,x:.1,y:.8,w:.8,h:.05}]});
- assert.equal(p.labels.length,12);assert.equal(p.located.length,0);assert.equal(p.labels.find(l=>l.text==='TG').explain,'thyroid gland');
+ assert.equal(p.labels.length,12);assert.equal(visuals.locate(p.labels,[]).length,0);assert.equal(p.labels.find(l=>l.text==='TG').explain,'thyroid gland');
  const boxes=[{text:'TG',x:.6,y:.4,w:.04,h:.02,confidence:92},{text:'TC',x:.6,y:.3,w:.04,h:.02,confidence:25}];
  assert.equal(visuals.locate(p.labels,boxes).length,1);
  assert.ok(visuals.cropFor(visuals.locate(p.labels,boxes)).w<.3);
  assert.deepEqual(visuals.sequences({explain:'AVP → V2 receptor → cAMP → AQP2 insertion → water reabsorption.'},{text:''})[0],['AVP','V2 receptor','cAMP','AQP2 insertion','water reabsorption.']);
+ assert.deepEqual(p.located,[]);
+});
+
+test('anatomy and histology slides get an original teaching drawing instead of a word crop',()=>{
+ const page={lines:['Pituitary histology','Acidophils, basophils and chromophobes'],text:'Pituitary histology\nAcidophils, basophils and chromophobes'};
+ const figure=figures.select({n:4,title:'Pituitary histology'},page);
+ assert.equal(figure.id,'anterior-histology');
+ const markup=figures.html(figure,4);
+ assert.match(markup,/atlas-teaching-figure/);
+ assert.doesNotMatch(markup,/highlighted source detail|data-focus-label|atlas-slide-bitmap/);
+ const app=dom('<html><body></body></html>'),host=app.document.createElement('div');host.innerHTML=markup;app.document.body.appendChild(host);
+ figures.bind(host.querySelector('.atlas-teaching-figure'),figure);
+ const button=host.querySelector('[data-structure="acidophils"]');button.click();
+ assert.equal(button.getAttribute('aria-pressed'),'true');
+ assert.match(host.querySelector('.atlas-structure-explanation').textContent,/growth-hormone/i);
+ assert.equal(figures.select({kind:'admin',title:'Learning Objectives'},{lines:['Learning Objectives'],text:'Learning Objectives: identify hormones'}),null);
 });
 
 test('unknown or unlabelled images are never presented as an unedited duplicate on the study side',async()=>{

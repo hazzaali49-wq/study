@@ -3,6 +3,7 @@ import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
 import learning from '../public/study-learning.js';
 import visuals from '../public/slide-visuals.js';
+import figures from '../public/teaching-figures.js';
 import notes from '../public/slide-notes.js';
 const read=file=>fs.readFileSync(new URL('../public/'+file,import.meta.url),'utf8');
 function dom(html){
@@ -13,7 +14,7 @@ function dom(html){
  window.HTMLElement.prototype.getBoundingClientRect=()=>({top:0,bottom:800,left:0,width:600,height:300});window.HTMLElement.prototype.scrollIntoView=function(){events.push(['scroll',this.id]);};window.HTMLElement.prototype.scrollTo=function(){};
  window.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/webp;base64,U0xJREU=';
  window.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:()=>()=>{}});
- window.StudyAtlasSlideNotes=notes;window.StudyAtlasLearning=learning;window.StudyAtlasVisuals=visuals;window.StudyAtlasFigureLabels={read:async()=>null};window.StudyAtlasLocalAI={};
+ window.StudyAtlasSlideNotes=notes;window.StudyAtlasLearning=learning;window.StudyAtlasVisuals=visuals;window.StudyAtlasTeachingFigures=figures;window.StudyAtlasFigureLabels={read:async()=>null};window.StudyAtlasLocalAI={};
  window.StudyAtlasPDF={load:async()=>({numPages:28,getPage:async n=>({n,getViewport:()=>({width:600,height:450}),render:()=>({promise:Promise.resolve()}),cleanup(){}})}),readPage:async p=>({n:p.n,text:'Source\nA teaching point from this original slide.',lines:['Source','A teaching point from this original slide.'],boxes:[],width:600,height:450})};
  Object.assign(window,{localStorage:storage,sessionStorage:storage,location:context.location,parent:{postMessage:msg=>events.push(msg)}});
  window.indexedDB=undefined;

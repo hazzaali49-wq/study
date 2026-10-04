@@ -26,6 +26,7 @@
   function classify(page){
     const lines=page.lines||[],heading=clean(lines[0]||'');
     if(!clean(page.text))return 'visual';
+    if(/\blearning (objectives?|outcomes?)\b/i.test(lines.slice(0,5).join(' ')+' '+(String(page.text||'').length<1800?page.text:'')))return 'admin';
     if(/^(learning (objectives?|outcomes?)|references?|reading list|bibliography|thank you|module information|timetable)\b/i.test(heading))return 'admin';
     if(page.n===1&&lines.length<=3&&!/[→↑↓]/.test(page.text))return 'cover';
     return 'teaching';

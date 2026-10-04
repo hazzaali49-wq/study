@@ -14,7 +14,7 @@ function captionLabels(text){
  }return result;
 }
 function candidates(note,page){
- const all=[...(note.labels||[]).filter(l=>l&&typeof l==='object'),...captionLabels(page.text),...(note.definitions||[]).map(d=>({text:d.term,explain:d.meaning,origin:'glossary'}))];
+ const all=[...(note.labels||[]).filter(l=>l&&typeof l==='object'),...captionLabels(page.text)];
  const seen=new Set();return all.filter(l=>{const key=norm(l.text);if(!key||seen.has(key)||!l.explain)return false;seen.add(key);return true;}).map((l,i)=>({...l,index:i+1,color:colors[i%colors.length]}));
 }
 function locate(labels,boxes){
@@ -36,7 +36,10 @@ function relationships(note,page){
   result.push({subject:clean(match[1]),relation:match[2],object:clean(match[3])});
  }return result.slice(0,4);
 }
-function plan(note,page){const labels=candidates(note,page);return {labels,located:locate(labels,[...(page.boxes||[]),...(page.ocrBoxes||[])]),sequences:sequences(note,page),relationships:relationships(note,page)};}
+// Keep the old `located` slot as an empty compatibility field. The reader no
+// longer raster-highlights OCR words, but older integrations may still read
+// the plan shape while they update.
+function plan(note,page){return {labels:candidates(note,page),located:[],sequences:sequences(note,page),relationships:relationships(note,page)};}
 function cropFor(labels){
  const boxes=labels.flatMap(l=>l.boxes),pad=.08;if(!boxes.length)return null;
  const x=Math.max(0,Math.min(...boxes.map(b=>b.x))-pad),y=Math.max(0,Math.min(...boxes.map(b=>b.y))-pad),right=Math.min(1,Math.max(...boxes.map(b=>b.x+b.w))+pad),bottom=Math.min(1,Math.max(...boxes.map(b=>b.y+b.h))+pad);
