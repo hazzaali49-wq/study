@@ -66,6 +66,16 @@ test('anatomy and histology slides get an original teaching drawing instead of a
  assert.equal(figures.select({kind:'admin',title:'Learning Objectives'},{lines:['Learning Objectives'],text:'Learning Objectives: identify hormones'}),null);
 });
 
+test('GH and thyroid lecture visuals use original teaching drawings for mechanisms and tissues',()=>{
+ const cases=[
+  [{title:'GH / IGF-I axis',explain:'GH liver IGF-I feedback'}, {text:'Growth hormone IGF-I axis liver feedback'}, 'gh-igf-axis'],
+  [{title:'Growth plate',explain:'chondrocyte proliferation epiphyseal plate'}, {text:'Growth plate chondrocytes epiphyseal'}, 'growth-plate'],
+  [{title:'TRH TSH feedback',explain:'hypothalamus thyroid axis'}, {text:'TRH TSH thyroid feedback'}, 'thyroid-axis'],
+  [{title:'Thyroid hormone synthesis',explain:'iodine thyroglobulin TPO colloid'}, {text:'Thyroid iodide thyroglobulin synthesis'}, 'thyroid-synthesis'],
+ ];
+ for(const [note,page,id] of cases){const figure=figures.select(note,page);assert.equal(figure?.id,id);assert.match(figures.html(figure,1),/atlas-structure-drawing/);assert.ok(figure.parts.length>=3);}
+});
+
 test('unknown or unlabelled images are never presented as an unedited duplicate on the study side',async()=>{
  const app=dom('<html><body><div id="atlasTimerModal"></div><div id="atlasGenDock"></div></body></html>');
  vm.runInContext(read('slide-reader.js'),app.context);

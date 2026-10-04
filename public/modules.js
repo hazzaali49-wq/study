@@ -53,6 +53,26 @@ window.STUDY_MODULES = [
         "guide": "resources/Anterior_Pituitary_Illustrated_Study_Guide.pdf",
         "original": "resources/Anterior_Pituitary_Original_Lecture.pdf",
         "description": "Hormone-producing cells, embryology, prolactin and tumours."
+      },
+      {
+        "id": "growth-hormone-igf-axis",
+        "number": "06",
+        "title": "Growth Hormone / IGF-I Axis",
+        "slides": "29 original slides",
+        "chapters": "5 illustrated chapters",
+        "href": "lectures/growth-hormone-igf-axis.html",
+        "original": "resources/Growth_Hormone_IGF_Axis_Original_Lecture.pdf",
+        "description": "GH pulses, IGF-I, growth plate, metabolism, deficiency, resistance and acromegaly."
+      },
+      {
+        "id": "thyroid-physiology",
+        "number": "07",
+        "title": "Thyroid Physiology",
+        "slides": "33 original slides",
+        "chapters": "5 illustrated chapters",
+        "href": "lectures/thyroid-physiology.html",
+        "original": "resources/Thyroid_Physiology_Original_Lecture.pdf",
+        "description": "Follicles, synthesis, T3/T4 action, feedback, hypothyroidism and Graves disease."
       }
     ]
   },
