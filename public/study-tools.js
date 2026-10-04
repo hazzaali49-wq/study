@@ -15,7 +15,7 @@ function moduleFromText(t=''){t=t.toLowerCase();for(const [id,m] of Object.entri
 function currentModule(){
  const b=document.body.dataset.atlasModule;if(b&&MODS[b])return b;
  const path=location.pathname.toLowerCase(),text=(document.title+' '+(document.querySelector('.code,.kicker,.eyebrow,.crumb')?.textContent||''));
- if(path.includes('hypothalamus')||path.includes('anterior-pituitary'))return'mdsa20030';
+ if(/hypothalamus|anterior-pituitary|growth-hormone|thyroid-physiology|calcium-homeostasis|adrenal|endocrine-pancreas/.test(path))return'mdsa20030';
  return moduleFromText(text)||'';
 }
 function applyModule(id){if(!id||!MODS[id])return;document.body.dataset.atlasModule=id;document.documentElement.style.setProperty('--atlas-mod',MODS[id].a);document.documentElement.style.setProperty('--atlas-mod2',MODS[id].b)}
@@ -60,32 +60,60 @@ function timerUI(){
  if(head){const b=makeBtn();if(head.querySelector('.atlas-top-actions'))head.querySelector('.atlas-top-actions').prepend(b);else head.appendChild(b)}
  else{const wrap=document.createElement('div');wrap.id='atlasTimerFloat';wrap.appendChild(makeBtn());document.body.appendChild(wrap)}
  modal.querySelectorAll('[data-tclose]').forEach(x=>x.onclick=()=>modal.hidden=true);
- modal.querySelectorAll('.atlas-timer-mode').forEach(b=>b.onclick=()=>{let ses=read(SESSION,null);if(ses?.running)return;modal.querySelectorAll('.atlas-timer-mode').forEach(x=>x.classList.toggle('active',x===b));modal.dataset.mode=b.dataset.mode;renderTimer()});
- modal.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>{document.getElementById('atlasTimerMinutes').value=b.dataset.min;renderTimer()});
+ modal.querySelectorAll('.atlas-timer-mode').forEach(b=>b.onclick=()=>{let ses=read(SESSION,null),id=currentModule()||'mdsa20030';if(ses?.running&&ses.module===id)return;modal.querySelectorAll('.atlas-timer-mode').forEach(x=>x.classList.toggle('active',x===b));modal.dataset.mode=b.dataset.mode;renderTimer()});
+ modal.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>setCountdownMinutes(b.dataset.min));
+ const minutes=document.getElementById('atlasTimerMinutes');minutes.addEventListener('change',()=>setCountdownMinutes(minutes.value));
  document.getElementById('atlasTimerStart').onclick=toggleTimer;
  document.getElementById('atlasTimerReset').onclick=resetTimer;
 }
 function sessionMode(){const modal=document.getElementById('atlasTimerModal');return modal?.dataset.mode||'stopwatch'}
+function cleanMinutes(v){return Math.min(600,Math.max(1,Math.round(Number(v)||45)))}
+function alarm(){
+ try{
+   navigator.vibrate?.([160,80,160]);
+   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+   const ctx=new AC(),start=ctx.currentTime;
+   [0,.24,.48].forEach((offset,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=start+offset;o.type='sine';o.frequency.value=i===2?880:660;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.2)});
+   setTimeout(()=>ctx.close?.(),900);
+ }catch{}
+}
+function setCountdownMinutes(value){
+ const mins=cleanMinutes(value),input=document.getElementById('atlasTimerMinutes');if(input)input.value=mins;
+ const id=currentModule()||'mdsa20030';let ses=read(SESSION,null);
+ if(ses&&ses.module===id&&ses.mode==='countdown'&&!ses.running){ses.duration=mins*60;ses.elapsed=0;ses.completed=false;ses.lastTick=Date.now();write(SESSION,ses)}
+ renderTimer();
+}
 function syncTime(){
  let ses=read(SESSION,null);if(!ses?.running)return;
- const now=Date.now(),last=Number(ses.lastTick||now),delta=Math.max(0,Math.min(5,Math.floor((now-last)/1000)));
- if(delta>0){const totals=read(TIME,{});totals[ses.module]=(totals[ses.module]||0)+delta;write(TIME,totals);ses.elapsed=(ses.elapsed||0)+delta;ses.lastTick=last+delta*1000;
-   if(ses.mode==='countdown'&&ses.elapsed>=ses.duration){ses.elapsed=ses.duration;ses.running=false;try{new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=').play()}catch{}}
-   write(SESSION,ses);
- }
+ const now=Date.now(),last=Number(ses.lastTick||now),delta=Math.max(0,Math.floor((now-last)/1000));if(!delta)return;
+ let add=delta;
+ if(ses.mode==='countdown')add=Math.min(delta,Math.max(0,Number(ses.duration||0)-Number(ses.elapsed||0)));
+ if(add>0){const totals=read(TIME,{});totals[ses.module]=(Number(totals[ses.module])||0)+add;write(TIME,totals);ses.elapsed=(Number(ses.elapsed)||0)+add}
+ ses.lastTick=last+delta*1000;
+ if(ses.mode==='countdown'&&ses.elapsed>=ses.duration){ses.elapsed=ses.duration;ses.running=false;ses.completed=true;ses.lastTick=now;alarm()}
+ write(SESSION,ses);
 }
 function toggleTimer(){
- let ses=read(SESSION,null),id=currentModule()||'mdsa20030',mode=sessionMode();
- if(ses?.running){syncTime();ses=read(SESSION,null);ses.running=false;write(SESSION,ses);renderTimer();return}
- if(!ses||ses.module!==id||ses.mode!==mode){const mins=Math.max(1,Number(document.getElementById('atlasTimerMinutes')?.value||45));ses={module:id,mode,elapsed:0,duration:mode==='countdown'?mins*60:0,running:false,lastTick:Date.now()}}
+ const id=currentModule()||'mdsa20030',mode=sessionMode();syncTime();let ses=read(SESSION,null);
+ const matching=ses&&ses.module===id&&ses.mode===mode;
+ if(matching&&ses.running){ses.running=false;ses.completed=false;write(SESSION,ses);renderTimer();return}
+ if(ses?.running){ses.running=false;write(SESSION,ses)}
+ if(!matching){const mins=cleanMinutes(document.getElementById('atlasTimerMinutes')?.value);ses={module:id,mode,elapsed:0,duration:mode==='countdown'?mins*60:0,running:false,completed:false,lastTick:Date.now()}}
+ if(mode==='countdown'&&(ses.completed||ses.elapsed>=ses.duration)){ses.elapsed=0;ses.completed=false}
  ses.running=true;ses.lastTick=Date.now();write(SESSION,ses);renderTimer()
 }
-function resetTimer(){let ses=read(SESSION,null);const id=currentModule()||'mdsa20030',mode=sessionMode(),mins=Math.max(1,Number(document.getElementById('atlasTimerMinutes')?.value||45));write(SESSION,{module:id,mode,elapsed:0,duration:mode==='countdown'?mins*60:0,running:false,lastTick:Date.now()});renderTimer()}
+function resetTimer(){const id=currentModule()||'mdsa20030',mode=sessionMode(),mins=cleanMinutes(document.getElementById('atlasTimerMinutes')?.value);write(SESSION,{module:id,mode,elapsed:0,duration:mode==='countdown'?mins*60:0,running:false,completed:false,lastTick:Date.now()});renderTimer()}
+function updateStudyTimeUI(){
+ const totals=read(TIME,{});
+ document.querySelectorAll('.library').forEach(lib=>{const id=lib.id.replace('module-',''),el=lib.querySelector('.atlas-module-time strong');if(el&&MODS[id])el.textContent=fmt(totals[id]||0)});
+ document.querySelectorAll('#modules .module').forEach(card=>{const id=card.dataset.atlasModule,el=card.querySelector('.atlas-module-time strong');if(el&&MODS[id])el.textContent=fmt(totals[id]||0)});
+}
 function renderTimer(){
  syncTime();const modal=document.getElementById('atlasTimerModal');if(!modal)return;const id=currentModule()||'mdsa20030',m=MODS[id]||MODS.mdsa20030;applyModule(id);const ses=read(SESSION,null),mode=ses?.module===id?ses.mode:sessionMode();modal.dataset.mode=mode;modal.querySelectorAll('.atlas-timer-mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));document.getElementById('atlasTimerPresets').hidden=mode!=='countdown';document.getElementById('atlasTimerCustom').hidden=mode!=='countdown';
- const active=ses&&ses.module===id&&ses.mode===mode?ses:null,shown=mode==='countdown'?(active?Math.max(0,(active.duration||0)-(active.elapsed||0)):Math.max(1,Number(document.getElementById('atlasTimerMinutes')?.value||45))*60):(active?.elapsed||0);
- document.getElementById('atlasTimerDigits').textContent=fmt(shown);document.getElementById('atlasTimerKicker').textContent=m.code+' · '+m.name;document.getElementById('atlasTimerStatus').textContent=active?.running?(mode==='countdown'?'Focus session running':'Stopwatch running'):active?.elapsed?'Paused':'Ready when you are';document.getElementById('atlasTimerStart').textContent=active?.running?'Pause':active?.elapsed?'Resume':'Start';const totals=read(TIME,{});document.getElementById('atlasTimerTotal').textContent=fmt(totals[id]||0);document.getElementById('atlasTimerGrandTotal').textContent=fmt(Object.values(totals).reduce((a,b)=>a+(Number(b)||0),0));document.getElementById('atlasTimerSession').textContent=active?.elapsed?'This session · '+fmt(active.elapsed):'';
- document.querySelectorAll('#atlasTimerBtn').forEach(b=>b.classList.toggle('running',!!active?.running));refreshLectures()
+ const active=ses&&ses.module===id&&ses.mode===mode?ses:null,shown=mode==='countdown'?(active?Math.max(0,(active.duration||0)-(active.elapsed||0)):cleanMinutes(document.getElementById('atlasTimerMinutes')?.value)*60):(active?.elapsed||0);
+ const otherRunning=ses?.running&&ses.module!==id,other=otherRunning?(MODS[ses.module]?.code||'Another module'):'';
+ document.getElementById('atlasTimerDigits').textContent=fmt(shown);document.getElementById('atlasTimerKicker').textContent=m.code+' · '+m.name;document.getElementById('atlasTimerStatus').textContent=active?.completed?'Complete — nice work':active?.running?(mode==='countdown'?'Focus session running':'Stopwatch running'):otherRunning?other+' timer is running':active?.elapsed?'Paused':'Ready when you are';document.getElementById('atlasTimerStart').textContent=active?.running?'Pause':active?.completed?'Restart':active?.elapsed?'Resume':otherRunning?'Start here':'Start';const totals=read(TIME,{});document.getElementById('atlasTimerTotal').textContent=fmt(totals[id]||0);document.getElementById('atlasTimerGrandTotal').textContent=fmt(Object.values(totals).reduce((a,b)=>a+(Number(b)||0),0));document.getElementById('atlasTimerSession').textContent=active?.elapsed?'This session · '+fmt(active.elapsed):otherRunning?'Running · '+other:'';
+ document.querySelectorAll('#atlasTimerBtn').forEach(b=>b.classList.toggle('running',!!ses?.running));updateStudyTimeUI()
 }
 function init(){
  const id=currentModule();if(id)applyModule(id);decorateDashboard();timerUI();renderTimer();

@@ -209,7 +209,7 @@ async function open(config){
  const observer=new IntersectionObserver(entries=>{entries.filter(e=>e.isIntersecting).forEach(e=>render(Number(e.target.dataset.slide)));},{rootMargin:'450px 0px'});root.querySelectorAll('.atlas-slide-row').forEach(r=>observer.observe(r));
  let scrolling=false;addEventListener('scroll',()=>{if(scrolling)return;scrolling=true;requestAnimationFrame(()=>{scrolling=false;const n=current()?.n||1;jump.value=n;sessionStorage.setItem('atlas-reader-position:'+state.id,String(n));});},{passive:true});
  addEventListener('keydown',e=>{if(document.body.classList.contains('atlas-notebook-open')||e.target.closest('input,textarea,select,summary')||e.ctrlKey||e.metaKey||e.altKey||document.body.classList.contains('atlas-gdrawing'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go((current()?.n||1)+(e.key==='ArrowRight'?1:-1));}});
- if(!document.getElementById('atlasTimerModal'))await script('/study-tools.js?v=8');
+ if(!document.getElementById('atlasTimerModal'))await script('/study-tools.js?v=9');
  if(!document.getElementById('atlasGenDock'))await script('/generated-tools.js?v=10');
  await window.StudyAtlasNotebook.mountEnd().catch(()=>{});
  const requested=Number(new URLSearchParams(location.search).get('slide'));let saved=0;try{saved=Number(sessionStorage.getItem('atlas-reader-position:'+state.id));}catch{}
