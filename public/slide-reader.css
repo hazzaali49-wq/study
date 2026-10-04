@@ -58,10 +58,11 @@ body.atlas-slide-mode>*:not(#atlasSlideReader):not(#atlasGenDock):not(#atlasGenT
 #atlasSlideReader .atlas-source-text{white-space:pre-wrap;font-size:12px;color:#b5c4d8;line-height:1.6;margin-top:10px}
 #atlasSlideReader .atlas-pane-footer{padding:9px 12px;border-top:1px solid #263149;font-size:11px;color:#99aac2;display:flex;gap:10px;flex-wrap:wrap;background:#101929}
 #atlasSlideReader .atlas-reader-ai{position:fixed;right:94px;top:80px;bottom:14px;width:min(410px,calc(100vw - 110px));z-index:7000;background:#0d1727;border:1px solid #354460;border-radius:18px;padding:16px;overflow:auto;box-shadow:0 20px 70px #0008}
-#atlasSlideReader .atlas-ai-head{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:15px}
+#atlasSlideReader .atlas-ai-head{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:15px;position:sticky;top:-16px;padding:12px 0;background:#0d1727;z-index:2}
 #atlasSlideReader .atlas-ai-status{color:var(--atlas-mod2,#5ed6bd);font-size:11px;margin:7px 0}
 #atlasSlideReader .atlas-reader-ai textarea{width:100%;min-height:100px;margin:12px 0;padding:12px;border:1px solid #35415b;border-radius:12px;background:#070e1b;color:#e8f0ff;font:inherit;resize:vertical}
-#atlasSlideReader .atlas-ai-answer{white-space:pre-wrap;font-size:14px;line-height:1.65;color:#cdd8e9;margin:16px 0}
+#atlasSlideReader .atlas-ai-answer{white-space:pre-wrap;font-size:14px;line-height:1.65;color:#cdd8e9;margin:16px 0;max-height:45dvh;overflow:auto;overflow-wrap:anywhere;overscroll-behavior:contain;scrollbar-gutter:stable}
+#atlasSlideReader .atlas-ai-history p{white-space:pre-wrap;overflow-wrap:anywhere}
 #atlasSlideReader .atlas-ai-actions{display:flex;gap:6px;flex-wrap:wrap}
 #atlasSlideReader .atlas-reader-extra{margin-top:20px;background:#101a2b;padding:20px;border:1px solid var(--reader-line);border-radius:18px}
 #atlasSlideReader .atlas-reader-extra h2{font-size:20px;margin:0 0 8px}

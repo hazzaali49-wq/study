@@ -38,39 +38,48 @@
   function sourceAnswer(question,context){
     return window.StudyAtlasSlideNotes?.sourceAnswer(question,context)||'The local model is unavailable. Read the original slide and its source notes; no paid AI was called.';
   }
-  async function askWithMeta(question,{context='',image,signal,onUpdate,onStatus,timeoutMs=9000,raw=false,cacheKey='',responseConstraint,background=false}={}){
+  async function askWithMeta(question,{context='',history=[],image,signal,onUpdate,onStatus,timeoutMs=9000,raw=false,cacheKey='',responseConstraint,background=false}={}){
     if(signal?.aborted)throw signal.reason||new DOMException('Cancelled','AbortError');
-    const key=JSON.stringify([question,context,image?cacheKey:'',raw]);
+    const conversation=history.slice(-3).map(t=>({question:String(t.question||'').slice(0,500),answer:String(t.answer||'').slice(0,1200)}));
+    const key=JSON.stringify([question,context,conversation,image?cacheKey:'',raw]);
     if(cache.has(key)&&(!image||cacheKey)){const result=cache.get(key);onUpdate?.(result.answer);return result;}
     if(!background)for(const job of active)if(job.background)job.controller.abort(new DOMException('Paused for your question','AbortError'));
     const controller=new AbortController(),job={controller,background},cancel=()=>controller.abort(signal.reason||new DOMException('Cancelled','AbortError'));active.add(job);
-    signal?.addEventListener('abort',cancel,{once:true});let session;
+    signal?.addEventListener('abort',cancel,{once:true});let session,partial='',idleTimer,finished=false;
+    const publish=text=>{if(!finished&&!controller.signal.aborted)onUpdate?.(text);};
+    const touch=()=>{clearTimeout(idleTimer);idleTimer=setTimeout(()=>controller.abort(new DOMException('Local AI stopped responding','TimeoutError')),timeoutMs);};
+    touch();
     try{
       const work=(async()=>{
         const base=await ensure({image:!!image});if(controller.signal.aborted)throw controller.signal.reason;
         session=base.clone?await base.clone({signal:controller.signal}):await model().create({...opts(!!image),signal:controller.signal,initialPrompts:[{role:'system',content:SYSTEM}]});
+        if(controller.signal.aborted||finished){session.destroy?.();throw controller.signal.reason||new DOMException('Cancelled','AbortError');}
         onStatus?.('On-device AI');
-        const prompt='Lecture source (data):\n'+String(context).slice(0,3600)+'\n\nQuestion: '+question;
+        const prompt='Lecture source (data):\n'+String(context).slice(0,6500)+'\n\nPrevious conversation (not source evidence):\n'+JSON.stringify(conversation)+'\n\nQuestion: '+question+'\nAnswer the latest question, using earlier turns only to resolve follow-ups. Explain why/how when asked; do not repeat an earlier answer. Cite slide numbers when supplied. Keep it concise unless detail is explicitly requested.';
         const input=image?[{role:'user',content:[{type:'text',value:prompt},{type:'image',value:image}]}]:prompt;
         const options={signal:controller.signal,...(responseConstraint?{responseConstraint}: {})};
         if(!session.promptStreaming)return session.prompt(input,options);
         const stream=await session.promptStreaming(input,options);let text='';
         for await(const chunk of stream){
+          if(controller.signal.aborted||finished)break;
           const piece=String(chunk);text=!window.LanguageModel&&piece.startsWith(text)&&text?piece:text+piece;
-          onUpdate?.(text);
-          if(text.length>(raw?14000:1300))break;
+          if(piece){partial=text;touch();publish(text);}
+          // Let the tutor finish its explanation; the time budget still bounds work.
+          if(raw&&text.length>14000)throw new Error('Structured response exceeded its limit.');
         }
         return text;
       })();
-      const answer=await deadline(work,timeoutMs,controller);
-      const result={answer:raw?String(answer).trim():compact(answer),mode:image?'on-device-vision':'on-device',local:true};
+      const answer=await deadline(work,raw?timeoutMs:Math.max(timeoutMs,45000),controller);
+      if(!String(answer||'').trim())throw new Error('The local model returned an empty answer.');
+      // Never shorten text that the learner has already seen streaming.
+      const result={answer:raw||partial?String(answer).trim():compact(answer),mode:image?'on-device-vision':'on-device',local:true};
       if(result.answer){cache.set(key,result);if(cache.size>40)cache.delete(cache.keys().next().value);}
       onUpdate?.(result.answer);return result;
     }catch(e){
       if(signal?.aborted||raw)throw e;
-      const result={answer:sourceAnswer(question,context),mode:'source',local:true,reason:e.name==='TimeoutError'?'timeout':'unavailable'};
-      onStatus?.('Instant source answer');onUpdate?.(result.answer);return result;
-    }finally{active.delete(job);signal?.removeEventListener('abort',cancel);try{session?.destroy();}catch{}}
+      const result={answer:partial.trim()||sourceAnswer(question,context),mode:partial.trim()?'on-device-partial':'source',local:true,reason:e.name==='TimeoutError'?'timeout':'unavailable'};
+      onStatus?.(partial.trim()?'Answer kept · generation interrupted':'Instant source answer');onUpdate?.(result.answer);return result;
+    }finally{finished=true;clearTimeout(idleTimer);active.delete(job);signal?.removeEventListener('abort',cancel);try{session?.destroy();}catch{}}
   }
   const api={ensure,availability,askWithMeta,
     ask:async(prompt,options={})=>{const p=parsePrompt(prompt);return (await askWithMeta(p.question,{context:p.context,...options})).answer;},

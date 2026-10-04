@@ -143,23 +143,53 @@ async function pumpRenders(S){
   await task.job();if(S.priority===task.n)S.priority=null;task.resolve();
  }}finally{S.rendering=false;}
 }
-function aiPanel(n){window.dispatchEvent(new Event('atlas:close-panels'));const currentSlide=n?{n,row:state.root.querySelector('#atlas-slide-'+n),note:state.notes.get(n)}:current();if(!currentSlide)return;state.aiSlide=currentSlide.n;state.root.querySelector('.atlas-reader-ai').hidden=false;state.root.querySelector('.atlas-ai-status').textContent='Slide '+currentSlide.n+' · free local tutor';}
+function tutorThread(n){return (state.tutorThreads||={})[n]||=[];}
+function rememberTutor(){try{sessionStorage.setItem('atlas-tutor:'+state.id,JSON.stringify(Object.fromEntries(Object.entries(state.tutorThreads||{}).slice(-12))));}catch{}}
+function showTutorHistory(n){
+ const panel=state.root.querySelector('.atlas-reader-ai');let history=panel.querySelector('.atlas-ai-history');
+ if(!history){history=document.createElement('div');history.className='atlas-ai-history';panel.appendChild(history);}
+ history.innerHTML=tutorThread(n).slice(0,-1).map(t=>`<details><summary>${esc(t.question)}</summary><p>${esc(t.answer)}</p></details>`).join('');
+}
+function aiPanel(n){
+ const panel=state.root.querySelector('.atlas-reader-ai');
+ // Reopening an active answer must not silently retarget it to the slide under the scroll position.
+ const target=n||state.aiSlide||current()?.n||1;
+ if(state.aiSlide&&state.aiSlide!==target){state.controller?.abort();state.controller=null;state.tutorBusy=false;}
+ window.dispatchEvent(new Event('atlas:close-panels'));state.aiSlide=target;panel.hidden=false;
+ panel.querySelector('[data-stop]').hidden=!state.tutorBusy;panel.querySelectorAll('[data-ask]').forEach(b=>b.disabled=!!state.tutorBusy);
+ if(!state.tutorBusy){const last=tutorThread(target).at(-1);panel.querySelector('.atlas-ai-answer').textContent=last?.answer||'';panel.querySelector('.atlas-ai-status').textContent='Slide '+target+' · free local tutor';}
+ showTutorHistory(target);
+}
+function tutorContext(n,question){
+ const S=state,note=S.notes.get(n)||{},parts=['Lecture: '+S.title,'Current slide '+n+': '+note.title,'Study explanation: '+(note.explain||''),...(note.key_points||[]),note.visual_explain||'',note.takeaway||'','Original slide text:\n'+(note.source||'').slice(0,2400)];
+ const terms=new Set((question.toLowerCase().match(/[a-z0-9]{3,}/g)||[]).filter(w=>!['the','what','why','how','this','that','explain','does','slide','about'].includes(w)));
+ const related=[...S.notes.values()].filter(s=>s.n!==n&&!['cover','admin'].includes(s.kind)).map(s=>({s,score:[s.title,s.explain,...(s.key_points||[])].join(' ').toLowerCase().split(/\W+/).reduce((sum,w)=>sum+(terms.has(w)?1:0),0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,2);
+ for(const {s} of related)parts.push('Related slide '+s.n+': '+s.title+'\n'+[s.explain,...(s.key_points||[])].filter(Boolean).join('\n').slice(0,900));
+ return parts.filter(Boolean).join('\n').slice(0,6500);
+}
 async function ask(question,{image=false}={}){
  const S=state,n=S.aiSlide||current()?.n||1,out=S.root.querySelector('.atlas-ai-answer'),status=S.root.querySelector('.atlas-ai-status');
  S.controller?.abort();S.controller=new AbortController();const controller=S.controller;
- const buttons=S.root.querySelectorAll('[data-ask]');buttons.forEach(b=>b.disabled=true);S.root.querySelector('[data-stop]').hidden=false;
+ const buttons=S.root.querySelectorAll('[data-ask]');buttons.forEach(b=>b.disabled=true);S.root.querySelector('[data-stop]').hidden=false;S.tutorBusy=true;
+ const history=tutorThread(n).slice(-3),turn={question,answer:''};tutorThread(n).push(turn);if(tutorThread(n).length>6)tutorThread(n).shift();showTutorHistory(n);
+ const live=()=>S.controller===controller&&!controller.signal.aborted;
+ let lastSave=0;
+ const update=t=>{if(!live()||!t)return;turn.answer=t;out.textContent=t;if(Date.now()-lastSave>750){rememberTutor();lastSave=Date.now();}};
  try{
-  const preview=S.notes.get(n);out.textContent=window.StudyAtlasLocalAI.sourceAnswer(question,[preview?.source,preview?.explain,...(preview?.key_points||[])].filter(Boolean).join('\n'));status.textContent='Slide '+n+' · source preview';
-  await render(n,true);const note=S.notes.get(n),source=S.sources.get(n);
-  const context='Lecture: '+S.title+'\nSlide '+n+'\n'+(note.source||'')+'\nExisting explanation:\n'+(note.explain||'');
-  out.textContent=window.StudyAtlasLocalAI.sourceAnswer(question,context);status.textContent='Slide '+n+' · source preview';
+  update(window.StudyAtlasLocalAI.sourceAnswer(question,tutorContext(n,question)));status.textContent='Slide '+n+' · source preview';
+  // Text questions should not wait behind PDF bitmap rendering.
+  if(image)await render(n,true);const note=S.notes.get(n)||{};
+  if(!live())return;
+  const context=tutorContext(n,question);
   const imageNeeded=image&&(note.kind==='visual'||/histolog|anatom|micrograph/i.test(note.title+' '+note.source));
   const imageCanvas=imageNeeded&&await window.StudyAtlasLocalAI.availability(true)==='available'?S.root.querySelector('#atlas-slide-'+n+' .atlas-slide-bitmap'):undefined;
-  const result=await window.StudyAtlasLocalAI.askWithMeta(question,{context,image:imageCanvas,cacheKey:S.id+':'+n,signal:controller.signal,onUpdate:t=>{if(S.controller===controller)out.textContent=t;},onStatus:t=>status.textContent='Slide '+n+' · '+t});
-  status.textContent='Slide '+n+' · '+(result.mode==='source'?'Source answer · on-device model unavailable or timed out':result.mode==='on-device-vision'?'On-device vision':'On-device AI')+' · no paid calls';
+  if(!live())return;
+  const result=await window.StudyAtlasLocalAI.askWithMeta(question,{context,history,image:imageCanvas,cacheKey:S.id+':'+n,signal:controller.signal,onUpdate:update,onStatus:t=>{if(live())status.textContent='Slide '+n+' · '+t;}});
+  if(!live())return;update(result.answer);
+  status.textContent='Slide '+n+' · '+(result.mode==='source'?'Source notes · on-device AI unavailable':result.mode==='on-device-partial'?'Partial answer kept · ask a follow-up to continue':result.mode==='on-device-vision'?'On-device vision':'On-device AI')+' · no paid calls';
 
- }catch(e){if(e.name==='AbortError')status.textContent='Stopped · slide '+n;else out.textContent=e.message;}
- finally{if(S.controller===controller){buttons.forEach(b=>b.disabled=false);S.root.querySelector('[data-stop]').hidden=true;}}
+ }catch(e){if(S.controller===controller)status.textContent=(controller.signal.aborted?'Stopped · answer kept':'Could not finish · answer kept')+' · slide '+n;}
+ finally{rememberTutor();if(S.controller===controller){S.tutorBusy=false;buttons.forEach(b=>b.disabled=false);S.root.querySelector('[data-stop]').hidden=true;}}
 }
 function refLinks(refs){return (refs||[]).map(n=>`<button class="atlas-ref-link" data-go="${n}">Slide ${n} ↗</button>`).join('');}
 function questionHTML(q,id){
@@ -180,6 +210,7 @@ function extras(data){
 async function open(config){
  if(state)return;await dependencies();const data=config.data||{},root=document.createElement('div');root.id='atlasSlideReader';
  state={...config,title:config.title||data.title||'Lecture',root,count:0,learning:window.StudyAtlasLearning.prepare(data),notes:new Map(),sources:new Map(),rendered:new Set(),pending:new Set(),tasks:new Map(),renderQueue:[],rendering:false,pdfUrl:config.pdfUrl};
+ try{const saved=JSON.parse(sessionStorage.getItem('atlas-tutor:'+state.id)||'{}');state.tutorThreads=Object.fromEntries(Object.entries(saved).filter(([n,turns])=>/^\d+$/.test(n)&&Array.isArray(turns)).slice(-12).map(([n,turns])=>[n,turns.filter(t=>t&&typeof t.question==='string'&&typeof t.answer==='string').slice(-6)]));}catch{}
  document.body.prepend(root);document.body.classList.add('atlas-slide-mode');document.body.dataset.atlasModule=config.module_id||'';
  const colors=PALETTES[config.module_id]||PALETTES.mdsa20030;document.documentElement.style.setProperty('--atlas-mod',colors[0]);document.documentElement.style.setProperty('--atlas-mod2',colors[1]);
  root.innerHTML='<div class="atlas-reader-head"><div><div class="atlas-reader-brand">✦ studyatlas</div><h1>'+esc(state.title)+'</h1><p class="atlas-reader-sub">Opening original slides…</p></div></div>';

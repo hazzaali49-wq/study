@@ -46,6 +46,11 @@
     return chosen.map(x=>x.line).join('\n').slice(0,max);
   }
   function sourceAnswer(question,context){
+    const study=String(context||'').match(/Study explanation:\s*([\s\S]*?)(?:Original slide text:|$)/i)?.[1]?.trim();
+    if(study){
+      const selected=selectSource(study,question,1100),defs=definitions(question).filter(d=>!selected.toLowerCase().includes(d.meaning.toLowerCase())).slice(0,2);
+      if(selected)return [defs.map(d=>d.term+' means '+d.meaning+'.').join('\n'),'From your slide explanation:',selected].filter(Boolean).join('\n\n');
+    }
     const selected=selectSource(context,question,950),defs=definitions(question+' '+selected).slice(0,2);
     const intro=defs.map(d=>d.term+' means '+d.meaning+'.').join('\n');
     if(!selected)return intro||'There is no readable source text for this question. Open the original slide or enable the on-device model to interpret the picture.';
