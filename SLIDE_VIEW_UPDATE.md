@@ -49,3 +49,15 @@ chat interception, script escaping and drawing cost with a large saved history.
 - Paid AI remains disabled. Local uploads and enhancements do not invoke Netlify AI/upload functions.
 
 Validation includes DOM regressions for both original lectures, interactive question feedback and panel toggling, cross-source library reconciliation, visual evidence matching, builder enrichment/failure recovery, existing AI/ink/calendar checks and syntax checks. Live browser layout validation remains blocked by the site's Netlify team-protection screen and the preview URL policy.
+
+
+## Notebook and navigation repair (4 October)
+
+- Add Menu to the sticky slide navigation and a persistent Menu button to the tool dock, including focus mode. Return from an embedded lecture through the parent shell; standalone readers link back to the correct module. Source-note links reopen the exact original slide using a slide query parameter.
+- Use one notebook for every lecture card, every module, the lecture notes panel, and the saved-notes section after revision. Notes from alternate versions appear together while preserving the source lecture ID and original slide number. Search notes or switch to pinned slides in the full notebook.
+- Store note/pin metadata and full-slide images separately in a browser IndexedDB database. Save a bounded, complete original PDF page with each new typed/sketched note and each pin. Freeze the selected slide when the draft opens. Failed captures or saves preserve the draft and report the failure.
+- Import old generated notes/pins and hand-built quick notes without deleting their old keys. Import original figure/deck/text pins when their source lecture opens. Backfill older note snapshots lazily and retain sketches even if the original PDF is unavailable. Deletion tombstones prevent migrations or a late background capture from reviving a removed note.
+- Move Pin slide beside the original slide, save a durable image rather than an ephemeral blob URL, show the board immediately, and synchronize pin state/counts. Notes, drawing tools, board and AI share predictable close behavior; panels scroll within the viewport with larger close/save controls and reduced-motion support.
+- All new note/pin storage, snapshots and searches stay on the device. Paid AI remains disabled. Existing cloud PDF delivery still follows the original hosting routes.
+
+Validation: 40 regression tests, including real IndexedDB semantics via fake-indexeddb, cross-page persistence, legacy migration, full-slide capture, quota/capture failures, pin toggling, lecture/module notebook entry points, menu controls and exact-slide return links. Syntax checks cover 62 browser and Netlify scripts. Live browser layout validation remains limited by the Netlify protection and preview policy described above.

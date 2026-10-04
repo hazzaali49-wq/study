@@ -30,7 +30,7 @@ async function refresh(){
    let grid=lib.querySelector('.lecturegrid');if(!grid){lib.querySelector('.nolectures')?.remove();grid=document.createElement('div');grid.className='lecturegrid';lib.appendChild(grid)}
    ls.sort((a,b)=>(Number(a.number)||999)-(Number(b.number)||999)||(a.created||0)-(b.created||0));
    for(const l of ls){
-     const card=document.createElement('article');card.className='lecture';card.dataset.localLecture=l.id;card.dataset.savedAt=l.updated||l.created||0;
+     const card=document.createElement('article');card.className='lecture';card.dataset.localLecture=l.id;card.dataset.previousTitles=JSON.stringify(l.previous_titles||[]);card.dataset.savedAt=l.updated||l.created||0;
      card.innerHTML=`<div class="lecturevisual"><b>LECTURE ${esc(l.number||'—')} · ${esc(l.module_code||'')}</b><span aria-hidden="true">✦</span></div><div class="lecturebody"><h3>${esc(l.title)}</h3><p>${esc(l.description||'Local Study Atlas lecture.')}</p><div class="micro">${esc(l.slides||'Original lecture preserved')} · ${esc(l.chapters||'local chapters')} · on this device</div><div class="lecturelinks"><a class="primary" href="/local-lecture.html?id=${encodeURIComponent(l.id)}">Study lecture ↗</a><button class="secondary" type="button" data-local-original="${esc(l.id)}">Original slides ↗</button><button class="secondary atlas-local-delete" type="button" data-local-delete="${esc(l.id)}">Remove</button></div></div>`;
      grid.appendChild(card);
    }

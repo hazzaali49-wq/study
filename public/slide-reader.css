@@ -1,6 +1,6 @@
 /* One layout for hand-built, stored generated and local PDF lectures. */
 body.atlas-slide-mode{background:#090e19!important;color:#e6ecf7!important;color-scheme:dark;font:15px/1.6 system-ui,sans-serif!important;margin:0!important}
-body.atlas-slide-mode>*:not(#atlasSlideReader):not(#atlasGenDock):not(#atlasGenTools):not(#atlasGenNotes):not(#atlasGenBoard):not(#atlasTimerModal):not(script):not(style):not(link){display:none!important}
+body.atlas-slide-mode>*:not(#atlasSlideReader):not(#atlasGenDock):not(#atlasGenTools):not(#atlasGenNotes):not(#atlasGenBoard):not(#atlasTimerModal):not(#atlasNotebook):not(script):not(style):not(link){display:none!important}
 #atlasSlideReader{--reader-line:#2a3550;--reader-muted:#9eabc2;width:100%;min-height:100vh;box-sizing:border-box;padding:20px 102px 70px 24px}
 #atlasSlideReader *{box-sizing:border-box}#atlasSlideReader [hidden]{display:none!important}
 #atlasSlideReader button,#atlasSlideReader input,#atlasSlideReader select{font:inherit;color:inherit}
@@ -133,3 +133,12 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
 #atlasSlideReader .atlas-question-index{display:grid;gap:8px}#atlasSlideReader .atlas-question-index button{text-align:left}
 @media(max-width:1050px){#atlasSlideReader .atlas-visual-key>div{grid-template-columns:1fr}}
 @media(max-width:760px){#atlasSlideReader .atlas-revision-grid,#atlasSlideReader .atlas-options{grid-template-columns:1fr}}
+
+/* Keep menu navigation and slide actions readable on narrow screens. */
+#atlasSlideReader .atlas-reader-nav .atlas-menu-button{color:var(--atlas-mod2,#5ed6bd);flex-shrink:0;min-height:40px}
+#atlasSlideReader .atlas-reader-nav .atlas-module-button{flex-shrink:0;min-height:40px}
+#atlasSlideReader .atlas-pane-footer{flex-wrap:wrap;gap:8px}
+#atlasSlideReader .atlas-pane-footer .atlas-pin-btn-gen{margin:0;min-height:38px}
+#atlasSlideReader #atlas-saved-notes{scroll-margin-top:100px}
+@media(max-width:1120px){#atlasSlideReader .atlas-reader-hint{display:none}}
+@media(max-width:760px){#atlasSlideReader .atlas-reader-nav{gap:6px}#atlasSlideReader .atlas-module-button{display:none}#atlasSlideReader .atlas-reader-nav select{flex-basis:100%}#atlasSlideReader .atlas-slide-row{scroll-margin-top:126px}}

@@ -14,11 +14,11 @@ export default async (req,context)=>{
  // Upgrade saved HTML on read so every existing cloud lecture gets the new layout.
  html=html.replace(/<script\b[^>]*src=["'][^"']*(?:local-ai|study-tools|generated-tools|slide-reader|slide-notes)\.js[^"']*["'][^>]*>\s*<\/script>/gi,'');
  html=html.replace(/<link\b[^>]*href=["'][^"']*(?:study-tools|generated-tools|slide-reader)\.css[^"']*["'][^>]*>/gi,'');
- html=html.replace('</head>','<link rel="stylesheet" href="/study-tools.css?v=8"><link rel="stylesheet" href="/generated-tools.css?v=9"><link rel="stylesheet" href="/slide-reader.css?v=2"></head>');
+ html=html.replace('</head>','<link rel="stylesheet" href="/study-tools.css?v=8"><link rel="stylesheet" href="/generated-tools.css?v=10"><link rel="stylesheet" href="/slide-reader.css?v=3"></head>');
  // Put the intercept before legacy inline AI scripts. It never calls a paid endpoint.
  html=html.replace(/<body([^>]*)>/i,'<body$1><script src="/slide-notes.js?v=2"></script><script src="/local-ai.js?v=4"></script>');
  const legacy=new URL(req.url).searchParams.get('view')==='chapters';
- html=html.replace('</body>',`<script src="/study-tools.js?v=8"></script><script src="/slide-reader.js?v=2"></script>${legacy?'<script src="/generated-tools.js?v=9"></script>':''}</body>`);
+ html=html.replace('</body>',`<script src="/study-tools.js?v=8"></script><script src="/slide-reader.js?v=3"></script>${legacy?'<script src="/generated-tools.js?v=10"></script>':''}</body>`);
  return new Response(html,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});
 };
 export const config={path:'/generated/:id',method:'GET'};

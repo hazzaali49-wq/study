@@ -33,3 +33,18 @@ body.atlas-generated-v3 .kicker,body.atlas-generated-v3 .visualtag{color:color-m
 body.atlas-generated-v3 .tag{background:color-mix(in srgb,var(--atlas-mod2) 12%,#10231f)!important;color:color-mix(in srgb,var(--atlas-mod2) 76%,#fff)!important;border-color:color-mix(in srgb,var(--atlas-mod2) 30%,#235247)!important}
 body.atlas-generated-v3 .slidesbtn,body.atlas-generated-v3 .openvisual{border-color:color-mix(in srgb,var(--atlas-mod) 38%,#40577d)!important;background:linear-gradient(135deg,color-mix(in srgb,var(--atlas-mod) 14%,#172942),#15233a)!important}
 body.atlas-generated-v3 .story{border-color:color-mix(in srgb,var(--atlas-mod2) 24%,#574327)!important}
+
+/* One visible panel at a time, with controls and close buttons inside the viewport. */
+#atlasGenDock{top:12px;max-height:calc(100dvh - 24px);gap:5px;overscroll-behavior:contain}
+#atlasGenDock>*{flex-shrink:0}#atlasGHome{position:sticky;top:0;z-index:3;background:#193342;color:#b9f7e1;border-color:#37665f;min-height:46px}
+#atlasGenDock .atlas-gprogress{height:42px;min-height:42px}#atlasGenDock .atlas-gbtn{min-height:46px}
+#atlasGenNotes,#atlasGenBoard,#atlasGenTools{top:12px;bottom:12px;max-height:calc(100dvh - 24px);overscroll-behavior:contain;scrollbar-gutter:stable;scroll-padding-top:70px}
+#atlasGenTools{bottom:auto}#atlasGenNotes,#atlasGenBoard{width:min(450px,calc(100vw - 112px))}
+#atlasGenNotes .atlas-panel-head,#atlasGenBoard .atlas-panel-head,#atlasGenTools .atlas-panel-head{background:#0a1322;align-items:center;border-bottom:1px solid #283a55;margin-bottom:10px}
+.atlas-panel-head button{flex-shrink:0;width:40px;height:40px;font-size:21px;cursor:pointer}
+.atlas-gn-label{display:block;margin:13px 0 6px;color:#a9bbd4;font-size:12px;font-weight:700}
+.atlas-gn-actions{position:sticky;bottom:-13px;padding:10px 0;background:#0a1322;z-index:1}.atlas-gn-actions button{min-height:42px;font-size:12px;cursor:pointer}.atlas-gn-actions button:disabled{opacity:.6}
+#atlasGNCount,#atlasGBCount{font-size:9px;color:var(--atlas-mod2,#8be2cd)}
+#atlasGenTools .atlas-panel-head{top:-11px;padding-top:0}#atlasGenTools .atlas-gt-title{margin:0}
+@media(max-width:760px){#atlasGenDock{top:8px;max-height:calc(100dvh - 16px)}#atlasGenNotes,#atlasGenBoard,#atlasGenTools{top:8px;bottom:8px;max-height:calc(100dvh - 16px)}#atlasGenNotes,#atlasGenBoard{width:calc(100vw - 84px)}#atlasGenTools{bottom:auto}}
+@media(prefers-reduced-motion:no-preference){#atlasGenNotes:not([hidden]),#atlasGenBoard:not([hidden]),#atlasGenTools:not([hidden]){animation:atlas-panel-enter .13s ease-out}@keyframes atlas-panel-enter{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:translateX(0)}}}
