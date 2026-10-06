@@ -3,7 +3,7 @@
    explicitly labelled as reconstructed from the recovered past-midterm topic/prompt. */
 (()=>{
 'use strict';
-const LABEL='Related midterm question';
+const LABEL='MIDTERM QUESTION';
 const NOTE='Reconstructed from the recovered past-midterm prompt/theme — not a verbatim quote.';
 const q=(question,topic)=>({question,topic:topic||'',label:LABEL,note:NOTE});
 const slides={

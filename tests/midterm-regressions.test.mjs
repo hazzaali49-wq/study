@@ -34,3 +34,19 @@ test('midterm slide links are shared between review and lecture slide reader',()
  assert.match(mid,/addRelatedMidtermQuestions/);
  assert.match(calcium,/StudyAtlasMidtermLinks/);
 });
+
+test('important slides are visibly starred and the question is explicitly labelled MIDTERM QUESTION',()=>{
+ const links=fs.readFileSync('public/midterm-links.js','utf8');
+ const reader=fs.readFileSync('public/slide-reader.js','utf8');
+ const css=fs.readFileSync('public/slide-reader.css','utf8');
+ const mid=fs.readFileSync('public/midterm/endocrine-midterm.html','utf8');
+ const calcium=fs.readFileSync('public/lectures/calcium-homeostasis.html','utf8');
+ assert.match(links,/const LABEL='MIDTERM QUESTION'/);
+ assert.match(reader,/★ IMPORTANT FOR MIDTERM/);
+ assert.match(reader,/atlas-midterm-important/);
+ assert.match(reader,/atlas-midterm-slide-flag/);
+ assert.match(css,/atlas-midterm-slide-flag/);
+ assert.match(mid,/midterm-slide-star/);
+ assert.match(calcium,/midterm-important/);
+ assert.match(calcium,/★ IMPORTANT FOR MIDTERM/);
+});
