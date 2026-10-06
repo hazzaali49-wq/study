@@ -6,7 +6,8 @@ const STATIC=[
  {id:'/lectures/hypothalamus-pituitary.html',short:'hypo',noteKey:'hypothalamus-pituitary',title:'Hypothalamus & Pituitary Gland',moduleId:'mdsa20030',number:3,pdfUrl:'/resources/Hypothalamus_and_Pituitary_Original_Lecture.pdf'},
  {id:'/lectures/anterior-pituitary.html',short:'anterior',noteKey:'anterior-pituitary',title:'Anterior Pituitary',moduleId:'mdsa20030',number:4,pdfUrl:'/resources/Anterior_Pituitary_Original_Lecture.pdf'},
  {id:'/lectures/growth-hormone-igf-axis.html',short:'gh-igf',noteKey:'growth-hormone-igf-axis',title:'Growth Hormone / IGF-I Axis',moduleId:'mdsa20030',number:6,pdfUrl:'/resources/Growth_Hormone_IGF_Axis_Original_Lecture.pdf'},
- {id:'/lectures/thyroid-physiology.html',short:'thyroid',noteKey:'thyroid-physiology',title:'Thyroid Physiology',moduleId:'mdsa20030',number:7,pdfUrl:'/resources/Thyroid_Physiology_Original_Lecture.pdf'}
+ {id:'/lectures/thyroid-physiology.html',short:'thyroid',noteKey:'thyroid-physiology',title:'Thyroid Physiology',moduleId:'mdsa20030',number:7,pdfUrl:'/resources/Thyroid_Physiology_Original_Lecture.pdf'},
+ {id:'/lectures/calcium-homeostasis.html',short:'calcium-homeostasis',noteKey:'calcium-homeostasis',title:'Calcium Homeostasis',moduleId:'mdsa20030',number:8,pdfUrl:''}
 ];
 const scripts=new Map(),pdfs=new Map();let snapshotQueue=Promise.resolve();let hub,scope={},lastFocus,libraryPass=0,hubPass=0,endMount;
 const loadScript=src=>{if(!scripts.has(src))scripts.set(src,new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>{scripts.delete(src);reject(new Error('Could not load the slide tools.'));};document.head.appendChild(s);}));return scripts.get(src);};

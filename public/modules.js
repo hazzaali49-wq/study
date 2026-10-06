@@ -73,6 +73,15 @@ window.STUDY_MODULES = [
         "href": "lectures/thyroid-physiology.html",
         "original": "resources/Thyroid_Physiology_Original_Lecture.pdf",
         "description": "Follicles, synthesis, T3/T4 action, feedback, hypothyroidism and Graves disease."
+      },
+      {
+        "id": "calcium-homeostasis",
+        "number": "08",
+        "title": "Calcium (and Phosphorus) Homeostasis",
+        "slides": "34 source slides",
+        "chapters": "6 slide-by-slide chapters",
+        "href": "lectures/calcium-homeostasis.html",
+        "description": "PTH, CaSR, vitamin D, bone/kidney/gut, calcitonin and parathyroid disorders."
       }
     ]
   },
