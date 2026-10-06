@@ -17,3 +17,20 @@ test('calcium is wired into the module and cards tolerate lectures without a hos
  assert.match(i,/l\.original\?/);
  assert.match(i,/Midterm Preparation/);
 });
+
+test('midterm slide links are shared between review and lecture slide reader',()=>{
+ const links=fs.readFileSync('public/midterm-links.js','utf8');
+ const reader=fs.readFileSync('public/slide-reader.js','utf8');
+ const css=fs.readFileSync('public/slide-reader.css','utf8');
+ const mid=fs.readFileSync('public/midterm/endocrine-midterm.html','utf8');
+ const calcium=fs.readFileSync('public/lectures/calcium-homeostasis.html','utf8');
+ assert.match(links,/Related midterm question/);
+ assert.match(links,/water-deprivation test/i);
+ assert.match(links,/thyroid-hormone synthesis/i);
+ assert.match(links,/PTH raise plasma calcium/i);
+ assert.match(reader,/StudyAtlasMidtermLinks/);
+ assert.match(reader,/MIDTERM IMPORTANT SLIDE/);
+ assert.match(css,/atlas-midterm-link/);
+ assert.match(mid,/addRelatedMidtermQuestions/);
+ assert.match(calcium,/StudyAtlasMidtermLinks/);
+});
