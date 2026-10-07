@@ -3,9 +3,12 @@
    explicitly labelled as reconstructed from the recovered past-midterm topic/prompt. */
 (()=>{
 'use strict';
-const LABEL='MIDTERM QUESTION';
-const NOTE='Reconstructed from the recovered past-midterm prompt/theme — not a verbatim quote.';
-const q=(question,topic)=>({question,topic:topic||'',label:LABEL,note:NOTE});
+const LABEL='PRACTICE QUESTION';
+const NOTE='Practice question linked to this slide — not an exact past-paper question.';
+const PAPER_B='Past Midterm · median B (63.33%) · 201/203 submissions';
+const PAPER_A='Past Midterm · median A− (78.33%)';
+const q=(question,topic)=>({question,topic:topic||'',label:LABEL,note:NOTE,exact:false});
+const past=(question,topic,paper,ref)=>({question,topic:topic||'',label:'PAST MIDTERM QUESTION',note:'Exact wording from the supplied past-midterm feedback.',paper,ref,exact:true});
 const slides={
  '/lectures/hypothalamus-pituitary.html':{
   14:[q('How does a rise in plasma osmolality increase AVP secretion and water conservation?','AVP control')],
@@ -78,6 +81,101 @@ const slides={
   34:[q('How does CaSR signalling inside a chief cell suppress PTH secretion?','CaSR signalling')]
  }
 };
+const exactSlides={
+ '/lectures/hypothalamus-pituitary.html':{
+  14:[past('Based on the presentation and labs, which hormone is likely deficient, and what is its normal site of synthesis and storage?','Central diabetes insipidus',PAPER_A,'Case 3 · Q1')],
+  18:[past('Would you expect to see an increase in AVP levels in the primary plexus of the hypophyseal portal system in response to the hyperosmolality?','AVP release / portal circulation',PAPER_B,'Q3(ii)')],
+  19:[past('Describe the normal physiological actions of this hormone on the kidney at the cellular level.','AVP · V2 · cAMP · AQP2',PAPER_A,'Case 3 · Q2')],
+  20:[past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Nephrogenic diabetes insipidus',PAPER_B,'Q3(i)'),past('Based on the presentation and labs, which hormone is likely deficient, and what is its normal site of synthesis and storage?','Central diabetes insipidus',PAPER_A,'Case 3 · Q1')],
+  21:[past('The patient was given a dose of vasopressin and the urine osmolality and urine output were rechecked 1 hour later. Do you expect they will have changed – if so, please explain your reasoning.','Response to vasopressin in nephrogenic DI',PAPER_B,'Q3(iii)')]
+ },
+ '/lectures/anterior-pituitary.html':{
+  7:[past('Would you expect to see an increase in AVP levels in the primary plexus of the hypophyseal portal system in response to the hyperosmolality?','Portal circulation versus posterior-pituitary release',PAPER_B,'Q3(ii)')],
+  10:[past('Embryologically, from which structures do the anterior and posterior pituitary develop, and how does this relate to their functions?','Pituitary embryology',PAPER_A,'Case 3 · Q4')],
+  11:[past('Embryologically, from which structures do the anterior and posterior pituitary develop, and how does this relate to their functions?','Pituitary embryology',PAPER_A,'Case 3 · Q4')],
+  14:[past('In a histological section of the pituitary gland, how would you distinguish the posterior pituitary (neurohypophysis) from the anterior pituitary (adenohypophysis)?','Pituitary histology',PAPER_A,'Case 3 · Q3'),past('Briefly describe the histology of the pituitary gland.','Pituitary histology',PAPER_B,'Q3(iv)')],
+  15:[past('In a histological section of the pituitary gland, how would you distinguish the posterior pituitary (neurohypophysis) from the anterior pituitary (adenohypophysis)?','Pituitary histology',PAPER_A,'Case 3 · Q3')],
+  16:[past('Briefly describe the histology of the pituitary gland.','Pituitary histology',PAPER_B,'Q3(iv)')]
+ },
+ '/lectures/growth-hormone-igf-axis.html':{
+  6:[past('Explain the significance and basis of the low IGF-I and hypoglycemia.','GH deficiency · IGF-I · glucose',PAPER_B,'Q1(ii)')],
+  9:[past('Explain the significance and basis of the low IGF-I and hypoglycemia.','GH as a counter-insulin hormone',PAPER_B,'Q1(ii)')],
+  15:[past('Based on the information provided what do you think is the most plausible diagnosis?','Growth-hormone deficiency in hypopituitarism',PAPER_B,'Q1(i)')],
+  16:[past('Based on the information provided what do you think is the most plausible diagnosis?','Growth-hormone deficiency in hypopituitarism',PAPER_B,'Q1(i)')],
+  21:[past('Based on the information provided what do you think is the most plausible diagnosis?','Adult GH deficiency',PAPER_B,'Q1(i)'),past('Explain the significance and basis of the low IGF-I and hypoglycemia.','GH deficiency · IGF-I · glucose',PAPER_B,'Q1(ii)')]
+ },
+ '/lectures/thyroid-physiology.html':{
+  2:[past('Name the arterial blood supply to the thyroid gland and identify a clinically important nerve that runs close to the thyroid and may be injured during thyroid surgery. What is the functional consequence if that nerve is damaged?','Thyroid surgical anatomy',PAPER_A,'Case 1 · Q4')],
+  3:[past('Name the arterial blood supply to the thyroid gland and identify a clinically important nerve that runs close to the thyroid and may be injured during thyroid surgery. What is the functional consequence if that nerve is damaged?','Thyroid surgical anatomy',PAPER_A,'Case 1 · Q4')],
+  4:[past('Describe the normal histological appearance of the thyroid gland (major cell types and their arrangement). Which cell type synthesises thyroglobulin and which secretes calcitonin?','Thyroid histology',PAPER_A,'Case 1 · Q3')],
+  5:[past('Describe the normal histological appearance of the thyroid gland (major cell types and their arrangement). Which cell type synthesises thyroglobulin and which secretes calcitonin?','Thyroid histology',PAPER_A,'Case 1 · Q3')],
+  6:[past('Describe the normal histological appearance of the thyroid gland (major cell types and their arrangement). Which cell type synthesises thyroglobulin and which secretes calcitonin?','C cells / calcitonin',PAPER_A,'Case 1 · Q3')],
+  7:[past('Predict the expected results of thyroid function tests and radioiodine uptake.','Iodide uptake / thyroid function',PAPER_A,'Case 1 · Q2')],
+  8:[past('Describe the normal histological appearance of the thyroid gland (major cell types and their arrangement). Which cell type synthesises thyroglobulin and which secretes calcitonin?','Thyroglobulin',PAPER_A,'Case 1 · Q3')],
+  9:[past('Predict the expected results of thyroid function tests and radioiodine uptake.','Iodide uptake and hormone synthesis',PAPER_A,'Case 1 · Q2')],
+  10:[past('Predict the expected results of thyroid function tests and radioiodine uptake.','T3 / T4 interpretation',PAPER_A,'Case 1 · Q2')],
+  21:[past('Predict the expected results of thyroid function tests and radioiodine uptake.','Thyroid feedback / function tests',PAPER_A,'Case 1 · Q2')],
+  23:[past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Hypothyroidism',PAPER_A,'Case 1 · Q1'),past('Predict the expected results of thyroid function tests and radioiodine uptake.','Thyroid function tests',PAPER_A,'Case 1 · Q2')],
+  24:[past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Hypothyroidism',PAPER_A,'Case 1 · Q1')],
+  25:[past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Hypothyroidism with goitre',PAPER_A,'Case 1 · Q1')],
+  26:[past('Predict the expected results of thyroid function tests and radioiodine uptake.','Thyroid function tests',PAPER_A,'Case 1 · Q2')]
+ },
+ '/lectures/calcium-homeostasis.html':{
+  4:[past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Post-thyroidectomy hypoparathyroidism',PAPER_B,'Q2(i)'),past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','DiGeorge syndrome / hypoparathyroidism',PAPER_A,'Case 2 · Q1')],
+  14:[past('Briefly describe the functional histology of the parathyroid.','Parathyroid histology',PAPER_B,'Q2(iv)')],
+  15:[past('Describe in outline how calcium and phosphate levels are normally regulated.','Calcium / phosphate homeostasis',PAPER_B,'Q2(iii)')],
+  19:[past('Describe in outline how calcium and phosphate levels are normally regulated.','PTH / CaSR',PAPER_B,'Q2(iii)')],
+  20:[past('Describe in outline how calcium and phosphate levels are normally regulated.','PTH actions',PAPER_B,'Q2(iii)'),past('What is the normal action of parathyroid hormone (PTH) on the kidney?','Renal PTH actions',PAPER_A,'Case 2 · Q3')],
+  21:[past('What is the normal action of parathyroid hormone (PTH) on the kidney?','Renal PTH actions',PAPER_A,'Case 2 · Q3')],
+  23:[past('What is the normal action of parathyroid hormone (PTH) on the kidney?','1α-hydroxylase / calcitriol',PAPER_A,'Case 2 · Q3')],
+  25:[past('Describe in outline how calcium and phosphate levels are normally regulated.','Integrated calcium homeostasis',PAPER_B,'Q2(iii)')],
+  27:[past('How can one distinguish between true and pseudohypoparathyroidism?','PTH deficiency versus resistance',PAPER_A,'Case 2 · Q4')],
+  29:[past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Post-thyroidectomy hypoparathyroidism',PAPER_B,'Q2(i)'),past('How can one distinguish between true and pseudohypoparathyroidism?','PTH deficiency versus resistance',PAPER_A,'Case 2 · Q4')],
+  33:[past('Describe in outline how calcium and phosphate levels are normally regulated.','Integrated calcium homeostasis',PAPER_B,'Q2(iii)'),past('What is the normal action of parathyroid hormone (PTH) on the kidney?','Renal PTH actions',PAPER_A,'Case 2 · Q3')]
+ }
+};
+const reviewExact={
+ '2':{
+  0:past('What are the major anatomical relationships of the pituitary gland?','Pituitary relations',PAPER_B,'Q1(iii)'),
+  1:past('Embryologically, from which structures do the anterior and posterior pituitary develop, and how does this relate to their functions?','Pituitary embryology',PAPER_A,'Case 3 · Q4'),
+  3:past('Based on the presentation and labs, which hormone is likely deficient, and what is its normal site of synthesis and storage?','Hypothalamic nuclei / AVP',PAPER_A,'Case 3 · Q1')
+ },
+ '3':{
+  0:past('Would you expect to see an increase in AVP levels in the primary plexus of the hypophyseal portal system in response to the hyperosmolality?','AVP control',PAPER_B,'Q3(ii)'),
+  1:past('Describe the normal physiological actions of this hormone on the kidney at the cellular level.','AVP · V2 · AQP2',PAPER_A,'Case 3 · Q2'),
+  2:past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Nephrogenic DI',PAPER_B,'Q3(i)'),
+  3:past('The patient was given a dose of vasopressin and the urine osmolality and urine output were rechecked 1 hour later. Do you expect they will have changed – if so, please explain your reasoning.','Vasopressin response',PAPER_B,'Q3(iii)')
+ },
+ '4':{
+  0:past('Would you expect to see an increase in AVP levels in the primary plexus of the hypophyseal portal system in response to the hyperosmolality?','Portal circulation',PAPER_B,'Q3(ii)'),
+  1:past('Embryologically, from which structures do the anterior and posterior pituitary develop, and how does this relate to their functions?','Pituitary embryology',PAPER_A,'Case 3 · Q4'),
+  2:past('In a histological section of the pituitary gland, how would you distinguish the posterior pituitary (neurohypophysis) from the anterior pituitary (adenohypophysis)?','Pituitary histology',PAPER_A,'Case 3 · Q3')
+ },
+ '5':{
+  0:past('Name the arterial blood supply to the thyroid gland and identify a clinically important nerve that runs close to the thyroid and may be injured during thyroid surgery. What is the functional consequence if that nerve is damaged?','Recurrent laryngeal nerve',PAPER_A,'Case 1 · Q4'),
+  1:past('Name the arterial blood supply to the thyroid gland and identify a clinically important nerve that runs close to the thyroid and may be injured during thyroid surgery. What is the functional consequence if that nerve is damaged?','Thyroid arteries / RLN',PAPER_A,'Case 1 · Q4'),
+  2:past('Briefly describe the development of the thyroid and parathyroid glands.','Thyroid / parathyroid development',PAPER_B,'Q2(ii)'),
+  3:past('Describe the normal embryological origin of the parathyroid glands. Which pharyngeal pouches form which parathyroids?','Parathyroid embryology',PAPER_A,'Case 2 · Q2'),
+  4:past('Describe the normal embryological origin of the parathyroid glands. Which pharyngeal pouches form which parathyroids?','Parathyroid embryology',PAPER_A,'Case 2 · Q2')
+ },
+ '6':{
+  2:past('Explain the significance and basis of the low IGF-I and hypoglycemia.','GH deficiency',PAPER_B,'Q1(ii)')
+ },
+ '7':{
+  0:past('Describe the normal histological appearance of the thyroid gland (major cell types and their arrangement). Which cell type synthesises thyroglobulin and which secretes calcitonin?','Thyroid histology',PAPER_A,'Case 1 · Q3'),
+  1:past('Predict the expected results of thyroid function tests and radioiodine uptake.','Iodide uptake / thyroid function',PAPER_A,'Case 1 · Q2'),
+  3:past('Predict the expected results of thyroid function tests and radioiodine uptake.','Thyroid feedback / function tests',PAPER_A,'Case 1 · Q2'),
+  4:past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Hypothyroidism',PAPER_A,'Case 1 · Q1')
+ },
+ '8':{
+  0:past('Based on the information provided, suggest the most plausible diagnosis – justify your reasoning.','Hypocalcaemia / hypoparathyroidism',PAPER_B,'Q2(i)'),
+  1:past('Briefly describe the functional histology of the parathyroid.','Parathyroid histology',PAPER_B,'Q2(iv)'),
+  2:past('Describe in outline how calcium and phosphate levels are normally regulated.','PTH actions',PAPER_B,'Q2(iii)'),
+  3:past('What is the normal action of parathyroid hormone (PTH) on the kidney?','PTH / vitamin D',PAPER_A,'Case 2 · Q3'),
+  4:past('How can one distinguish between true and pseudohypoparathyroidism?','Parathyroid disorders',PAPER_A,'Case 2 · Q4'),
+  5:past('Describe in outline how calcium and phosphate levels are normally regulated.','Integrated calcium homeostasis',PAPER_B,'Q2(iii)')
+ }
+};
 const review={
  '1':[
   q('Distinguish endocrine from neuroendocrine signalling and give one example of each.','Signalling'),
@@ -140,8 +238,8 @@ function normalise(id){
  if(/^[a-z0-9-]+$/i.test(raw))return '/lectures/'+raw+'.html';
  try{return new URL(raw,location.href).pathname}catch{return raw}
 }
-function forSlide(id,n){return slides[normalise(id)]?.[Number(n)]||[]}
-function forReview(lecture,index){return review[String(lecture)]?.[Number(index)]||null}
-function allForLecture(id){return slides[normalise(id)]||{}}
-window.StudyAtlasMidtermLinks={label:LABEL,note:NOTE,forSlide,forReview,allForLecture,review};
+function forSlide(id,n){const key=normalise(id),num=Number(n);return exactSlides[key]?.[num]||slides[key]?.[num]||[]}
+function forReview(lecture,index){return reviewExact[String(lecture)]?.[Number(index)]||review[String(lecture)]?.[Number(index)]||null}
+function allForLecture(id){const key=normalise(id);return {...(slides[key]||{}),...(exactSlides[key]||{})}}
+window.StudyAtlasMidtermLinks={label:LABEL,note:NOTE,papers:{PAPER_A,PAPER_B},forSlide,forReview,allForLecture,review,reviewExact};
 })();
