@@ -40,7 +40,7 @@
 </div><div class="mistakes"><h3>Common mistakes worth removing before Friday</h3><ul><li>Do not confuse total calcium with the biologically active free/ionised fraction.</li><li>Do not say PTH directly increases gut calcium as its main action: it does so mainly through renal calcitriol activation.</li><li>Do not call osteocytes “mature osteoclasts.” The calcium lecture source contains that typo; osteocytes are osteoblast-lineage cells embedded in bone.</li><li>Do not diagnose central DI from polyuria alone; use osmolality and the desmopressin response.</li><li>Do not read TSH alone. Pair it with T3/T4 and decide whether the problem is primary or upstream.</li><li>Do not treat calcitonin as equally dominant to PTH in normal adult calcium regulation.</li><li>In a thyroidectomy case, remember both the recurrent laryngeal nerve and parathyroid blood supply.</li></ul></div></section>
 <p class="foot">Study Atlas · Midterm page uses local/browser storage for your checklist and typed answers. The AI button uses the on-device/source tutor only.</p></main>
 <div class="localai"><button id="aiBtn">Ask midterm tutor</button><div class="aibox" id="aibox" hidden><b>Ask across the 8 midterm lectures</b><textarea id="aq" placeholder="e.g. Give me a DI case, compare Graves vs secondary hyperthyroidism…"></textarea><div><button id="ask">Ask</button><button id="closeAi" style="background:#26344d">Close</button></div><div class="out" id="out"></div></div></div>
-<script src="/midterm-links.js?v=2"></script><script src="/local-ai.js?v=5"></script><script src="/study-tools.js?v=9"></script>
+<script src="/midterm-links.js?v=3"></script><script src="/local-ai.js?v=5"></script><script src="/study-tools.js?v=9"></script>
 <script>
 function addRelatedMidtermQuestions(){
  const M=window.StudyAtlasMidtermLinks;if(!M)return;
@@ -49,14 +49,14 @@ function addRelatedMidtermQuestions(){
   card.querySelectorAll('.important li').forEach((li,i)=>{
    const x=M.forReview(lecture,i);if(!x||li.querySelector('.related-midterm-q'))return;
    const d=document.createElement('div');d.className='related-midterm-q';
-   d.innerHTML='<span class="midterm-slide-star">★ IMPORTANT FOR MIDTERM</span><br><b>'+x.label+'</b><p>'+x.question+'</p><small>'+x.note+'</small>';li.appendChild(d);
+   d.innerHTML='<span class="midterm-slide-star">★ IMPORTANT FOR MIDTERM</span><br><b>'+x.label+'</b>'+(x.exact?'<strong style="display:block;color:#ffd889;margin-top:7px;font-size:.7rem">'+x.paper+' · '+x.ref+'</strong>':'<strong style="display:block;color:#9aa9bd;margin-top:7px;font-size:.66rem">Practice question · not an exact supplied past-paper question</strong>')+'<p>'+x.question+'</p><small>'+x.note+'</small>';li.appendChild(d);
   });
  });
  document.querySelectorAll('.preview').forEach(card=>{
   const a=card.querySelector('a[href*="?slide="]');if(!a)return;
   const u=new URL(a.href,location.href),x=M.forSlide(u.pathname,u.searchParams.get('slide'))?.[0];if(!x)return;
   const copy=card.querySelector('.previewcopy');if(!copy||copy.querySelector('.related-midterm-q'))return;
-  const d=document.createElement('div');d.className='related-midterm-q';d.innerHTML='<span class="midterm-slide-star">★ IMPORTANT FOR MIDTERM</span><br><b>'+x.label+'</b><p>'+x.question+'</p><small>'+x.note+'</small>';copy.appendChild(d);
+  const d=document.createElement('div');d.className='related-midterm-q';d.innerHTML='<span class="midterm-slide-star">★ IMPORTANT FOR MIDTERM</span><br><b>'+x.label+'</b>'+(x.exact?'<strong style="display:block;color:#ffd889;margin-top:7px;font-size:.7rem">'+x.paper+' · '+x.ref+'</strong>':'<strong style="display:block;color:#9aa9bd;margin-top:7px;font-size:.66rem">Practice question · not an exact supplied past-paper question</strong>')+'<p>'+x.question+'</p><small>'+x.note+'</small>';copy.appendChild(d);
  });
 }
 addRelatedMidtermQuestions();
