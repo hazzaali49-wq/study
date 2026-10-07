@@ -6,7 +6,7 @@ const PALETTES={nmhs10100:['#ef92c9','#79bce9'],path30080:['#ff7f82','#f4b15f'],
 let state=null;
 const script=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});
 async function dependencies(){
- for(const [name,src] of [['StudyAtlasSlideNotes','slide-notes.js'],['StudyAtlasLearning','study-learning.js'],['StudyAtlasVisuals','slide-visuals.js'],['StudyAtlasTeachingFigures','teaching-figures.js'],['StudyAtlasPDF','pdf-source.js'],['StudyAtlasStudyStore','study-store.js'],['StudyAtlasNotebook','study-notebook.js'],['StudyAtlasLocalAI','local-ai.js'],['StudyAtlasMidtermLinks','midterm-links.js']])if(!window[name])await script('/'+src+'?v=11');
+ for(const [name,src] of [['StudyAtlasSlideNotes','slide-notes.js'],['StudyAtlasLearning','study-learning.js'],['StudyAtlasVisuals','slide-visuals.js'],['StudyAtlasTeachingFigures','teaching-figures.js'],['StudyAtlasPDF','pdf-source.js'],['StudyAtlasStudyStore','study-store.js'],['StudyAtlasNotebook','study-notebook.js'],['StudyAtlasLocalAI','local-ai.js'],['StudyAtlasMidtermLinks','midterm-links.js']])if(!window[name])await script('/'+src+'?v=12');
 }
 function fromData(data,n){
  const note=(data.slides||[]).find(s=>Number(s.n)===n);if(note)return {...note};
