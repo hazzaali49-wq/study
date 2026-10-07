@@ -132,7 +132,14 @@ const review={
   q('Draw or explain the integrated low-Ca²⁺ → PTH → bone/kidney/gut response.','Integrated calcium response')
  ]
 };
-function normalise(id){try{return new URL(id,location.origin).pathname}catch{return String(id||'').split('?')[0]}}
+function normalise(id){
+ const raw=String(id||'').split('?')[0].split('#')[0];
+ if(!raw)return location.pathname;
+ if(raw.startsWith('/'))return raw;
+ if(raw.endsWith('.html'))return raw.startsWith('lectures/')?'/'+raw:'/lectures/'+raw;
+ if(/^[a-z0-9-]+$/i.test(raw))return '/lectures/'+raw+'.html';
+ try{return new URL(raw,location.href).pathname}catch{return raw}
+}
 function forSlide(id,n){return slides[normalise(id)]?.[Number(n)]||[]}
 function forReview(lecture,index){return review[String(lecture)]?.[Number(index)]||null}
 function allForLecture(id){return slides[normalise(id)]||{}}
