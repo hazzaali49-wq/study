@@ -207,3 +207,69 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
 #atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy h3{color:#ffe8ad!important}
 #atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy p,#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy li{color:#fff3d7!important}
 @media(max-width:760px){#atlasSlideReader .atlas-midterm-full-banner{display:block;font-size:12px}.atlas-midterm-full-banner span{display:block;margin-top:3px}}
+
+/* v8: keep important slides obvious without turning the reading pane muddy. */
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important{
+  background:#151a22!important;
+  border:3px solid #e9b34c!important;
+  box-shadow:0 0 0 4px rgba(233,179,76,.13),0 18px 46px rgba(0,0,0,.30)!important;
+}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-pair{background:#101725!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-pane[data-side="original"]{background:#171b22!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-pane[data-side="teaching"]{background:#101725!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-pane-toolbar{background:#182236!important;border-bottom:1px solid #4d4029!important;color:#dce7f6!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-zoom-viewport{background:#080e18!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-stage,
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy{background:#111b2b!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy h3{color:#f0f3ff!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy p,
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy li{color:#d1dbea!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-pane-footer{background:#111929!important;border-top-color:#3f3625!important;color:#a9b7cb!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-slide-checks{background:#0c1829!important;border-top-color:#4f4128!important}
+#atlasSlideReader .atlas-midterm-full-banner{padding:9px 16px!important;font-size:12px!important;background:linear-gradient(90deg,#dca642,#ffd77b,#dca642)!important}
+#atlasSlideReader .atlas-midterm-slide-flag{font-size:10px!important;padding:6px 8px!important}
+#atlasSlideReader .atlas-midterm-pinned{
+  flex:0 0 auto;
+  margin:0;
+  padding:12px 14px;
+  background:linear-gradient(135deg,#2d2417,#171e2c);
+  border-top:1px solid #735526;
+  border-bottom:2px solid #e5ad43;
+  box-shadow:0 7px 20px rgba(0,0,0,.18);
+  position:relative;
+  z-index:10;
+}
+#atlasSlideReader .atlas-midterm-pinned-label{
+  display:inline-block;
+  background:#e6ad43;
+  color:#171006;
+  border-radius:7px;
+  padding:5px 8px;
+  font-size:11px;
+  line-height:1;
+  font-weight:1000;
+  letter-spacing:.065em;
+}
+#atlasSlideReader .atlas-midterm-pinned p{
+  margin:8px 0 4px!important;
+  color:#fff3d8!important;
+  font-size:14px!important;
+  line-height:1.45!important;
+  font-weight:850!important;
+}
+#atlasSlideReader .atlas-midterm-pinned small{
+  display:block;
+  color:#95a3b8;
+  font-size:10px;
+  line-height:1.4;
+}
+#atlasSlideReader .atlas-pane[data-side="teaching"]{display:flex;flex-direction:column}
+#atlasSlideReader .atlas-pane[data-side="teaching"]>.atlas-zoom-viewport{width:100%;min-width:0}
+#atlasSlideReader .atlas-teaching-stage,
+#atlasSlideReader .atlas-study-visuals,
+#atlasSlideReader .atlas-teaching-figure{max-width:100%;overflow:hidden}
+#atlasSlideReader .atlas-structure-drawing{max-width:100%;height:auto}
+@media(max-width:760px){
+ #atlasSlideReader .atlas-midterm-pinned p{font-size:13px!important}
+ #atlasSlideReader .atlas-midterm-pinned{padding:10px 11px}
+}
