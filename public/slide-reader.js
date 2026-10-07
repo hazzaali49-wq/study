@@ -82,14 +82,29 @@ function current(){
 }
 function go(n){if(!state)return;n=Math.max(1,Math.min(state.count,Math.round(Number(n)||1)));state.root.querySelector('#atlas-slide-'+n)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});state.focused=n;try{sessionStorage.setItem('atlas-reader-position:'+state.id,String(n));}catch{}render(n);}
 function setupZoom(pane){
- const viewport=pane.querySelector('.atlas-zoom-viewport'),space=pane.querySelector('.atlas-zoom-space'),content=pane.querySelector('.atlas-zoom-content');let scale=1,hand=false,pointers=new Map(),gesture=null;
+ const viewport=pane.querySelector('.atlas-zoom-viewport'),space=pane.querySelector('.atlas-zoom-space'),content=pane.querySelector('.atlas-zoom-content');let scale=1,hand=false,pointers=new Map(),gesture=null,lastViewportWidth=0,lastContentHeight=0;
  const output=pane.querySelector('output');
- function update(){content.style.width=viewport.clientWidth+'px';content.style.transform=`scale(${scale})`;space.style.width=content.offsetWidth*scale+'px';space.style.height=content.offsetHeight*scale+'px';output.value=Math.round(scale*100)+'%';pane.dataset.scale=scale;}
- function zoom(next,clientX,clientY){
-  const r=viewport.getBoundingClientRect(),x=(clientX??r.left+r.width/2)-r.left,y=(clientY??r.top+r.height/2)-r.top,ratio=Math.max(.6,Math.min(4,next))/scale;
-  scale=Math.max(.6,Math.min(4,next));update();viewport.scrollLeft=(viewport.scrollLeft+x)*ratio-x;viewport.scrollTop=(viewport.scrollTop+y)*ratio-y;state.activePane=pane;const dock=document.getElementById('atlasGZ');if(dock)dock.textContent=Math.round(scale*100)+'%';
+ function widthPx(){return Math.max(1,Math.floor(viewport.clientWidth||viewport.getBoundingClientRect().width||1))}
+ function syncWidth(){
+  const w=widthPx(),current=Math.round(parseFloat(content.style.width)||0);
+  if(Math.abs(current-w)>1)content.style.width=w+'px';
+  return w;
  }
- pane.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>zoom(scale* Math.pow(1.15,Number(b.dataset.zoom))));pane.querySelector('[data-fit]').onclick=()=>{zoom(1);viewport.scrollTo(0,0);};
+ function syncSpace(changeWidth=true){
+  const w=changeWidth?syncWidth():Math.max(1,Math.round(content.offsetWidth||widthPx()));
+  content.style.transform=`scale(${scale})`;
+  const h=Math.max(1,Math.round(content.offsetHeight||1)),sw=Math.max(w,Math.ceil(w*scale)),sh=Math.max(h,Math.ceil(h*scale));
+  const swpx=sw+'px',shpx=sh+'px';
+  if(space.style.width!==swpx)space.style.width=swpx;
+  if(space.style.height!==shpx)space.style.height=shpx;
+  output.value=Math.round(scale*100)+'%';pane.dataset.scale=scale;
+ }
+ function update(){syncSpace(true)}
+ function zoom(next,clientX,clientY){
+  const r=viewport.getBoundingClientRect(),x=(clientX??r.left+r.width/2)-r.left,y=(clientY??r.top+r.height/2)-r.top,clamped=Math.max(.6,Math.min(4,next)),ratio=clamped/scale;
+  scale=clamped;syncSpace(true);viewport.scrollLeft=(viewport.scrollLeft+x)*ratio-x;viewport.scrollTop=(viewport.scrollTop+y)*ratio-y;state.activePane=pane;const dock=document.getElementById('atlasGZ');if(dock)dock.textContent=Math.round(scale*100)+'%';
+ }
+ pane.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>zoom(scale*Math.pow(1.15,Number(b.dataset.zoom))));pane.querySelector('[data-fit]').onclick=()=>{zoom(1);viewport.scrollTo(0,0);};
  const pan=pane.querySelector('.atlas-pan-toggle');pan.onclick=()=>{hand=!hand;pan.setAttribute('aria-pressed',String(hand));viewport.style.cursor=hand?'grab':'';viewport.style.touchAction=hand?'none':'pan-x pan-y';viewport.classList.toggle('atlas-hand-mode',hand);};
  viewport.addEventListener('wheel',e=>{state.activePane=pane;if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();zoom(scale*Math.exp(-e.deltaY*.008),e.clientX,e.clientY);},{passive:false});
  viewport.addEventListener('pointerdown',e=>{
@@ -105,10 +120,12 @@ function setupZoom(pane){
   else if(hand){e.preventDefault();viewport.scrollLeft-=e.clientX-prev.x;viewport.scrollTop-=e.clientY-prev.y;}
  },{passive:false});
  const finish=e=>{pointers.delete(e.pointerId);gesture=null;};viewport.addEventListener('pointerup',finish);viewport.addEventListener('pointercancel',finish);viewport.addEventListener('lostpointercapture',finish);
- // Touch pinch needs custom handling; single-finger scrolling remains native via scroll offsets.
  viewport.addEventListener('touchstart',e=>{if(e.touches.length===2){e.preventDefault();const [a,b]=e.touches;gesture={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),scale};}},{passive:false});
  viewport.addEventListener('touchmove',e=>{if(e.touches.length!==2||!gesture)return;e.preventDefault();const [a,b]=e.touches;zoom(gesture.scale*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/Math.max(1,gesture.distance),(a.clientX+b.clientX)/2,(a.clientY+b.clientY)/2);},{passive:false});viewport.addEventListener('touchend',()=>gesture=null,{passive:true});
- new ResizeObserver(()=>update()).observe(content);new ResizeObserver(()=>update()).observe(viewport);update();pane.atlasZoom=delta=>zoom(scale*Math.pow(1.15,delta));
+ const viewportObserver=new ResizeObserver(entries=>{const w=Math.round(entries[0]?.contentRect?.width||viewport.clientWidth||0);if(!w||Math.abs(w-lastViewportWidth)<2)return;lastViewportWidth=w;syncSpace(true);});
+ const contentObserver=new ResizeObserver(entries=>{const h=Math.round(entries[0]?.contentRect?.height||content.offsetHeight||0);if(!h||Math.abs(h-lastContentHeight)<2)return;lastContentHeight=h;syncSpace(false);});
+ viewportObserver.observe(viewport);contentObserver.observe(content);update();
+ pane.atlasZoom=delta=>zoom(scale*Math.pow(1.15,delta));pane.atlasRefresh=()=>syncSpace(false);
 }
 function teachingVisualHTML(plan){
  const flow=plan.sequences.map(steps=>`<figure class="atlas-mechanism"><figcaption>Trace the mechanism</figcaption><ol>${steps.map(step=>`<li>${esc(step)}</li>`).join('')}</ol></figure>`).join('');
@@ -124,6 +141,7 @@ function setVisual(row,note,page){
  if(!markup)return;
  const block=document.createElement('div');block.className='atlas-study-visuals';block.innerHTML=markup;teaching.prepend(block);
  if(drawing){Figures.bind(block.querySelector('.atlas-teaching-figure'),drawing);status.textContent='Select a structure in the drawing';}
+ row.querySelector('[data-side="teaching"]')?.atlasRefresh?.();
 }
 async function render(n,urgent=false){
  const S=state;if(!S||S.rendered.has(n))return;if(urgent)S.priority=n;if(S.pending.has(n))return S.tasks.get(n);
@@ -134,7 +152,7 @@ async function render(n,urgent=false){
    const note={...fallback,...old,source:source.text,source_lines:source.lines};if(!old.explain&&!old.key_points?.length){note.key_points=fallback.key_points;note.explain=fallback.explain;}if(old.title==='Slide '+n)note.title=fallback.title;if(['admin','cover'].includes(fallback.kind))note.kind=fallback.kind;
    S.notes.set(n,note);S.sources.set(n,source);refreshChecks(row,note);row.querySelector('.atlas-row-title').textContent=note.title;
    const teaching=row.querySelector('.atlas-teaching-copy');teaching.outerHTML=noteHTML(note);
-   const stage=row.querySelector('.atlas-source-stage'),canvas=stage.querySelector('.atlas-slide-bitmap');stage.style.aspectRatio=source.width+'/'+source.height;
+   const stage=row.querySelector('.atlas-source-stage'),canvas=stage.querySelector('.atlas-slide-bitmap');stage.style.aspectRatio=source.width+'/'+source.height;row.querySelector('[data-side="original"]')?.atlasRefresh?.();
    const scale=Math.min(2.5,Math.sqrt(2200000/(source.width*source.height)),Math.max(1,stage.clientWidth*Math.min(1.6,devicePixelRatio||1)/source.width)),vp=page.getViewport({scale});canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);
    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;stage.querySelector('.atlas-source-loading')?.remove();page.cleanup();setVisual(row,S.notes.get(n)||note,source);S.rendered.add(n);
    // Release far-away bitmaps; annotations are separate vector strokes and stay saved.

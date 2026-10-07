@@ -273,3 +273,20 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
  #atlasSlideReader .atlas-midterm-pinned p{font-size:13px!important}
  #atlasSlideReader .atlas-midterm-pinned{padding:10px 11px}
 }
+
+/* v9: stop the zoom panes from oscillating when scrollbars appear. */
+#atlasSlideReader .atlas-zoom-viewport{
+ scrollbar-gutter:stable;
+ overflow-y:auto;
+ overflow-x:auto;
+}
+#atlasSlideReader .atlas-zoom-content{
+ min-width:0;
+ max-width:none;
+}
+#atlasSlideReader .atlas-source-stage{
+ contain:layout paint;
+}
+#atlasSlideReader .atlas-slide-bitmap{
+ transform:none!important;
+}
