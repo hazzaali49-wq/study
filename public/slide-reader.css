@@ -196,3 +196,14 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
 #atlasSlideReader .atlas-midterm-link-head{background:#322716!important;color:#ffe0a1!important;font-size:11px!important}
 #atlasSlideReader .atlas-midterm-question>b{display:inline-block!important;background:#e7ad45;color:#171006!important;border-radius:7px;padding:5px 8px;font-size:12px!important;letter-spacing:.06em}
 #atlasSlideReader .atlas-midterm-question p{font-size:15px!important;font-weight:800!important;margin-top:9px!important}
+
+#atlasSlideReader .atlas-midterm-full-banner{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 18px;background:linear-gradient(90deg,#f0b84f,#ffd97f,#f0b84f);color:#171006;font-size:14px;font-weight:1000;letter-spacing:.07em;text-align:center;border-bottom:2px solid #fff0c2}
+#atlasSlideReader .atlas-midterm-full-banner span{font-size:11px;font-weight:800;letter-spacing:0;color:#4b3512}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-pair{background:linear-gradient(180deg,#4a3516,#2f2415)!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-pane[data-side="original"]{background:#4f3818!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-pane[data-side="teaching"]{background:#382913!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-stage{background:#382913!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy{background:#382913!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy h3{color:#ffe8ad!important}
+#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy p,#atlasSlideReader .atlas-slide-row.atlas-midterm-important .atlas-teaching-copy li{color:#fff3d7!important}
+@media(max-width:760px){#atlasSlideReader .atlas-midterm-full-banner{display:block;font-size:12px}.atlas-midterm-full-banner span{display:block;margin-top:3px}}
