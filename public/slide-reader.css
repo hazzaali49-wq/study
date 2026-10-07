@@ -349,3 +349,18 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
  #atlasSlideReader .atlas-midterm-question-banner-copy p{font-size:14px!important}
  #atlasSlideReader .atlas-midterm-question-banner small{grid-column:1}
 }
+
+/* v11: show the exact past-paper identity and question number beside every verified question. */
+#atlasSlideReader .atlas-midterm-question-banner{display:block!important}
+#atlasSlideReader .atlas-midterm-banner-item{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 14px;align-items:center}
+#atlasSlideReader .atlas-midterm-banner-item+.atlas-midterm-banner-item{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,220,160,.32)}
+#atlasSlideReader .atlas-midterm-source{display:block;color:#ffe0a0;font-size:12px;font-weight:950;line-height:1.35}
+#atlasSlideReader .atlas-midterm-source-practice{color:#c6cfdd}
+#atlasSlideReader .atlas-midterm-banner-item p{grid-column:2;margin:0!important}
+#atlasSlideReader .atlas-midterm-banner-item small{grid-column:2;color:#efc6c8;font-size:10px}
+#atlasSlideReader .atlas-midterm-pinned-item+.atlas-midterm-pinned-item{margin-top:10px;padding-top:10px;border-top:1px solid #384156}
+#atlasSlideReader .atlas-midterm-pinned .atlas-midterm-source{margin:7px 0 4px;color:#ffd889}
+@media(max-width:760px){
+ #atlasSlideReader .atlas-midterm-banner-item{grid-template-columns:1fr}
+ #atlasSlideReader .atlas-midterm-banner-item p,#atlasSlideReader .atlas-midterm-banner-item small{grid-column:1}
+}
