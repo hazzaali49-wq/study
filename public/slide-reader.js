@@ -6,7 +6,7 @@ const PALETTES={nmhs10100:['#ef92c9','#79bce9'],path30080:['#ff7f82','#f4b15f'],
 let state=null;
 const script=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});
 async function dependencies(){
- for(const [name,src] of [['StudyAtlasSlideNotes','slide-notes.js'],['StudyAtlasLearning','study-learning.js'],['StudyAtlasVisuals','slide-visuals.js'],['StudyAtlasTeachingFigures','teaching-figures.js'],['StudyAtlasPDF','pdf-source.js'],['StudyAtlasStudyStore','study-store.js'],['StudyAtlasNotebook','study-notebook.js'],['StudyAtlasLocalAI','local-ai.js'],['StudyAtlasMidtermLinks','midterm-links.js']])if(!window[name])await script('/'+src+'?v=12');
+ for(const [name,src] of [['StudyAtlasSlideNotes','slide-notes.js'],['StudyAtlasLearning','study-learning.js'],['StudyAtlasVisuals','slide-visuals.js'],['StudyAtlasTeachingFigures','teaching-figures.js'],['StudyAtlasPDF','pdf-source.js'],['StudyAtlasStudyStore','study-store.js'],['StudyAtlasNotebook','study-notebook.js'],['StudyAtlasLocalAI','local-ai.js'],['StudyAtlasMidtermLinks','midterm-links.js']])if(!window[name])await script('/'+src+'?v=13');
 }
 function fromData(data,n){
  const note=(data.slides||[]).find(s=>Number(s.n)===n);if(note)return {...note};
@@ -60,17 +60,17 @@ function midtermHTML(note){
  if(!links.length)return '';
  return `<aside class="atlas-midterm-link"><div class="atlas-midterm-link-head"><span>★ IMPORTANT FOR MIDTERM</span><a href="/midterm/endocrine-midterm.html" target="_top">Open review ↗</a></div>${links.map(x=>`<div class="atlas-midterm-question"><b>${esc(x.label||'Related midterm question')}</b><p>${esc(x.question)}</p><small>${esc(x.topic||'')} · ${esc(x.note||'')}</small></div>`).join('')}</aside>`;
 }
+function midtermSourceHTML(x){
+ if(x?.exact)return '<strong class="atlas-midterm-source">'+esc(x.paper||'Past Midterm')+' · '+esc(x.ref||'')+'</strong>';
+ return '<strong class="atlas-midterm-source atlas-midterm-source-practice">Practice question · not an exact supplied past-paper question</strong>';
+}
 function midtermBannerHTML(links){
  if(!links?.length)return '';
- return `<div class="atlas-midterm-question-banner">
-   <div class="atlas-midterm-question-banner-label">★ THIS IS A MIDTERM QUESTION</div>
-   <div class="atlas-midterm-question-banner-copy">${links.map(x=>`<p>${esc(x.question)}</p>`).join('')}</div>
-   <small>${esc(links[0]?.note||'')}</small>
- </div>`;
+ return '<div class="atlas-midterm-question-banner">'+links.map(x=>'<div class="atlas-midterm-banner-item"><div class="atlas-midterm-question-banner-label">'+(x.exact?'★ PAST MIDTERM QUESTION':'★ PRACTICE QUESTION')+'</div>'+midtermSourceHTML(x)+'<p>'+esc(x.question)+'</p>'+(x.topic?'<small>'+esc(x.topic)+'</small>':'')+'</div>').join('')+'</div>';
 }
 function pinnedMidtermHTML(links){
  if(!links?.length)return '';
- return `<aside class="atlas-midterm-pinned"><div class="atlas-midterm-pinned-label">MIDTERM QUESTION · KEEP THIS BESIDE THE SLIDE</div>${links.map(x=>`<p>${esc(x.question)}</p>`).join('')}<small>${esc(links[0]?.note||'')}</small></aside>`;
+ return '<aside class="atlas-midterm-pinned">'+links.map(x=>'<div class="atlas-midterm-pinned-item"><div class="atlas-midterm-pinned-label">'+(x.exact?'PAST MIDTERM QUESTION':'PRACTICE QUESTION')+'</div>'+midtermSourceHTML(x)+'<p>'+esc(x.question)+'</p></div>').join('')+'</aside>';
 }
 function toolbar(side){return `<div class="atlas-pane-toolbar"><b>${side==='original'?'Original slide':'Study explanation'}</b><button data-zoom="-1" aria-label="Zoom out">−</button><output>100%</output><button data-zoom="1" aria-label="Zoom in">+</button><button data-fit>Fit</button><button class="atlas-pan-toggle" aria-pressed="false" title="Drag with mouse, finger or pen to pan">✋</button></div>`;}
 function noteHTML(note){
