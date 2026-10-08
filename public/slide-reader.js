@@ -243,9 +243,18 @@ function extras(data){
  <section class="atlas-reader-extra" id="atlas-guides"><h2>Complete chapter guides</h2>${L.chapters.map((ch,i)=>`<details><summary>${esc(ch.title||'Chapter '+(i+1))} · slides ${ch.slide_start}–${ch.slide_end}</summary>${ch.guide_html?safeRich(ch.guide_html):ch.guide?`<p>${esc(ch.guide)}</p>`:(ch.concepts||[]).map(c=>`<h3>${esc(c.heading)}</h3><p>${esc(c.explain)}</p><ul>${(c.key_points||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`).join('')}${refLinks([ch.slide_start,ch.slide_end])}</details>`).join('')}</section></div>`;
 }
 async function loadPdfSource(config){
- if(config.pdfBase64Url){
+ let compact='';
+ if(config.pdfBase64Parts){
+  const spec=config.pdfBase64Parts,count=Math.max(1,Number(spec.count)||1),pad=Math.max(1,Number(spec.pad)||2),prefix=spec.prefix||'',suffix=spec.suffix||'';
+  const urls=Array.from({length:count},(_,i)=>prefix+String(i+1).padStart(pad,'0')+suffix);
+  const parts=await Promise.all(urls.map(async url=>{const res=await fetch(url,{cache:'force-cache'});if(!res.ok)throw new Error('Original PDF part could not be loaded: '+url);return res.text();}));
+  compact=parts.join('').replace(/\s+/g,'');
+ }else if(config.pdfBase64Url){
   const res=await fetch(config.pdfBase64Url,{cache:'force-cache'});if(!res.ok)throw new Error('Original PDF data could not be loaded.');
-  const compact=(await res.text()).replace(/\s+/g,'');const bin=atob(compact),bytes=new Uint8Array(bin.length);
+  compact=(await res.text()).replace(/\s+/g,'');
+ }
+ if(compact){
+  const bin=atob(compact),bytes=new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
   const blob=new Blob([bytes],{type:'application/pdf'}),objectUrl=URL.createObjectURL(blob);
   return {input:{data:bytes},objectUrl};
@@ -254,7 +263,7 @@ async function loadPdfSource(config){
 }
 async function open(config){
  if(state)return;await dependencies();const data=config.data||{},root=document.createElement('div');root.id='atlasSlideReader';
- state={...config,title:config.title||data.title||'Lecture',root,count:0,learning:window.StudyAtlasLearning.prepare(data),notes:new Map(),sources:new Map(),rendered:new Set(),pending:new Set(),tasks:new Map(),renderQueue:[],rendering:false,pdfUrl:config.pdfUrl||'',pdfBase64Url:config.pdfBase64Url||''};
+ state={...config,title:config.title||data.title||'Lecture',root,count:0,learning:window.StudyAtlasLearning.prepare(data),notes:new Map(),sources:new Map(),rendered:new Set(),pending:new Set(),tasks:new Map(),renderQueue:[],rendering:false,pdfUrl:config.pdfUrl||'',pdfBase64Url:config.pdfBase64Url||'',pdfBase64Parts:config.pdfBase64Parts||null};
  try{const saved=JSON.parse(sessionStorage.getItem('atlas-tutor:'+state.id)||'{}');state.tutorThreads=Object.fromEntries(Object.entries(saved).filter(([n,turns])=>/^\d+$/.test(n)&&Array.isArray(turns)).slice(-12).map(([n,turns])=>[n,turns.filter(t=>t&&typeof t.question==='string'&&typeof t.answer==='string').slice(-6)]));}catch{}
  document.body.prepend(root);document.body.classList.add('atlas-slide-mode');document.body.dataset.atlasModule=config.module_id||'';
  const colors=PALETTES[config.module_id]||PALETTES.mdsa20030;document.documentElement.style.setProperty('--atlas-mod',colors[0]);document.documentElement.style.setProperty('--atlas-mod2',colors[1]);
@@ -290,7 +299,7 @@ async function open(config){
  await window.StudyAtlasNotebook.mountEnd().catch(()=>{});
  const requested=Number(new URLSearchParams(location.search).get('slide'));let saved=0;try{saved=Number(sessionStorage.getItem('atlas-reader-position:'+state.id));}catch{}
  const start=Math.max(1,Math.min(state.count,Math.round(requested||saved||1)));await render(start,true);if(start>1)go(start);
- addEventListener('pagehide',()=>{state.controller?.abort();state.pdf?.destroy();if(state.pdfBase64Url&&state.pdfUrl?.startsWith('blob:'))URL.revokeObjectURL(state.pdfUrl);},{once:true});
+ addEventListener('pagehide',()=>{state.controller?.abort();state.pdf?.destroy();if((state.pdfBase64Url||state.pdfBase64Parts)&&state.pdfUrl?.startsWith('blob:'))URL.revokeObjectURL(state.pdfUrl);},{once:true});
 }
 addEventListener('atlas:lecture-enhanced',e=>{
  if(!state||state.id!==e.detail?.id)return;
@@ -311,8 +320,8 @@ async function boot(){
  if(location.pathname.endsWith('local-lecture.html')||new URLSearchParams(location.search).get('view')==='chapters')return;
  let metadata={};try{metadata=JSON.parse(document.getElementById('atlasLectureMeta')?.textContent||'{}');}catch{}
  const original=document.querySelector('a[href*="Original_Lecture.pdf"],.originalend a[href*="/api/original"]');
- if(!original&&!metadata.pdfBase64Url)return;
- const data=readLegacy();await open({id:metadata.id||location.pathname,number:metadata.number||metadata.lecture_number,title:metadata.title||data.title||document.querySelector('h1')?.textContent,pdfUrl:original?.href||'',pdfBase64Url:metadata.pdfBase64Url||'',module_id:metadata.module_id||document.body.dataset.atlasModule||'mdsa20030',previous_titles:metadata.previous_titles||[],module_code:metadata.module_code||document.querySelector('.kicker')?.textContent.match(/[A-Z]{4}\d{5}/)?.[0]||'MDSA20030',data});
+ if(!original&&!metadata.pdfBase64Url&&!metadata.pdfBase64Parts)return;
+ const data=readLegacy();await open({id:metadata.id||location.pathname,number:metadata.number||metadata.lecture_number,title:metadata.title||data.title||document.querySelector('h1')?.textContent,pdfUrl:original?.href||'',pdfBase64Url:metadata.pdfBase64Url||'',pdfBase64Parts:metadata.pdfBase64Parts||null,module_id:metadata.module_id||document.body.dataset.atlasModule||'mdsa20030',previous_titles:metadata.previous_titles||[],module_code:metadata.module_code||document.querySelector('.kicker')?.textContent.match(/[A-Z]{4}\d{5}/)?.[0]||'MDSA20030',data});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>boot().catch(()=>{}),{once:true});else boot().catch(()=>{});
 })();
