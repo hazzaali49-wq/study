@@ -78,8 +78,8 @@ window.STUDY_MODULES = [
         "id": "calcium-homeostasis",
         "number": "08",
         "title": "Calcium (and Phosphorus) Homeostasis",
-        "slides": "34 source slides",
-        "chapters": "6 slide-by-slide chapters",
+        "slides": "34 original slides",
+        "chapters": "Original + explanation",
         "href": "lectures/calcium-homeostasis.html",
         "description": "PTH, CaSR, vitamin D, bone/kidney/gut, calcitonin and parathyroid disorders."
       }
