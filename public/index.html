@@ -60,7 +60,7 @@ const endocrine=modules.find(m=>m.id==='mdsa20030');
 if(endocrine){[
  {id:'growth-hormone-igf-axis',number:'06',title:'Growth Hormone / IGF-I Axis',slides:'29 original slides',chapters:'5 illustrated chapters',href:'lectures/growth-hormone-igf-axis.html',original:'resources/Growth_Hormone_IGF_Axis_Original_Lecture.pdf',description:'GH pulses, IGF-I, growth plate, metabolism, deficiency, resistance and acromegaly.'},
  {id:'thyroid-physiology',number:'07',title:'Thyroid Physiology',slides:'33 original slides',chapters:'5 illustrated chapters',href:'lectures/thyroid-physiology.html',original:'resources/Thyroid_Physiology_Original_Lecture.pdf',description:'Follicles, synthesis, T3/T4 action, feedback, hypothyroidism and Graves disease.'},
- {id:'calcium-homeostasis',number:'08',title:'Calcium (and Phosphorus) Homeostasis',slides:'34 source slides',chapters:'6 slide-by-slide chapters',href:'lectures/calcium-homeostasis.html',description:'PTH, CaSR, vitamin D, bone/kidney/gut, calcitonin and parathyroid disorders.'}
+ {id:'calcium-homeostasis',number:'08',title:'Calcium (and Phosphorus) Homeostasis',slides:'34 original slides',chapters:'Original + explanation',href:'lectures/calcium-homeostasis.html',description:'PTH, CaSR, vitamin D, bone/kidney/gut, calcitonin and parathyroid disorders.'}
 ].forEach(l=>{if(!endocrine.lectures.some(x=>x.id===l.id))endocrine.lectures.push(l)});}
 window.__ATLAS_MODULES__=modules;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
