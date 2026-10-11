@@ -19,7 +19,7 @@ test('Lecture 8 uses the standard side-by-side slide reader, not the text fallba
   assert.equal(data.slide_count,34);
   assert.equal(data.slides.length,34);
   assert.equal(meta.pdfBase64Parts.count,13);
-  assert.match(html,/slide-reader\.js\?v=13/);
+  assert.match(html,/slide-reader\.js\?v=14/);
   assert.doesNotMatch(html,/ORIGINAL SLIDE SOURCE/);
 });
 
@@ -31,3 +31,4 @@ test('Lecture 8 keeps exact past-midterm question mapping',()=>{
   assert.match(links,/How can one distinguish between true and pseudohypoparathyroidism\?/);
   assert.match(links,/Case 2 · Q4/);
 });
+

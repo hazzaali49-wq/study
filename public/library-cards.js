@@ -9,6 +9,8 @@ function restore(){
   grid.querySelectorAll('.atlas-saved-versions').forEach(el=>el.remove());
  });
 }
+const preparedIds=new Set(['hypo','anterior','growth-hormone-igf-axis','thyroid-physiology','calcium-homeostasis']);
+function preparedCard(card){return preparedIds.has(card.querySelector('[data-lecture]')?.dataset.lecture);}
 function reconcile(){
  restore();let total=0;
  let progress={};try{progress=JSON.parse(localStorage.getItem('atlasLectureProgress.v2')||'{}');}catch{}
@@ -20,8 +22,8 @@ function reconcile(){
    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(card);
   }
   for(const group of groups.values()){
-   // Prefer the latest upload while keeping every original, study guide and note button accessible.
-   group.sort((a,b)=>(Number(b.dataset.savedAt)||0)-(Number(a.dataset.savedAt)||0)||Number(!!(b.dataset.localLecture||b.dataset.netlifyLecture))-Number(!!(a.dataset.localLecture||a.dataset.netlifyLecture)));
+   // Prefer verified site-hosted slides; retain every uploaded version and its notes below.
+   group.sort((a,b)=>Number(preparedCard(b))-Number(preparedCard(a))||(Number(b.dataset.savedAt)||0)-(Number(a.dataset.savedAt)||0)||Number(!!(b.dataset.localLecture||b.dataset.netlifyLecture))-Number(!!(a.dataset.localLecture||a.dataset.netlifyLecture)));
    const main=group[0];grid.appendChild(main);
    if(group.length>1){
     const versions=document.createElement('details');versions.className='atlas-saved-versions';

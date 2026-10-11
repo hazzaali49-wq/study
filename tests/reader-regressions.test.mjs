@@ -97,12 +97,12 @@ test('one lecture card spans static, cloud and local versions without losing sou
  app.values.set('atlasLectureProgress.v2',JSON.stringify({'mdsa20030::Hypothalamus & Pituitary Gland':true}));
  vm.runInContext(read('library-cards.js'),app.context);
  assert.equal(app.document.querySelectorAll('.lecture').length,1);assert.equal(app.document.querySelectorAll('.atlas-lecture-version').length,2);
- assert.equal(app.document.querySelector('.lecture').dataset.localLecture,'local-3');assert.equal(app.document.querySelector('.libhead small').textContent,'1 lecture');
+ assert.equal(app.document.querySelector('.lecture [data-lecture]')?.dataset.lecture,'hypo');assert.ok(app.document.querySelector('.atlas-saved-versions [data-local-lecture="local-3"]'));assert.equal(app.document.querySelector('.libhead small').textContent,'1 lecture');
  assert.equal(JSON.parse(app.values.get('atlasLectureProgress.v2'))['mdsa20030::lecture-3'],true);
  app.document.querySelector('[data-lecture="hypo"]').click();assert.equal(opened,1);
  app.window.StudyAtlasLibraryCards.reconcile();assert.equal(app.document.querySelectorAll('.atlas-lecture-version').length,2);
  app.window.StudyAtlasLibraryCards.restore();app.document.querySelector('[data-local-lecture]').remove();app.window.StudyAtlasLibraryCards.reconcile();
- assert.equal(app.document.querySelector('.lecture').dataset.netlifyLecture,'cloud-3');assert.ok(app.document.querySelector('[href="/original.pdf"]'));assert.ok(app.document.querySelector('[data-lecture-notes="hypo"]'));
+ assert.equal(app.document.querySelector('.lecture [data-lecture]')?.dataset.lecture,'hypo');assert.ok(app.document.querySelector('.atlas-saved-versions [data-netlify-lecture="cloud-3"]'));assert.ok(app.document.querySelector('[href="/original.pdf"]'));assert.ok(app.document.querySelector('[data-lecture-notes="hypo"]'));
 });
 
 test('unrecognised lecture numbers remain separate while known lecture numbers share progress',async()=>{

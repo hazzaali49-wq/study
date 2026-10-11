@@ -15,10 +15,11 @@ function dom(html){
  window.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/webp;base64,U0xJREU=';
  window.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:()=>()=>{}});
  window.StudyAtlasSlideNotes=notes;window.StudyAtlasLearning=learning;window.StudyAtlasVisuals=visuals;window.StudyAtlasTeachingFigures=figures;window.StudyAtlasFigureLabels={read:async()=>null};window.StudyAtlasLocalAI={};
- window.StudyAtlasPDF={load:async()=>({numPages:28,getPage:async n=>({n,getViewport:()=>({width:600,height:450}),render:()=>({promise:Promise.resolve()}),cleanup(){}})}),readPage:async p=>({n:p.n,text:'Source\nA teaching point from this original slide.',lines:['Source','A teaching point from this original slide.'],boxes:[],width:600,height:450})};
+ window.StudyAtlasPDF={preparedVersion:1,load:async()=>({numPages:28,getPage:async n=>({n,getViewport:()=>({width:600,height:450}),render:()=>({promise:Promise.resolve()}),cleanup(){}})}),readPage:async p=>({n:p.n,text:'Source\nA teaching point from this original slide.',lines:['Source','A teaching point from this original slide.'],boxes:[],width:600,height:450})};
  Object.assign(window,{localStorage:storage,sessionStorage:storage,location:context.location,parent:{postMessage:msg=>events.push(msg)}});
  window.indexedDB=undefined;
  const sandbox=vm.createContext(context);
+ vm.runInContext(read('midterm-links.js'),sandbox);
  vm.runInContext(read('study-store.js'),sandbox);vm.runInContext(read('study-notebook.js'),sandbox);
  return {window,document,values,events,context:sandbox};
 }

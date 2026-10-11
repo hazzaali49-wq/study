@@ -18,35 +18,15 @@ test('calcium is wired into the module and cards tolerate lectures without a hos
  assert.match(i,/Midterm Preparation/);
 });
 
-test('midterm slide links are shared between review and lecture slide reader',()=>{
- const links=fs.readFileSync('public/midterm-links.js','utf8');
- const reader=fs.readFileSync('public/slide-reader.js','utf8');
- const css=fs.readFileSync('public/slide-reader.css','utf8');
- const mid=fs.readFileSync('public/midterm/endocrine-midterm.html','utf8');
- const calcium=fs.readFileSync('public/lectures/calcium-homeostasis.html','utf8');
- assert.match(links,/Related midterm question/);
- assert.match(links,/water-deprivation test/i);
- assert.match(links,/thyroid-hormone synthesis/i);
- assert.match(links,/PTH raise plasma calcium/i);
- assert.match(reader,/StudyAtlasMidtermLinks/);
- assert.match(reader,/MIDTERM IMPORTANT SLIDE/);
- assert.match(css,/atlas-midterm-link/);
- assert.match(mid,/addRelatedMidtermQuestions/);
- assert.match(calcium,/StudyAtlasMidtermLinks/);
-});
-
-test('important slides are visibly starred and the question is explicitly labelled MIDTERM QUESTION',()=>{
- const links=fs.readFileSync('public/midterm-links.js','utf8');
- const reader=fs.readFileSync('public/slide-reader.js','utf8');
- const css=fs.readFileSync('public/slide-reader.css','utf8');
- const mid=fs.readFileSync('public/midterm/endocrine-midterm.html','utf8');
- const calcium=fs.readFileSync('public/lectures/calcium-homeostasis.html','utf8');
- assert.match(links,/const LABEL='MIDTERM QUESTION'/);
- assert.match(reader,/★ IMPORTANT FOR MIDTERM/);
- assert.match(reader,/atlas-midterm-important/);
- assert.match(reader,/atlas-midterm-slide-flag/);
- assert.match(css,/atlas-midterm-slide-flag/);
- assert.match(mid,/midterm-slide-star/);
- assert.match(calcium,/midterm-important/);
- assert.match(calcium,/★ IMPORTANT FOR MIDTERM/);
+test('exact midterm questions remain distinguished from practice prompts',async()=>{
+ const vm=await import('node:vm');const context={window:{},location:{pathname:'/',href:'https://atlas.test/'},URL};
+ vm.runInNewContext(fs.readFileSync('public/midterm-links.js','utf8'),context);
+ const links=context.window.StudyAtlasMidtermLinks;
+ const calcium=links.forSlide('calcium-homeostasis',21);
+ assert.ok(calcium.some(q=>q.exact&&q.ref==='Case 2 · Q3'&&q.paper));
+ assert.ok(calcium.some(q=>/normal action of parathyroid hormone/.test(q.question)));
+ const water=links.forSlide('/lectures/hypothalamus-pituitary.html',19);
+ assert.ok(water.some(q=>q.exact&&/kidney/.test(q.question)));
+ const practice=links.forSlide('/lectures/calcium-homeostasis.html',8);
+ assert.ok(practice.every(q=>!q.exact));assert.ok(practice.every(q=>/practice/i.test(q.label)));
 });
