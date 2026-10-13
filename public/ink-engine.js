@@ -14,7 +14,12 @@ function drawPart(ctx,canvas,stroke,points,scale){
  ctx.restore();
 }
 function create({canvas,getStrokes,onChange=()=>{},isEnabled=()=>true,getTool=()=>({tool:'pen',size:6,color:'#ff4f70'})}){
- const ctx=canvas.getContext('2d'),live=document.createElement('canvas');live.className='atlas-gpage-canvas atlas-gpage-live';live.style.pointerEvents='none';canvas.after(live);const preview=live.getContext('2d');
+ const ctx=canvas.getContext('2d'),live=document.createElement('canvas');live.className='atlas-gpage-canvas atlas-gpage-live';live.style.pointerEvents='none';
+ // Overlay geometry must never depend on a stylesheet arriving first. In-flow
+ // canvases enlarge their measured parent and create a ResizeObserver loop.
+ for(const layer of [canvas,live])Object.assign(layer.style,{position:'absolute',inset:'0',width:'100%',height:'100%'});
+ if(canvas.parentElement&&!canvas.parentElement.style.position)canvas.parentElement.style.position='relative';
+ canvas.after(live);const preview=live.getContext('2d');
  let active=null,rect=null,pid=null,frame=0,painted=0,lastPen=0,scale=1;
  const raf=root.requestAnimationFrame?.bind(root)||((f)=>setTimeout(f,16)),cancel=root.cancelAnimationFrame?.bind(root)||clearTimeout;
  function sync(){if(live.width!==canvas.width||live.height!==canvas.height){live.width=canvas.width;live.height=canvas.height;}scale=canvas.width/Math.max(1,canvas.clientWidth);}

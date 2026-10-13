@@ -22,7 +22,13 @@
     return slide?slide+' · '+ch:ch;
   }
   async function boot(){
-    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=1';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
+    // These tools are also loaded by minimal lecture pages with no tool styles.
+    for(const file of ['generated-tools','study-tools']){
+      if(!document.querySelector('link[href*="'+file+'.css"]')){
+        const css=document.createElement('link');css.rel='stylesheet';css.href='/'+file+'.css?v=11';document.head.appendChild(css);
+      }
+    }
+    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=2';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
     if(document.getElementById('atlasGenDock')) return;
     for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
     if(!document.querySelector('link[href*="study-notebook.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/study-notebook.css?v=1';document.head.appendChild(css);}
