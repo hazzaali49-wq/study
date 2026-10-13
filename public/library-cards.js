@@ -9,7 +9,7 @@ function restore(){
   grid.querySelectorAll('.atlas-saved-versions').forEach(el=>el.remove());
  });
 }
-const preparedIds=new Set(['hypo','anterior','growth-hormone-igf-axis','thyroid-physiology','calcium-homeostasis']);
+const preparedIds=new Set(['hypo','anterior','growth-hormone-igf-axis','thyroid-physiology','calcium-homeostasis','introduction-fascia','os-coxae-femur','gluteal-region','posterior-thigh','medial-thigh']);
 function preparedCard(card){return preparedIds.has(card.querySelector('[data-lecture]')?.dataset.lecture);}
 function reconcile(){
  restore();let total=0;

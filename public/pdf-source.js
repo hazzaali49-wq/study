@@ -7,7 +7,7 @@
     return library;
   }
   async function catalogue(){
-    if(!manifest)manifest=(async()=>{const controller=new AbortController();let timer=setTimeout(()=>controller.abort(),5000);try{const r=await fetch('/lecture-slides.json?v=1',{signal:controller.signal});if(!r.ok)throw Error('Slide catalogue unavailable');return await r.json();}finally{clearTimeout(timer);}})().catch(e=>{manifest=null;throw e;});
+    if(!manifest)manifest=(async()=>{const controller=new AbortController();let timer=setTimeout(()=>controller.abort(),5000);try{const r=await fetch('/lecture-slides.json?v=2',{signal:controller.signal});if(!r.ok)throw Error('Slide catalogue unavailable');return await r.json();}finally{clearTimeout(timer);}})().catch(e=>{manifest=null;throw e;});
     return manifest;
   }
   async function prepared(source,options){
