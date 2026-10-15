@@ -1,0 +1,11 @@
+/* Minimal, opt-in, device-local export to the private Republic minister. */
+.atlas-republic-export{margin:16px 0 22px;padding:22px 25px;border:1px solid #3d5366;border-radius:18px;background:linear-gradient(125deg,#101d2e,#18384a);color:#e9f1f4;display:flex;justify-content:space-between;align-items:center;gap:22px}
+.atlas-republic-copy{min-width:0}
+.atlas-republic-kicker{display:block;color:#95d5c5;letter-spacing:1.4px;font-size:10px;font-weight:900;margin-bottom:6px}
+.atlas-republic-export h2{color:#fff;font-size:20px;line-height:1.25;margin:0 0 8px}
+.atlas-republic-export p{font-size:12px;line-height:1.65;margin:0 0 11px;color:#d0dce1;max-width:740px}
+.atlas-republic-export small{color:#b5d6cc;font-size:11px;line-height:1.6}
+.atlas-republic-button{flex:none;min-height:45px;padding:12px 18px;background:#e1c697;border:1px solid #ebd6b1;border-radius:8px;color:#172738;font-size:13px;font-weight:900;cursor:pointer}
+.atlas-republic-button:hover{background:#fae9c7}
+.atlas-republic-button:focus-visible{outline:3px solid #f8e0b5;outline-offset:3px}
+@media(max-width:680px){.atlas-republic-export{flex-direction:column;align-items:stretch;padding:18px;margin:15px 0}.atlas-republic-button{width:100%}}
