@@ -6,7 +6,7 @@ const PALETTES={nmhs10100:['#ef92c9','#79bce9'],path30080:['#ff7f82','#f4b15f'],
 let state=null;
 const script=src=>new Promise((resolve,reject)=>{const s=document.createElement('script'),timer=setTimeout(()=>reject(new Error('Could not load '+src)),12000);s.src=src;s.onload=()=>{clearTimeout(timer);resolve();};s.onerror=()=>{clearTimeout(timer);reject(new Error('Could not load '+src));};document.body.appendChild(s);});
 async function dependencies(){
- for(const [name,src] of [['StudyAtlasSlideNotes','slide-notes.js'],['StudyAtlasLearning','study-learning.js'],['StudyAtlasVisuals','slide-visuals.js'],['StudyAtlasTeachingFigures','teaching-figures.js'],['StudyAtlasPDF','pdf-source.js'],['StudyAtlasStudyStore','study-store.js'],['StudyAtlasNotebook','study-notebook.js'],['StudyAtlasLocalAI','local-ai.js'],['StudyAtlasMidtermLinks','midterm-links.js']])if(!window[name]||(name==='StudyAtlasPDF'&&window[name].preparedVersion!==1))await script('/'+src+'?v=14');
+ for(const [name,src] of [['StudyAtlasSlideNotes','slide-notes.js'],['StudyAtlasLearning','study-learning.js'],['StudyAtlasVisuals','slide-visuals.js'],['StudyAtlasTeachingFigures','teaching-figures.js'],['StudyAtlasPDF','pdf-source.js'],['StudyAtlasStudyStore','study-store.js'],['StudyAtlasNotebook','study-notebook.js'],['StudyAtlasLocalAI','local-ai.js'],['StudyAtlasMidtermLinks','midterm-links.js']])if(!window[name]||(name==='StudyAtlasPDF'&&window[name].preparedVersion!==1))await script('/'+src+'?v=17');
 }
 function fromData(data,n){
  const note=(data.slides||[]).find(s=>Number(s.n)===n);if(note)return {...note};
@@ -302,7 +302,7 @@ async function open(config){
  let scrolling=false;addEventListener('scroll',()=>{if(scrolling)return;scrolling=true;requestAnimationFrame(()=>{scrolling=false;const n=current()?.n||1;jump.value=n;try{sessionStorage.setItem('atlas-reader-position:'+state.id,String(n));}catch{}});},{passive:true});
  addEventListener('keydown',e=>{if(document.body.classList.contains('atlas-notebook-open')||e.target.closest('input,textarea,select,summary')||e.ctrlKey||e.metaKey||e.altKey||document.body.classList.contains('atlas-gdrawing'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go((current()?.n||1)+(e.key==='ArrowRight'?1:-1));}});
  if(!document.getElementById('atlasTimerModal'))await script('/study-tools.js?v=9');
- if(!document.getElementById('atlasGenDock'))await script('/generated-tools.js?v=11');
+ if(!document.getElementById('atlasGenDock'))await script('/generated-tools.js?v=17');
  await window.StudyAtlasNotebook.mountEnd().catch(()=>{});
  const requested=Number(new URLSearchParams(location.search).get('slide'));let saved=0;try{saved=Number(sessionStorage.getItem('atlas-reader-position:'+state.id));}catch{}
  const start=Math.max(1,Math.min(state.count,Math.round(requested||saved||1)));await render(start,true);if(start>1)go(start);

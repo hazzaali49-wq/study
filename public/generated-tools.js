@@ -30,7 +30,7 @@
     }
     if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=2';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
     if(document.getElementById('atlasGenDock')) return;
-    for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
+    for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=17';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
     if(!document.querySelector('link[href*="study-notebook.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/study-notebook.css?v=1';document.head.appendChild(css);}
     const Notebook=window.StudyAtlasNotebook,Store=window.StudyAtlasStudyStore;
     const lecture=Notebook.context();
@@ -124,6 +124,17 @@
     const main=document.querySelector('main'),reader=document.getElementById('atlasSlideReader');
     const drawable=reader?[...reader.querySelectorAll('[data-ink-id]')]:main?[...main.children].filter(el=>!['SCRIPT','STYLE'].includes(el.tagName)&&el.offsetHeight>8):[];
     (drawable.length?drawable:[main].filter(Boolean)).forEach(prepareZone);
+
+    // Render persisted strokes independently of the visible canvas (offscreen
+    // canvases may have been released to save memory).
+    window.StudyAtlasInkSnapshot=el=>{
+      const z=zones.find(z=>z.el===el);if(!z)throw new Error('Slide highlights are not ready.');
+      const holder=document.createElement('div'),canvas=document.createElement('canvas');holder.appendChild(canvas);
+      canvas.width=Math.max(1,el.clientWidth*2);canvas.height=Math.max(1,el.clientHeight*2);
+      Object.defineProperty(canvas,'clientWidth',{value:Math.max(1,el.clientWidth)});
+      const ink=window.StudyAtlasInk.create({canvas,getStrokes:()=>strokeMap.get(z.id)||[]});
+      ink.redraw();const image=canvas.toDataURL('image/png');holder.replaceChildren();canvas.width=canvas.height=1;return image;
+    };
 
     // Migrate the previous visual-only ink format into the containing page zones.
     const saved=forPage(INK_KEY);
@@ -220,7 +231,7 @@
       const visual=currentVisual(),slide=window.StudyAtlasReader?.current()?.n||Number(visual?.dataset.slide||visual?.querySelector('.visualtag')?.textContent.match(/\d+/)?.[0])||null;
       draft={slide,title:chapterLabel()};const selected=draft,preview=document.getElementById('atlasGNPreview'),label=document.getElementById('atlasGNPreviewLabel');
       preview.hidden=true;document.getElementById('atlasGNContext').textContent=selected.title;label.textContent=slide?'Preparing the whole of slide '+slide+'…':'This note will be linked to the lecture.';
-      selected.image=slide?Notebook.snapshot(slide,lecture).then(image=>{if(draft===selected){preview.src=image;preview.hidden=false;label.textContent='Complete slide '+slide+' · saved with your note';}return image;}).catch(e=>{if(draft===selected)label.textContent='Slide preview unavailable. Use current slide to retry.';return null;}):Promise.resolve('');
+      selected.image=slide?Notebook.snapshot(slide,lecture).then(image=>{if(draft===selected){preview.src=image;preview.hidden=false;label.textContent='Slide '+slide+' + explanation + highlights';}return image;}).catch(e=>{if(draft===selected)label.textContent='Slide preview unavailable. Use current slide to retry.';return null;}):Promise.resolve('');
     }
     async function renderNotes(){await Notebook.renderList(document.getElementById('atlasGNList'),{kind:'note',lectureKey:lecture.lectureKey});}
     function openNotes(){
@@ -241,10 +252,10 @@
       saving=true;const save=document.getElementById('atlasGNSave');save.disabled=true;save.textContent='Saving…';textInput.readOnly=true;sketch.style.pointerEvents='none';document.getElementById('atlasGNClear').disabled=true;
       noteStatus.textContent='Saving your note and the complete slide…';
       try{
-        const image=await selected.image;if(selected.slide&&!image)throw new Error('The full slide could not be captured. Your draft is still here. Retry with Use current slide.');
+        const previewImage=await selected.image;if(selected.slide&&!previewImage)throw new Error('The full slide could not be captured. Your draft is still here. Retry with Use current slide.');const image=selected.slide?await Notebook.snapshot(selected.slide,lecture):'';if(selected.slide&&!image)throw new Error('The full slide could not be captured. Your draft is still here. Retry with Use current slide.');
         await Store.save(lecture,{kind:'note',slide:selected.slide,title:selected.title,text},{snapshot:image,sketch:sketchImage});
         textInput.value='';document.getElementById('atlasGNClear').disabled=false;document.getElementById('atlasGNClear').click();draft=null;
-        noteStatus.textContent='Saved with the full slide. Find it here, at the end of the lecture, or in your module notes.';await renderNotes();
+        noteStatus.textContent='Saved with the slide, explanation and highlights. Find it here, at the end of the lecture, or in your module notes.';await renderNotes();
       }catch(e){noteStatus.textContent=e.message||'Could not save. Your draft is still here; check device storage and retry.';}
       finally{saving=false;save.disabled=false;save.textContent='Save note + slide';textInput.readOnly=false;sketch.style.pointerEvents='';document.getElementById('atlasGNClear').disabled=false;}
     };

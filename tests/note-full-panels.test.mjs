@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {dom} from './dom.mjs';
+test('note snapshot includes complete unzoomed explanation and both ink layers without changing the reader',async()=>{
+ const app=dom('<html><body><section id="atlas-slide-2"><div class="atlas-zoom-content" style="transform:scale(3)"><div data-ink-id="original"><canvas class="atlas-slide-bitmap"></canvas><canvas class="atlas-gpage-canvas"></canvas></div></div><div class="atlas-zoom-content" style="transform:scale(2)"><div data-ink-id="teaching"><p>Full explanation including the last line</p><canvas class="atlas-gpage-canvas"></canvas><canvas class="atlas-gpage-live"></canvas></div></div></section></body></html>');
+ const row=app.document.getElementById('atlas-slide-2'),panes=[...row.querySelectorAll('.atlas-zoom-content')],captured=[];
+ Object.defineProperty(panes[1],'offsetHeight',{value:2400});
+ app.context.getComputedStyle=node=>{const props=['transform','position'];props.getPropertyValue=p=>node.style[p]||'';return props;};
+ app.context.XMLSerializer=class{serializeToString(node){return node.outerHTML;}};
+ app.context.Image=class{set src(value){captured.push(decodeURIComponent(value.split(',').slice(1).join(',')));this.onload();}};
+ const ink=[];app.window.StudyAtlasInkSnapshot=el=>{ink.push(el.dataset.inkId);return 'data:image/png;base64,SU5L';};
+ await app.window.StudyAtlasNotebook.studySnapshot(row);
+ assert.deepEqual(ink,['original','teaching']);
+ assert.match(captured[0],/Full explanation including the last line/);
+ assert.match(captured[0],/height="2472"/);
+ assert.match(captured[0],/Original slide/);assert.match(captured[0],/Explanation/);
+ assert.equal((captured[0].match(/SU5L/g)||[]).length,2);
+ assert.doesNotMatch(captured[0],/atlas-gpage-live|scale\(3\)|scale\(2\)/);
+ assert.equal(panes[0].style.transform,'scale(3)');assert.equal(panes[1].style.transform,'scale(2)');
+});

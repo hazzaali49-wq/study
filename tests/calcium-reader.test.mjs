@@ -19,7 +19,7 @@ test('Lecture 8 uses the standard side-by-side slide reader, not the text fallba
   assert.equal(data.slide_count,34);
   assert.equal(data.slides.length,34);
   assert.equal(meta.pdfBase64Parts.count,13);
-  assert.match(html,/slide-reader\.js\?v=16/);
+  assert.match(html,/slide-reader\.js\?v=17/);
   assert.doesNotMatch(html,/ORIGINAL SLIDE SOURCE/);
 });
 

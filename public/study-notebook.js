@@ -28,8 +28,52 @@ function context(){
  return Store.descriptor(d);
 }
 function snapshot(slide,d=context()){const task=snapshotQueue.catch(()=>{}).then(()=>captureSnapshot(slide,d));snapshotQueue=task;return task;}
+// Capture unzoomed, unclipped content; never resize or scroll the live reader.
+async function studySnapshot(row){
+ await document.fonts?.ready;
+ const panes=[...row.querySelectorAll('.atlas-zoom-content')];
+ if(panes.length!==2)throw new Error('Both slide panels must be ready before saving.');
+ async function copy(node){
+  if(node.nodeType!==1)return node.cloneNode(true);
+  if(node.classList.contains('atlas-gpage-live'))return document.createTextNode('');
+  const clone=node.tagName==='CANVAS'?document.createElement('img'):node.cloneNode(false);
+  const computed=getComputedStyle(node);
+  for(const property of computed)clone.style.setProperty(property,computed.getPropertyValue(property));
+  clone.removeAttribute('id');
+  if(node.tagName==='CANVAS'){
+   clone.src=node.classList.contains('atlas-gpage-canvas')&&window.StudyAtlasInkSnapshot?window.StudyAtlasInkSnapshot(node.parentElement):node.toDataURL('image/png');
+  }else{
+   for(const child of node.childNodes)clone.appendChild(await copy(child));
+   if(node.tagName==='IMG'&&node.src&&!node.src.startsWith('data:')){
+    const response=await fetch(node.currentSrc||node.src);if(!response.ok)throw new Error('A slide image could not be captured. Please retry.');
+    const blob=await response.blob();clone.src=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});
+   }
+  }
+  return clone;
+ }
+ const wrapper=document.createElement('div');wrapper.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+ wrapper.style.cssText='display:flex;align-items:flex-start;gap:20px;padding:20px;background:#101827;color:#fff;box-sizing:border-box;';
+ let width=60,height=0;
+ for(const pane of panes){
+  const w=Math.max(1,pane.offsetWidth),h=Math.max(1,pane.offsetHeight);
+  const column=document.createElement('div');column.style.cssText='flex:none;width:'+w+'px;';
+  const label=document.createElement('div');label.textContent=width===60?'Original slide':'Explanation';label.style.cssText='height:32px;font: bold 18px sans-serif;color:white';column.appendChild(label);
+  const clone=await copy(pane);Object.assign(clone.style,{width:w+'px',height:h+'px',transform:'none',maxHeight:'none',overflow:'visible',position:'relative'});column.appendChild(clone);wrapper.appendChild(column);
+  width+=w;height=Math.max(height,h);
+ }
+ height+=72;wrapper.style.width=width+'px';wrapper.style.height=height+'px';
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+'"><foreignObject width="100%" height="100%">'+new XMLSerializer().serializeToString(wrapper)+'</foreignObject></svg>';
+ const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Could not capture the explanation. Your note is still a draft.'));img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});
+ const scale=Math.min(2,8192/width,8192/height,Math.sqrt(16000000/(width*height))),canvas=document.createElement('canvas');canvas.width=Math.ceil(width*scale);canvas.height=Math.ceil(height*scale);
+ canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+ const result=canvas.toDataURL('image/webp',.94);canvas.width=canvas.height=1;return result;
+}
 async function captureSnapshot(slide,d){
- if(window.StudyAtlasReader?.id()===d.id&&window.StudyAtlasReader.snapshot)return window.StudyAtlasReader.snapshot(slide);
+ if(window.StudyAtlasReader?.id()===d.id){
+  const row=document.getElementById('atlas-slide-'+Number(slide));
+  if(row?.querySelector('.atlas-zoom-content')){await window.StudyAtlasReader.render(Number(slide),true);return studySnapshot(row);}
+  if(window.StudyAtlasReader.snapshot)return window.StudyAtlasReader.snapshot(slide);
+ }
  if(!window.StudyAtlasPDF)await loadScript('/pdf-source.js?v=1');
  if(!pdfs.has(d.id))pdfs.set(d.id,(async()=>{
   let source=d.pdfUrl;
@@ -65,7 +109,7 @@ function drawSketch(c,strokes,aspect=2){
   ctx.beginPath();ctx.moveTo(pts[0].x*c.width,pts[0].y*c.height);for(const p of pts.slice(1))ctx.lineTo(p.x*c.width,p.y*c.height);if(pts.length===1){ctx.arc(pts[0].x*c.width,pts[0].y*c.height,ctx.lineWidth/2,0,Math.PI*2);ctx.fill();}else ctx.stroke();
  }
 }
-function cardHTML(n){return `<article class="atlas-note-card" data-note-id="${esc(n.id)}"><div class="atlas-note-media"><span class="atlas-note-placeholder">${n.slide?'Loading full slide '+n.slide+'…':'Saved text'}</span><button class="atlas-note-image" aria-label="Enlarge full slide ${n.slide||''}" hidden><img loading="lazy" decoding="async" alt="Complete original slide ${n.slide||''}"></button><small>${n.slide?'Original slide '+n.slide:'Lecture note'}</small></div><div class="atlas-note-copy"><small class="atlas-note-lecture">${esc(n.lectureTitle)}</small><h3>${esc(n.title||'Slide '+n.slide)}</h3>${n.text?`<p>${esc(n.text)}</p>`:''}<div class="atlas-note-sketch"></div><div class="atlas-note-actions">${n.href?'<button data-note-open>Open source slide ↗</button>':''}<button data-note-delete>${n.kind==='pin'?'Unpin':'Delete'}</button></div><small class="atlas-note-date">${n.created?esc(new Date(n.created).toLocaleDateString()):'Saved earlier'}</small><span class="atlas-note-status" role="status"></span></div></article>`;}
+function cardHTML(n){return `<article class="atlas-note-card" data-note-id="${esc(n.id)}"><div class="atlas-note-media"><span class="atlas-note-placeholder">${n.slide?'Loading full slide '+n.slide+'…':'Saved text'}</span><button class="atlas-note-image" aria-label="Enlarge full slide ${n.slide||''}" hidden><img loading="lazy" decoding="async" alt="Saved slide and explanation ${n.slide||''}"></button><small>${n.slide?'Saved slide '+n.slide:'Lecture note'}</small></div><div class="atlas-note-copy"><small class="atlas-note-lecture">${esc(n.lectureTitle)}</small><h3>${esc(n.title||'Slide '+n.slide)}</h3>${n.text?`<p>${esc(n.text)}</p>`:''}<div class="atlas-note-sketch"></div><div class="atlas-note-actions">${n.href?'<button data-note-open>Open source slide ↗</button>':''}${window.StudyAtlasReader?.id()===n.lectureId&&n.slide?'<button data-note-refresh>Update slide + highlights</button>':''}<button data-note-delete>${n.kind==='pin'?'Unpin':'Delete'}</button></div><small class="atlas-note-date">${n.created?esc(new Date(n.created).toLocaleDateString()):'Saved earlier'}</small><span class="atlas-note-status" role="status"></span></div></article>`;}
 async function fillMedia(card,n){
  const placeholder=card.querySelector('.atlas-note-placeholder');
  let asset;try{asset=await Store.assets(n.id);}catch{placeholder.textContent='Your saved slide could not be loaded. Please reload.';return;}
@@ -90,6 +134,11 @@ async function renderList(container,filter={},query=''){
  container.querySelectorAll('.atlas-note-card').forEach(card=>{
   const n=byId.get(card.dataset.noteId);observer.observe(card);
   card.querySelector('[data-note-open]')?.addEventListener('click',()=>openSource(n));
+  card.querySelector('[data-note-refresh]')?.addEventListener('click',async e=>{
+   const button=e.currentTarget;button.disabled=true;
+   try{const image=await snapshot(n.slide,{...n,id:n.lectureId});await Store.attach(n.id,image);await renderList(container,filter,query);}
+   catch{button.disabled=false;card.querySelector('.atlas-note-status').textContent='Could not update the snapshot. Your previous saved image is unchanged.';}
+  });
   card.querySelector('[data-note-delete]').onclick=async e=>{
    const b=e.currentTarget;if(n.kind!=='pin'&&b.dataset.confirm!=='yes'){b.dataset.confirm='yes';b.textContent='Confirm delete';return;}
    b.disabled=true;try{await Store.remove(n.id);await renderList(container,filter,query);}catch{b.disabled=false;card.querySelector('.atlas-note-status').textContent='Could not save the change. Please try again.';}
@@ -164,6 +213,7 @@ document.addEventListener('click',e=>{
 window.addEventListener('atlas:library-reconciled',()=>refreshLibrary().catch(()=>{}));
 window.addEventListener('atlas:notebook-changed',()=>{refreshCounts().catch(()=>{});if(hub&&!hub.hidden)renderHub();});
 window.addEventListener('pagehide',()=>{for(const p of pdfs.values())p.then(pdf=>pdf.destroy()).catch(()=>{});pdfs.clear();});
-window.StudyAtlasNotebook={context,snapshot,pageSnapshot,home,open,close,openSource,renderList,mountEnd,refreshLibrary,refreshCounts};
+window.StudyAtlasNotebook={context,snapshot,studySnapshot,pageSnapshot,home,open,close,openSource,renderList,mountEnd,refreshLibrary,refreshCounts};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>refreshLibrary().catch(()=>{}),{once:true});else refreshLibrary().catch(()=>{});
 })();
+
