@@ -14,18 +14,17 @@ function drawPart(ctx,canvas,stroke,points,scale){
  ctx.restore();
 }
 function create({canvas,getStrokes,onChange=()=>{},isEnabled=()=>true,getTool=()=>({tool:'pen',size:6,color:'#ff4f70'})}){
- const ctx=canvas.getContext('2d'),live=document.createElement('canvas');live.className='atlas-gpage-canvas atlas-gpage-live';live.style.pointerEvents='none';
+ const ctx=canvas.getContext('2d',{desynchronized:true}),live=document.createElement('canvas');live.className='atlas-gpage-canvas atlas-gpage-live';live.style.pointerEvents='none';
  // Overlay geometry must never depend on a stylesheet arriving first. In-flow
  // canvases enlarge their measured parent and create a ResizeObserver loop.
  for(const layer of [canvas,live])Object.assign(layer.style,{position:'absolute',inset:'0',width:'100%',height:'100%'});
  if(canvas.parentElement&&!canvas.parentElement.style.position)canvas.parentElement.style.position='relative';
- canvas.after(live);const preview=live.getContext('2d');
- let active=null,rect=null,pid=null,frame=0,painted=0,lastPen=0,scale=1;
- const raf=root.requestAnimationFrame?.bind(root)||((f)=>setTimeout(f,16)),cancel=root.cancelAnimationFrame?.bind(root)||clearTimeout;
+ canvas.after(live);const preview=live.getContext('2d',{desynchronized:true});
+ let active=null,rect=null,pid=null,painted=0,lastPen=0,scale=1;
  function sync(){if(live.width!==canvas.width||live.height!==canvas.height){live.width=canvas.width;live.height=canvas.height;}scale=canvas.width/Math.max(1,canvas.clientWidth);}
  function point(e){return {x:Math.max(0,Math.min(1,(e.clientX-rect.left)/Math.max(1,rect.width))),y:Math.max(0,Math.min(1,(e.clientY-rect.top)/Math.max(1,rect.height))),p:e.pointerType==='pen'?(e.pressure||.5):.5};}
  function paint(){
-  frame=0;if(!active)return;const start=Math.max(0,painted-1),points=active.pts.slice(start);
+  if(!active||painted===active.pts.length)return;const start=Math.max(0,painted-1),points=active.pts.slice(start);
   drawPart(active.tool==='eraser'?ctx:preview,canvas,active,points,scale);painted=active.pts.length;
  }
  function redraw(){
@@ -44,13 +43,22 @@ function create({canvas,getStrokes,onChange=()=>{},isEnabled=()=>true,getTool=()
   active={...getTool(),pts:[point(e)]};if(e.pointerType==='pen'&&(e.button===5||e.button===2||(e.buttons&32)||(e.buttons&2)))active.tool='eraser';
   live.style.opacity=active.tool==='highlighter'?'.3':'1';painted=0;getStrokes().push(active);canvas.setPointerCapture?.(pid);paint();
  });
- canvas.addEventListener('pointermove',e=>{
-  if(e.pointerType==='pen')lastPen=Date.now();if(!active||pid!==e.pointerId)return;e.preventDefault();const batch=e.getCoalescedEvents?.()||[];
-  for(const item of batch.length?batch:[e]){const p=point(item),last=active.pts.at(-1);if(Math.hypot((p.x-last.x)*rect.width,(p.y-last.y)*rect.height)>.35)active.pts.push(p);}
-  if(!frame)frame=raf(paint);
- });
+ function appendPoint(e,exact=false){
+  const p=point(e),last=active.pts.at(-1),distance=Math.hypot((p.x-last.x)*rect.width,(p.y-last.y)*rect.height);
+  if(distance>(exact?0:.15))active.pts.push(p);
+ }
+ function move(e){
+  if(e.pointerType==='pen')lastPen=Date.now();if(!active||pid!==e.pointerId)return;
+  e.preventDefault();e.stopPropagation();
+  for(const item of e.getCoalescedEvents?.()||[])appendPoint(item);
+  // Include the newest actual position even when the browser batches samples.
+  appendPoint(e,true);paint();
+ }
+ // Raw updates avoid waiting for a display frame on supported pen devices.
+ canvas.addEventListener('onpointerrawupdate' in root?'pointerrawupdate':'pointermove',move);
  function finish(e){
-  if(!active||pid!==e.pointerId)return;if(frame){cancel(frame);frame=0;}paint();
+  if(!active||pid!==e.pointerId)return;
+  if(e.type==='pointerup'&&Number.isFinite(e.clientX)&&Number.isFinite(e.clientY))appendPoint(e,true);paint();
   if(active.tool!=='eraser'){ctx.save();ctx.globalAlpha=active.tool==='highlighter'?.3:1;ctx.drawImage(live,0,0);ctx.restore();}
   preview.clearRect(0,0,live.width,live.height);active=null;const pointer=pid;pid=null;try{canvas.releasePointerCapture?.(pointer);}catch{}onChange();
  }

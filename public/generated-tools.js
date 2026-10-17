@@ -28,7 +28,7 @@
         const css=document.createElement('link');css.rel='stylesheet';css.href='/'+file+'.css?v=11';document.head.appendChild(css);
       }
     }
-    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=2';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
+    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=3';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
     if(document.getElementById('atlasGenDock')) return;
     for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=17';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
     if(!document.querySelector('link[href*="study-notebook.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/study-notebook.css?v=1';document.head.appendChild(css);}
@@ -106,8 +106,9 @@
     }
     function renderZone(z){z?.ink?.redraw();}
     let saveTimer;
-    function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveInk,250);}
+    function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveWhenIdle,350);}
     addEventListener('pagehide',()=>{clearTimeout(saveTimer);saveInk();});
+    function saveWhenIdle(){if(zones.some(z=>z.ink?.isDrawing())){saveTimer=setTimeout(saveWhenIdle,350);return;}saveInk();}
     function saveInk(){
       const all=read(INK_KEY,{}),k=pageKey(),payload={version:4,zones:{...(forPage(INK_KEY)?.zones||{})}};
       zones.forEach(z=>payload.zones[z.id]=strokeMap.get(z.id)||[]);
