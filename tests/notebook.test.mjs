@@ -117,3 +117,24 @@ test('legacy notes lazily acquire a full slide from the currently open source, w
  assert.equal(card.querySelector('.atlas-note-image').hidden,false);assert.equal(card.querySelector('.atlas-note-image img').getAttribute('src'),image+'-2');
  assert.ok(card.querySelector('.atlas-note-sketch canvas'));assert.equal((await S.assets(n.id)).snapshot,image+'-2');
 });
+
+test('progress ends at the last slide and ignores revision and saved notes below it',async()=>{
+ const app=await toolsApp(),row=app.document.querySelector('.visualcard');
+ row.getBoundingClientRect=()=>({top:100-app.context.scrollY,bottom:2100-app.context.scrollY});
+ Object.defineProperty(app.document.documentElement,'scrollHeight',{value:9000});
+ for(const [scroll,expected] of [[100,'0%'],[650,'50%'],[1200,'100%'],[6000,'100%'],[650,'50%']]){
+  app.context.scrollY=scroll;app.window.dispatchEvent(new app.window.Event('scroll'));
+  assert.equal(app.document.getElementById('atlasGPct').textContent,expected);
+ }
+});
+test('study boards can reopen another lecture and exclude deleted pins',async()=>{
+ const app=await toolsApp(),d=app.document,S=app.window.StudyAtlasStudyStore;
+ const other={...source,id:'other-lecture',title:'Other lecture',href:'/lectures/other.html'};
+ await S.save(other,{kind:'pin',slide:7,title:'Keep this saved board',text:'Existing pin'},{snapshot:image});
+ const removed=await S.save(other,{kind:'pin',slide:8,title:'Deleted pin'},{snapshot:image});await S.remove(removed.id);
+ d.getElementById('atlasGBoard').click();await flush();
+ const select=d.getElementById('atlasGBScope');assert.match(select.textContent,/All saved boards/);assert.match(select.textContent,/Other lecture/);
+ for(const option of select.options)option.selected=option.value==='other-lecture';select.onchange();await flush();
+ assert.match(d.getElementById('atlasGBList').textContent,/Keep this saved board/);assert.doesNotMatch(d.getElementById('atlasGBList').textContent,/Deleted pin/);
+ d.getElementById('atlasGBAll').click();await flush();assert.match(d.querySelector('.atlas-notebook-content').textContent,/Keep this saved board/);
+});

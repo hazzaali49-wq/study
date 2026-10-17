@@ -85,7 +85,7 @@
 
     const board=document.createElement('div');
     board.id='atlasGenBoard'; board.hidden=true;
-    board.innerHTML=`<div class="atlas-panel-head"><div><h3>Study board</h3><small>Full slides, always saved with their source</small></div><button data-close-board aria-label="Close study board">×</button></div><div class="atlas-notebook-shortcuts"><button id="atlasGBCurrent">Pin current slide</button><button id="atlasGBAll">Open full board</button></div><span id="atlasGBStatus" role="status" aria-live="polite"></span><div id="atlasGBList"></div>`;
+    board.innerHTML=`<div class="atlas-panel-head"><div><h3>Study board</h3><small>Full slides, always saved with their source</small></div><button data-close-board aria-label="Close study board">×</button></div><div class="atlas-notebook-shortcuts"><button id="atlasGBCurrent">Pin current slide</button><button id="atlasGBAll">Open full board</button></div><label class="atlas-notebook-shortcuts">Saved boards <select id="atlasGBScope" aria-label="Choose a saved study board"></select></label><span id="atlasGBStatus" role="status" aria-live="polite"></span><div id="atlasGBList"></div>`;
     document.body.appendChild(board);
 
     let zoom=1, draw=false, tool='pen', color='#ff4f70', size=6, activeZone=null;
@@ -207,11 +207,19 @@
     document.getElementById('atlasGAI').onclick=()=>{setPanel();if(draw)toggleDraw();document.body.classList.contains('atlas-slide-mode')?window.StudyAtlasReader.ai():document.getElementById('aiBtn')?.click();};
     document.getElementById('atlasGTimer').onclick=()=>{setPanel();document.getElementById('atlasTimerBtn')?.click();};
 
+    const slideRows=[...document.querySelectorAll('.atlas-slide-row')];
+    const progressRows=slideRows.length?slideRows:[...document.querySelectorAll('.visualcard')];
     function progress(){
-      const d=document.documentElement,max=Math.max(1,d.scrollHeight-innerHeight),p=Math.max(0,Math.min(100,Math.round(scrollY/max*100)));
+      const first=progressRows[0],last=progressRows.at(-1);
+      const start=first?Math.max(0,first.getBoundingClientRect().top+scrollY):0;
+      const end=last?last.getBoundingClientRect().bottom+scrollY:document.documentElement.scrollHeight;
+      const travel=end-innerHeight-start;
+      const p=travel<=0?(scrollY+innerHeight>=end?100:0):Math.max(0,Math.min(100,Math.round((scrollY-start)/travel*100)));
       document.getElementById('atlasGFill').style.height=p+'%';document.getElementById('atlasGPct').textContent=p+'%';
     }
-    addEventListener('scroll',progress,{passive:true});progress();
+    addEventListener('scroll',progress,{passive:true});addEventListener('resize',progress,{passive:true});
+    if(progressRows.length){const observer=new ResizeObserver(progress);progressRows.forEach(row=>observer.observe(row));}
+    progress();
 
     const sketch=document.getElementById('atlasGNSketch'),ctx=sketch.getContext('2d');
     function resetSketchSize(){
@@ -279,11 +287,20 @@
       document.getElementById('atlasGBCount').textContent=String(arr.length);
       document.getElementById('atlasGNCount').textContent=String((await Store.list({kind:'note',lectureKey:lecture.lectureKey})).length);
     }
-    async function renderBoard(){await Notebook.renderList(document.getElementById('atlasGBList'),{kind:'pin',lectureId:lecture.id});}
+    const boardScope=document.getElementById('atlasGBScope');let selectedBoard=lecture.id;
+    function boardFilter(){return selectedBoard?{kind:'pin',lectureId:selectedBoard}:{kind:'pin'};}
+    async function renderBoard(){
+      const pins=await Store.list({kind:'pin'}),saved=new Map([[lecture.id,lecture.title]]);
+      for(const pin of pins)saved.set(pin.lectureId,pin.lectureTitle);
+      boardScope.innerHTML='<option value="">All saved boards</option>'+[...saved].map(([id,title])=>'<option value="'+esc(id)+'">'+esc(title)+(id===lecture.id?' · current lecture':'')+'</option>').join('');
+      if(!saved.has(selectedBoard))selectedBoard='';for(const option of boardScope.options)option.selected=option.value===selectedBoard;
+      await Notebook.renderList(document.getElementById('atlasGBList'),boardFilter());
+    }
+    boardScope.onchange=()=>{selectedBoard=boardScope.value;renderBoard().catch(()=>boardStatus.textContent='Could not load this saved board.');};
     document.getElementById('atlasGBoard').onclick=()=>{if(!board.hidden){closePanel(board);return;}setPanel(board);renderBoard().catch(()=>boardStatus.textContent='The board could not be loaded. Reload to try again.');};
     board.querySelector('[data-close-board]').onclick=()=>closePanel(board);
     document.getElementById('atlasGBCurrent').onclick=()=>togglePin(currentVisual(),document.getElementById('atlasGBCurrent'));
-    document.getElementById('atlasGBAll').onclick=()=>Notebook.open({kind:'pin',lectureKey:lecture.lectureKey,title:lecture.title+' · Board'});
+    document.getElementById('atlasGBAll').onclick=()=>Notebook.open({...boardFilter(),title:selectedBoard?(boardScope.selectedOptions?.[0]?.textContent||'Saved study board'):'All saved study boards'});
     addEventListener('atlas:notebook-changed',()=>{syncPins().catch(()=>{});if(!notes.hidden)renderNotes().catch(()=>{});if(!board.hidden)renderBoard().catch(()=>{});});
     noteStatus.textContent=boardStatus.textContent=storageError;
     syncPins().catch(()=>{});
