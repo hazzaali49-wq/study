@@ -190,3 +190,15 @@ test('a stationary pen loses its speculative tip automatically',async()=>{
  s.c.events.pointermove({...s.event(200),timeStamp:10,getPredictedEvents:()=>[{...s.event(210),timeStamp:18}]});
  assert.equal(s.layers[1].hidden,false);await new Promise(resolve=>setTimeout(resolve,60));assert.equal(s.layers[1].hidden,true);s.ink.stop();
 });
+
+test('coalesced stylus samples paint in pressure-sized batches, retaining all input',()=>{
+ const s=setup(0,true);s.c.events.pointerdown({...s.event(100),timeStamp:1});
+ const batch=Array.from({length:100},(_,i)=>({...s.event(101+i*2),pressure:i<50?.2:.8,timeStamp:i+2}));
+ s.c.events.pointerrawupdate({...s.event(305),pressure:.8,timeStamp:103,getCoalescedEvents:()=>batch});
+ assert.equal(s.history[0].pts.length,102,'no intermediate pen points are lost');
+ assert.equal(s.history[0].pts.at(-1).x,.305,'the latest raw sample is recorded');
+ assert.ok(s.counts().strokesPainted<=6,'drawing 101 samples must not require 101 canvas strokes');
+ s.c.events.pointerup({...s.event(310),type:'pointerup',timeStamp:104});
+ assert.equal(s.history[0].pts.at(-1).x,.31);
+ assert.equal(s.counts().saves,1);
+});
