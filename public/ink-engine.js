@@ -44,7 +44,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  if(canvas.parentElement&&!canvas.parentElement.style.position)canvas.parentElement.style.position='relative';
  canvas.after(live);const preview=live.getContext('2d',{desynchronized:true});
  live.width=live.height=1;
- let active=null,rect=null,pid=null,pointerType='',painted=0,scale=1,lastSample=-Infinity,bounds=null,baseTool=null,clip=null,previewRatio=1,tip=null,tipTimer=null,paintFrame=0;
+ let active=null,rect=null,pid=null,pointerType='',painted=0,scale=1,lastSample=-Infinity,bounds=null,baseTool=null,clip=null,previewRatio=1,tip=null,tipTimer=null,paintFrame=0,lastPaintTime=-Infinity;
  function sync(){
   scale=canvas.width/Math.max(1,canvas.clientWidth);
   if(!active&&canvas.width===1&&canvas.height===1){live.width=live.height=1;clearPrediction();if(tip)tip.width=tip.height=1;}
@@ -62,7 +62,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   const right=Math.min(rect.left+rect.width,viewport.left+viewport.width,screenWidth),bottom=Math.min(rect.top+rect.height,viewport.top+viewport.height,screenHeight);
   const x=Math.max(0,Math.floor((left-rect.left)*canvas.width/Math.max(1,rect.width))),y=Math.max(0,Math.floor((top-rect.top)*canvas.height/Math.max(1,rect.height)));
   clip={x,y,w:Math.max(1,Math.min(canvas.width-x,Math.ceil((right-rect.left)*canvas.width/Math.max(1,rect.width))-x)),h:Math.max(1,Math.min(canvas.height-y,Math.ceil((bottom-rect.top)*canvas.height/Math.max(1,rect.height))-y))};
-  previewRatio=Math.min(1,rect.width/Math.max(1,canvas.width)*Math.min(1.5,root.devicePixelRatio||1),Math.sqrt(750000/(clip.w*clip.h)));
+  previewRatio=Math.min(1,rect.width/Math.max(1,canvas.width)*Math.min(1.5,root.devicePixelRatio||1),Math.sqrt(350000/(clip.w*clip.h)));
   const w=Math.max(1,Math.floor(clip.w*previewRatio)),h=Math.max(1,Math.floor(clip.h*previewRatio));
   if(live.width!==w)live.width=w;if(live.height!==h)live.height=h;
   place(live,clip);transform(preview,live,clip);
@@ -74,15 +74,22 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   const padding=strokeWidth(active)*scale+2;
   for(const p of points){const x=p.x*canvas.width,y=p.y*canvas.height;if(!bounds)bounds={left:x-padding,top:y-padding,right:x+padding,bottom:y+padding};else{bounds.left=Math.min(bounds.left,x-padding);bounds.top=Math.min(bounds.top,y-padding);bounds.right=Math.max(bounds.right,x+padding);bounds.bottom=Math.max(bounds.bottom,y+padding);}}
  }
- // Stylus hardware can deliver hundreds of raw updates a second. Keep all real
- // input points immediately, but submit expensive canvas operations only once
- // per display frame. Mouse drawing stays synchronous.
+ // Make the first pen movement visible immediately, just like a mouse.
+ // Raw pen input can arrive hundreds of times a second. Throttle only the
+ // subsequent canvas work; never make handwriting rely on a delayed frame.
  function cancelPaint(){if(paintFrame){root.cancelAnimationFrame?.(paintFrame);paintFrame=0;}}
  function flushPaint(){cancelPaint();paint();}
- function requestPaint(){
-  if(pointerType!=='pen'||!root.requestAnimationFrame){paint();return;}
+ function requestPaint(e){
+  if(pointerType!=='pen'){paint();return;}
+  const now=Number.isFinite(e?.timeStamp)?e.timeStamp:Date.now();
+  if(lastPaintTime===-Infinity||now-lastPaintTime>=10||!root.requestAnimationFrame){
+   flushPaint();lastPaintTime=now;return;
+  }
   if(paintFrame)return;
-  paintFrame=root.requestAnimationFrame(()=>{paintFrame=0;paint();});
+  paintFrame=root.requestAnimationFrame(()=>{
+   paintFrame=0;if(!active)return;
+   paint();lastPaintTime=now;
+  });
  }
  function crop(){const x=Math.max(0,Math.floor(bounds?.left||0)),y=Math.max(0,Math.floor(bounds?.top||0));return [x,y,Math.max(1,Math.min(canvas.width,Math.ceil(bounds?.right||1))-x),Math.max(1,Math.min(canvas.height,Math.ceil(bounds?.bottom||1))-y)];}
  function clearPreview(){if(bounds)preview.clearRect(...crop());bounds=null;}
@@ -123,13 +130,14 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   drawPart(context,canvas,stroke,points,scale);ctx.save();ctx.globalAlpha=opacityFor(stroke);ctx.drawImage(mask,x,y);ctx.restore();mask.width=mask.height=1;
  }
  function commitSegment(){
-  if(!active)return;clearPrediction();flushPaint();
-  if(active.tool!=='eraser'&&bounds){
-   const [x,y,w,h]=crop();
-   if(x>=clip.x&&y>=clip.y&&x+w<=clip.x+clip.w&&y+h<=clip.y+clip.h){
-    const rx=live.width/clip.w,ry=live.height/clip.h;ctx.save();ctx.globalAlpha=opacityFor(active);ctx.drawImage(live,(x-clip.x)*rx,(y-clip.y)*ry,w*rx,h*ry,x,y,w,h);ctx.restore();
-   }else recordedStroke(active);
-  }
+  if(!active)return;
+  clearPrediction();flushPaint();
+  // Do not copy pixels from the desynchronized preview bitmap. The GPU can
+  // still be compositing that surface when the pen lifts, causing letters to
+  // vanish after the preview is cleared. Replay the actual vector points into
+  // the durable canvas instead; this also keeps snapshots and saved notes
+  // independent of preview timing and clipping.
+  if(active.tool!=='eraser')recordedStroke(active);
   clearPreview();active=null;
  }
  function redraw(){
@@ -139,7 +147,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  }
  function inContact(e){return Number.isFinite(e.buttons)?!!(e.buttons&33)||e.pressure>0:e.pressure>0||(e.type==='pointerdown'&&e.button!==2);}
  function toolFor(e){const eraser=pointerType==='pen'&&(Number.isFinite(e.buttons)?!!(e.buttons&34):e.button===5||e.button===2);return eraser?'eraser':baseTool.tool;}
- function startSegment(e){active={...baseTool,tool:toolFor(e),pts:[point(e)]};painted=0;lastSample=Number.isFinite(e.timeStamp)?e.timeStamp:-Infinity;bounds=null;live.style.opacity=String(opacityFor(active));getStrokes().push(active);paint();}
+ function startSegment(e){active={...baseTool,tool:toolFor(e),pts:[point(e)]};painted=0;lastPaintTime=-Infinity;lastSample=Number.isFinite(e.timeStamp)?e.timeStamp:-Infinity;bounds=null;live.style.opacity=String(opacityFor(active));getStrokes().push(active);paint();}
  function release(){const pointer=pid;pid=null;if(owner?.canvas===canvas)owner=null;try{canvas.releasePointerCapture?.(pointer);}catch{}}
  function discard(){
   if(!active)return;const erased=active.tool==='eraser',strokes=getStrokes(),index=strokes.indexOf(active);if(index>=0)strokes.splice(index,1);
@@ -160,7 +168,9 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   if(timestamp!==null&&timestamp<lastSample)return;
   if(timestamp!==null)lastSample=timestamp;
   const p=point(e),last=active.pts.at(-1),distance=Math.hypot((p.x-last.x)*rect.width,(p.y-last.y)*rect.height);
-  if(distance>(exact?.02:.15))active.pts.push(p);
+  // Subpixel stylus jitter can create thousands of expensive segments.
+  // Keep the latest location and full pressure, but omit imperceptible noise.
+  if(distance>(exact?.20:.50))active.pts.push(p);
  }
  function move(e){
   rememberPen(e);
@@ -170,9 +180,12 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   if(Number.isFinite(e.timeStamp)&&e.timeStamp<lastSample)return;
   clearPrediction();
   if(toolFor(e)!==active.tool){commitSegment();startSegment(e);}
+  const before=active.pts.length;
   let batch=[];try{batch=e.getCoalescedEvents?.()||[];}catch{}
   for(const item of batch)appendPoint(item);
-  appendPoint(e,true);requestPaint();predict(e);
+  appendPoint(e,true);
+  if(active.pts.length>before)requestPaint(e);
+  predict(e);
  }
  function finish(e){
   if(!active||pid!==e.pointerId)return;
