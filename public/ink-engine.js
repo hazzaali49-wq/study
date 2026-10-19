@@ -17,9 +17,22 @@ function drawPart(ctx,canvas,stroke,points,scale){
   ctx.lineWidth=width*scale;ctx.beginPath();ctx.moveTo(points[0].x*canvas.width,points[0].y*canvas.height);
   for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x*canvas.width,points[i].y*canvas.height);
   ctx.stroke();
- }else for(let i=1;i<points.length;i++){
-  ctx.lineWidth=width*scale*(.65+((points[i].p??.5)+(points[i-1].p??.5))*.35);
-  ctx.beginPath();ctx.moveTo(points[i-1].x*canvas.width,points[i-1].y*canvas.height);ctx.lineTo(points[i].x*canvas.width,points[i].y*canvas.height);ctx.stroke();
+ }else{
+  // Tablets can send dozens of coalesced pen samples in a single update.
+  // Merge similarly pressured segments into one path instead of issuing
+  // an expensive canvas stroke for every individual sample.
+  let from=1;
+  while(from<points.length){
+   const lineWidth=width*scale*(.65+((points[from].p??.5)+(points[from-1].p??.5))*.35);
+   ctx.lineWidth=lineWidth;ctx.beginPath();ctx.moveTo(points[from-1].x*canvas.width,points[from-1].y*canvas.height);
+   let next=from;
+   while(next<points.length){
+    const nextWidth=width*scale*(.65+((points[next].p??.5)+(points[next-1].p??.5))*.35);
+    if(next>from&&Math.abs(nextWidth-lineWidth)>Math.max(.18,width*scale*.05))break;
+    ctx.lineTo(points[next].x*canvas.width,points[next].y*canvas.height);next++;
+   }
+   ctx.stroke();from=next;
+  }
  }
  ctx.restore();
 }
@@ -63,7 +76,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  }
  function crop(){const x=Math.max(0,Math.floor(bounds?.left||0)),y=Math.max(0,Math.floor(bounds?.top||0));return [x,y,Math.max(1,Math.min(canvas.width,Math.ceil(bounds?.right||1))-x),Math.max(1,Math.min(canvas.height,Math.ceil(bounds?.bottom||1))-y)];}
  function clearPreview(){if(bounds)preview.clearRect(...crop());bounds=null;}
- function clearPrediction(){if(tipTimer!==null)clearTimeout(tipTimer);tipTimer=null;if(tip){tip.hidden=true;tip.style.display='none';}}
+ function clearPrediction(){if(tipTimer!==null)clearTimeout(tipTimer);tipTimer=null;if(tip&&!tip.hidden){tip.hidden=true;tip.style.display='none';}}
  function predict(e){
   if(pointerType!=='pen'||active?.tool!=='pen'||!Number.isFinite(e.timeStamp))return;
   let predicted=[];try{predicted=e.getPredictedEvents?.()||[];}catch{}
