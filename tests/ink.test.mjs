@@ -264,3 +264,32 @@ test('the pen can render immediately when browser animation callbacks are suspen
  s.c.events.pointerup({...s.event(250),timeStamp:25,type:'pointerup'});
  assert.equal(s.history[0].pts.at(-1).x,.25);
 });
+
+test('hardware raw stylus events never replay expensive coalesced history',()=>{
+ const s=setup(0,true);
+ let expensiveCalls=0;
+ s.c.events.pointerdown({...s.event(100),type:'pointerdown',timeStamp:1});
+ for(let i=0;i<90;i++){
+  s.c.events.pointerrawupdate({...s.event(110+i),type:'pointerrawupdate',timeStamp:2+i,
+   getCoalescedEvents:()=>{expensiveCalls++;return Array.from({length:100},()=>s.event(110+i));}});
+ }
+ assert.equal(expensiveCalls,0,'the raw stream already supplies the hardware samples');
+ assert.equal(s.history[0].pts.at(-1).x,.199);
+ s.c.events.pointerup({...s.event(205),type:'pointerup',timeStamp:95});
+ assert.equal(s.history[0].pts.at(-1).x,.205);
+});
+test('rapid consecutive words remain in ink history after the temporary layer clears',()=>{
+ const s=setup(0,true);
+ for(let i=0;i<30;i++){
+  const x=100+i*5,time=i*4+1;
+  s.c.events.pointerdown({...s.event(x),type:'pointerdown',timeStamp:time});
+  s.c.events.pointerrawupdate({...s.event(x+3),type:'pointerrawupdate',timeStamp:time+1});
+  s.c.events.pointerup({...s.event(x+4),type:'pointerup',timeStamp:time+2});
+ }
+ assert.equal(s.history.length,30);
+ assert.equal(s.counts().saves,30);
+ assert.equal(s.copies.length,0,'no GPU canvas readback is allowed to lose earlier words');
+ const before=s.c.operations.filter(op=>op[0]==='line').length;
+ s.ink.redraw();
+ assert.equal(s.c.operations.filter(op=>op[0]==='line').length,before+30,'redraw restores all thirty strokes');
+});
