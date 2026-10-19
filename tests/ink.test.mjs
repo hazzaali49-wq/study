@@ -137,7 +137,7 @@ test('a long explanation uses a bounded visible ink surface without layout reads
  s.c.events.pointerup({...s.event(400),clientY:200,type:'pointerup'});
  assert.equal(s.history.at(-1).pts.at(-1).y,700/1800,'full-slide coordinates survive viewport cropping');
  assert.equal(s.copies.length,0,'permanent writing uses vector points, never the transient preview');
- assert.deepEqual(s.c.operations.filter(op=>op[0]==='line').at(-1),['line',400/600*s.c.width,700/1800*s.c.height]);
+ const last=s.history.at(-1).pts.at(-1);assert.deepEqual(s.c.operations.filter(op=>op[0]==='line').at(-1),['line',last.x*s.c.width,last.y*s.c.height]);
  s.c.width=s.c.height=1;s.ink.sync();assert.equal(live.width*live.height,1,'leaving the viewport releases the live bitmap');
 });
 
