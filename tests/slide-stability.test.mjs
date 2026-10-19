@@ -21,7 +21,7 @@ test('drawing overlays stay outside slide layout before stylesheets load',async(
  for(let i=0;i<20;i++)for(const observer of observers)observer.cb([{target:observer.el}]);
  assert.equal(zone.clientHeight,450,'repeated resizes must not enlarge the source slide');
  for(const canvas of zone.querySelectorAll('canvas')){
-  assert.equal(canvas.height,450);assert.equal(canvas.style.position,'absolute');
+  assert.equal(canvas.height,canvas.classList.contains('atlas-gpage-live')?1:450);assert.equal(canvas.style.position,'absolute');
   assert.equal(canvas.style.width,'100%');assert.equal(canvas.style.height,'100%');
  }
  vm.runInContext(read('generated-tools.js'),app.context);await flush();

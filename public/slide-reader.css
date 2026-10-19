@@ -34,7 +34,7 @@ body.atlas-slide-mode>*:not(#atlasSlideReader):not(#atlasGenDock):not(#atlasDraw
 #atlasSlideReader .atlas-pan-toggle[aria-pressed=true]{background:var(--atlas-mod,#a784ff);color:#07101d}
 #atlasSlideReader .atlas-zoom-viewport{max-height:750px;max-height:min(76vh,750px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;touch-action:pan-x pan-y;position:relative;background:#080e18}
 #atlasSlideReader .atlas-zoom-space{position:relative;min-width:100%}
-#atlasSlideReader .atlas-zoom-content{position:relative;transform-origin:0 0;width:100%;will-change:transform}
+#atlasSlideReader .atlas-zoom-content{position:relative;transform-origin:0 0;width:100%}
 #atlasSlideReader .atlas-source-stage{position:relative;aspect-ratio:4/3;background:#eef0f4;width:100%;isolation:isolate}
 #atlasSlideReader .atlas-slide-bitmap{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
 #atlasSlideReader .atlas-source-loading{position:absolute;inset:0;display:grid;place-items:center;color:#788397;font-size:12px;pointer-events:none}
@@ -290,6 +290,9 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
 #atlasSlideReader .atlas-slide-bitmap{
  transform:none!important;
 }
+
+/* Keep the pen's moving layer out of expensive backdrop compositing. */
+body.atlas-gdrawing #atlasSlideReader .atlas-reader-nav{backdrop-filter:none;-webkit-backdrop-filter:none}
 
 /* v10: put the actual exam question in a full-width, always-visible strip. */
 #atlasSlideReader .atlas-midterm-question-banner{
