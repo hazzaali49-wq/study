@@ -25,10 +25,10 @@
     // These tools are also loaded by minimal lecture pages with no tool styles.
     for(const file of ['generated-tools','study-tools']){
       if(!document.querySelector('link[href*="'+file+'.css"]')){
-        const css=document.createElement('link');css.rel='stylesheet';css.href='/'+file+'.css?v=11';document.head.appendChild(css);
+        const css=document.createElement('link');css.rel='stylesheet';css.href='/'+file+'.css?v=20';document.head.appendChild(css);
       }
     }
-    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=3';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
+    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=4';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
     if(document.getElementById('atlasGenDock')) return;
     for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=17';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
     if(!document.querySelector('link[href*="study-notebook.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/study-notebook.css?v=1';document.head.appendChild(css);}
@@ -44,7 +44,7 @@
       <button class="atlas-gbtn" id="atlasGHome" title="Return to the module menu"><span class="atlas-gicon">←</span><span>Menu</span></button>
       <button class="atlas-gbtn" id="atlasGFocus" aria-pressed="false" title="Hide navigation and open panels"><span class="atlas-gicon">▣</span><span>Hide panels</span></button>
       <div class="atlas-gprogress"><i id="atlasGFill"></i><b id="atlasGPct">0%</b></div>
-      <button class="atlas-gbtn" id="atlasGDraw"><span class="atlas-gicon">✎</span><span>Draw</span></button>
+      <button class="atlas-gbtn" id="atlasGDraw" aria-pressed="false" aria-controls="atlasDrawBar"><span class="atlas-gicon">✎</span><span>Draw</span></button>
       <div class="atlas-gzoom"><button id="atlasGZm">−</button><span id="atlasGZ">100%</span><button id="atlasGZp">+</button></div>
       <button class="atlas-gbtn" id="atlasGBoard"><span class="atlas-gicon">✦</span><span>Board <b id="atlasGBCount"></b></span></button>
       <button class="atlas-gbtn" id="atlasGNote"><span class="atlas-gicon">＋</span><span>Notes <b id="atlasGNCount"></b></span></button>
@@ -56,7 +56,7 @@
     const tools=document.createElement('div');
     tools.id='atlasGenTools'; tools.hidden=true;
     tools.innerHTML=`
-      <div class="atlas-panel-head"><div class="atlas-gt-title">DRAWING TOOLS</div><button data-close-tools aria-label="Close drawing tools">×</button></div>
+      <div class="atlas-panel-head"><div class="atlas-gt-title">COLOUR & SIZE</div><button data-close-tools aria-label="Close colour and size settings">×</button></div>
       <div class="atlas-gt-row">
         <button class="atlas-gt-tool active" data-tool="pen">Pen</button>
         <button class="atlas-gt-tool" data-tool="highlighter">Highlight</button>
@@ -65,9 +65,14 @@
       <div class="atlas-gt-colors">
         ${['#ff4f70','#ffd04a','#61e0b6','#6aa8ff','#a785ff','#ffffff'].map((c,i)=>`<button class="atlas-gt-swatch ${i===0?'active':''}" data-color="${c}" style="--c:${c}"></button>`).join('')}
       </div>
-      <label class="atlas-gt-size">Size <input id="atlasGTSize" type="range" min="2" max="24" value="6"></label>
+      <label class="atlas-gt-size">Size <input id="atlasGTSize" type="range" min="2" max="24" value="3"><output id="atlasGTSizeValue">3</output></label>
+      <label class="atlas-gt-size" id="atlasGTOpacityLabel" hidden>Opacity <input id="atlasGTOpacity" type="range" min="12" max="30" value="22"><output id="atlasGTOpacityValue">22%</output></label>
       <div class="atlas-gt-actions"><button id="atlasGTUndo">Undo</button><button id="atlasGTClear">Clear area</button></div><small id="atlasGTStatus"></small>`;
     document.body.appendChild(tools);
+    const drawBar=document.createElement('div');drawBar.id='atlasDrawBar';drawBar.hidden=true;
+    drawBar.setAttribute('role','toolbar');drawBar.setAttribute('aria-label','Drawing controls');
+    drawBar.innerHTML='<button data-tool="pen" aria-pressed="true" title="Pen">✎ <span>Pen</span></button><button data-tool="highlighter" aria-pressed="false" title="Transparent highlighter">▰ <span>Highlight</span></button><button data-tool="eraser" aria-pressed="false" title="Eraser">▱ <span>Eraser</span></button><button id="atlasDrawStyle" title="Change colour, width or opacity" aria-label="Colour and size" aria-expanded="false" aria-controls="atlasGenTools"><i></i><span>Style</span></button><button id="atlasDrawUndo" title="Undo last stroke">↶ <span>Undo</span></button><button id="atlasDrawDone" title="Stop drawing (Escape)">✓ <span>Done</span></button>';
+    document.body.appendChild(drawBar);
 
     const notes=document.createElement('div');
     notes.id='atlasGenNotes'; notes.hidden=true;
@@ -88,7 +93,8 @@
     board.innerHTML=`<div class="atlas-panel-head"><div><h3>Study board</h3><small>Full slides, always saved with their source</small></div><button data-close-board aria-label="Close study board">×</button></div><div class="atlas-notebook-shortcuts"><button id="atlasGBCurrent">Pin current slide</button><button id="atlasGBAll">Open full board</button></div><label class="atlas-notebook-shortcuts">Saved boards <select id="atlasGBScope" aria-label="Choose a saved study board"></select></label><span id="atlasGBStatus" role="status" aria-live="polite"></span><div id="atlasGBList"></div>`;
     document.body.appendChild(board);
 
-    let zoom=1, draw=false, tool='pen', color='#ff4f70', size=6, activeZone=null;
+    let zoom=1, draw=false, tool='pen', color='#ff4f70', size=3, opacity=1, activeZone=null;
+    const toolSettings={pen:{color:'#ff4f70',size:3,opacity:1},highlighter:{color:'#ffd04a',size:7,opacity:.22},eraser:{color:'#ffffff',size:10,opacity:1}};
     const zones=[], strokeMap=new Map();
 
     function zoneId(el,i){
@@ -119,7 +125,8 @@
       const id=el.dataset.inkId||zoneId(el,i);el.classList.add('atlas-gdraw-zone');el.dataset.atlasGDrawZone=id;
       const c=document.createElement('canvas');c.className='atlas-gpage-canvas';c.dataset.zone=id;c.width=1;c.height=1;el.appendChild(c);
       const z={el,c,id,near:false};zones.push(z);strokeMap.set(id,[]);
-      z.ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>strokeMap.get(id)||[],isEnabled:()=>draw,getTool:()=>{activeZone=z;return {tool,color,size};},onChange:scheduleSave});
+      z.ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>strokeMap.get(id)||[],isEnabled:()=>draw,getTool:()=>{activeZone=z;return {tool,color,size,opacity};},onChange:scheduleSave});
+      c.addEventListener('pointerdown',()=>{if(draw&&!tools.hidden)setPanel();});
       new ResizeObserver(()=>{if(!z.ink.isDrawing())canvasSize(z);}).observe(el);inkObserver.observe(el);
     }
     const main=document.querySelector('main'),reader=document.getElementById('atlasSlideReader');
@@ -163,27 +170,41 @@
     function setPanel(panel=null){
       for(const [el,id] of panelButtons){el.hidden=el!==panel;const button=document.getElementById(id);button.classList.toggle('active',el===panel);button.setAttribute('aria-expanded',String(el===panel));button.setAttribute('aria-controls',el.id);}
       document.querySelector('.atlas-reader-ai,.ai')?.setAttribute('hidden','');
-      if(panel&&panel!==tools&&draw){draw=false;document.body.classList.remove('atlas-gdrawing');document.getElementById('atlasGDraw').classList.remove('active');}
+      document.getElementById('atlasDrawStyle').setAttribute('aria-expanded',String(panel===tools));
+      if(panel&&panel!==tools&&draw)setDrawing(false);
     }
     function closePanel(panel){setPanel();document.getElementById(panelButtons.get(panel))?.focus();}
     tools.querySelector('[data-close-tools]').onclick=()=>closePanel(tools);
     addEventListener('atlas:close-panels',()=>setPanel());
-    addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.target.closest('#atlasNotebook')){const open=[...panelButtons.keys()].find(p=>!p.hidden);if(open){e.stopPropagation();closePanel(open);}}});
+    addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.target.closest('#atlasNotebook')){const open=[...panelButtons.keys()].find(p=>!p.hidden);if(open){e.stopPropagation();closePanel(open);}else if(draw){e.stopPropagation();setDrawing(false);}}});
     document.getElementById('atlasGHome').onclick=()=>Notebook.home(lecture.moduleId);
-    function toggleDraw(){
-      draw=!draw;document.body.classList.toggle('atlas-gdrawing',draw);
-      document.getElementById('atlasGDraw').classList.toggle('active',draw);
-      if(draw)setPanel(tools);else if(!tools.hidden)setPanel();
+    function setDrawing(enabled){
+      draw=enabled;document.body.classList.toggle('atlas-gdrawing',draw);drawBar.hidden=!draw;
+      const button=document.getElementById('atlasGDraw');button.classList.toggle('active',draw);button.setAttribute('aria-pressed',String(draw));
+      button.lastElementChild.textContent=draw?'Done':'Draw';
+      if(!draw&&!tools.hidden)setPanel();
+    }
+    function toggleDraw(){if(!draw){setPanel();setDrawing(true);}else setDrawing(false);}
+    function refreshTool(){
+      for(const host of [tools,drawBar])host.querySelectorAll('[data-tool]').forEach(b=>{const selected=b.dataset.tool===tool;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
+      tools.querySelectorAll('[data-color]').forEach(b=>b.classList.toggle('active',b.dataset.color===color));
+      const input=document.getElementById('atlasGTSize');input.max=tool==='highlighter'?'12':'24';input.value=size;document.getElementById('atlasGTSizeValue').textContent=size;
+      document.getElementById('atlasGTOpacityLabel').hidden=tool!=='highlighter';document.getElementById('atlasGTOpacity').value=Math.round(opacity*100);document.getElementById('atlasGTOpacityValue').textContent=Math.round(opacity*100)+'%';
+      drawBar.style.setProperty('--atlas-ink-color',color);
     }
     document.getElementById('atlasGDraw').onclick=toggleDraw;
-    document.getElementById('atlasGTools').onclick=()=>setPanel(tools.hidden?tools:null);
-    tools.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{
-      tool=b.dataset.tool;tools.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b));if(!draw)toggleDraw();
+    document.getElementById('atlasDrawDone').onclick=()=>setDrawing(false);
+    document.getElementById('atlasGTools').onclick=document.getElementById('atlasDrawStyle').onclick=()=>setPanel(tools.hidden?tools:null);
+    for(const host of [tools,drawBar])host.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{
+      tool=b.dataset.tool;({color,size,opacity}=toolSettings[tool]);refreshTool();setPanel();setDrawing(true);
     });
-    tools.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{
-      color=b.dataset.color;tools.querySelectorAll('[data-color]').forEach(x=>x.classList.toggle('active',x===b));
-    });
-    document.getElementById('atlasGTSize').oninput=e=>size=Number(e.target.value);
+    tools.querySelectorAll('[data-color]').forEach(b=>{b.setAttribute('aria-label','Colour '+b.dataset.color);b.onclick=()=>{
+      color=b.dataset.color;toolSettings[tool].color=color;refreshTool();
+    };});
+    document.getElementById('atlasGTSize').oninput=e=>{size=Number(e.target.value);toolSettings[tool].size=size;document.getElementById('atlasGTSizeValue').textContent=size;};
+    document.getElementById('atlasGTOpacity').oninput=e=>{opacity=Number(e.target.value)/100;toolSettings[tool].opacity=opacity;document.getElementById('atlasGTOpacityValue').textContent=Math.round(opacity*100)+'%';};
+    document.getElementById('atlasDrawUndo').onclick=()=>document.getElementById('atlasGTUndo').click();
+    refreshTool();
     document.getElementById('atlasGTUndo').onclick=()=>{
       const z=visibleZone();if(!z)return;strokeMap.get(z.id)?.pop();renderZone(z);saveInk();
     };

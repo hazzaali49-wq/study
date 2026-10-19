@@ -1,5 +1,7 @@
 (function(root){
 'use strict';
+// Keep marker opacity consistent during drawing, replay and note snapshots.
+function opacityFor(stroke){return stroke.tool==='highlighter'?Math.max(.12,Math.min(.30,Number(stroke.opacity)||.22)):1;}
 // Completed ink and the active stroke have separate layers. Pointer movement never replays history.
 function drawPart(ctx,canvas,stroke,points,scale){
  if(!points.length)return;
@@ -31,7 +33,7 @@ function create({canvas,getStrokes,onChange=()=>{},isEnabled=()=>true,getTool=()
   sync();ctx.clearRect(0,0,canvas.width,canvas.height);preview.clearRect(0,0,live.width,live.height);
   for(const s of getStrokes()){
    const points=s.pts||s.points||[];if(s.tool==='highlighter'){
-    preview.clearRect(0,0,live.width,live.height);drawPart(preview,canvas,s,points,scale);ctx.save();ctx.globalAlpha=.3;ctx.drawImage(live,0,0);ctx.restore();
+    preview.clearRect(0,0,live.width,live.height);drawPart(preview,canvas,s,points,scale);ctx.save();ctx.globalAlpha=opacityFor(s);ctx.drawImage(live,0,0);ctx.restore();
    }else drawPart(ctx,canvas,s,points,scale);
   }
   preview.clearRect(0,0,live.width,live.height);
@@ -41,7 +43,7 @@ function create({canvas,getStrokes,onChange=()=>{},isEnabled=()=>true,getTool=()
   if(!isEnabled()||active||e.button>0&&e.pointerType!=='pen'||e.pointerType==='touch'&&Date.now()-lastPen<900||canvas.closest('.atlas-hand-mode'))return;
   e.preventDefault();e.stopPropagation();rect=canvas.getBoundingClientRect();sync();pid=e.pointerId;
   active={...getTool(),pts:[point(e)]};if(e.pointerType==='pen'&&(e.button===5||e.button===2||(e.buttons&32)||(e.buttons&2)))active.tool='eraser';
-  live.style.opacity=active.tool==='highlighter'?'.3':'1';painted=0;getStrokes().push(active);canvas.setPointerCapture?.(pid);paint();
+  live.style.opacity=String(opacityFor(active));painted=0;getStrokes().push(active);canvas.setPointerCapture?.(pid);paint();
  });
  function appendPoint(e,exact=false){
   const p=point(e),last=active.pts.at(-1),distance=Math.hypot((p.x-last.x)*rect.width,(p.y-last.y)*rect.height);
@@ -59,7 +61,7 @@ function create({canvas,getStrokes,onChange=()=>{},isEnabled=()=>true,getTool=()
  function finish(e){
   if(!active||pid!==e.pointerId)return;
   if(e.type==='pointerup'&&Number.isFinite(e.clientX)&&Number.isFinite(e.clientY))appendPoint(e,true);paint();
-  if(active.tool!=='eraser'){ctx.save();ctx.globalAlpha=active.tool==='highlighter'?.3:1;ctx.drawImage(live,0,0);ctx.restore();}
+  if(active.tool!=='eraser'){ctx.save();ctx.globalAlpha=opacityFor(active);ctx.drawImage(live,0,0);ctx.restore();}
   preview.clearRect(0,0,live.width,live.height);active=null;const pointer=pid;pid=null;try{canvas.releasePointerCapture?.(pointer);}catch{}onChange();
  }
  canvas.addEventListener('contextmenu',e=>{if(isEnabled())e.preventDefault();});

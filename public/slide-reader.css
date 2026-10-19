@@ -1,6 +1,6 @@
 /* One layout for hand-built, stored generated and local PDF lectures. */
 body.atlas-slide-mode{background:#090e19!important;color:#e6ecf7!important;color-scheme:dark;font:15px/1.6 system-ui,sans-serif!important;margin:0!important}
-body.atlas-slide-mode>*:not(#atlasSlideReader):not(#atlasGenDock):not(#atlasGenTools):not(#atlasGenNotes):not(#atlasGenBoard):not(#atlasTimerModal):not(#atlasNotebook):not(script):not(style):not(link){display:none!important}
+body.atlas-slide-mode>*:not(#atlasSlideReader):not(#atlasGenDock):not(#atlasDrawBar):not(#atlasGenTools):not(#atlasGenNotes):not(#atlasGenBoard):not(#atlasTimerModal):not(#atlasNotebook):not(script):not(style):not(link){display:none!important}
 #atlasSlideReader{--reader-line:#2a3550;--reader-muted:#9eabc2;width:100%;min-height:100vh;box-sizing:border-box;padding:20px 102px 70px 24px}
 #atlasSlideReader *{box-sizing:border-box}#atlasSlideReader [hidden]{display:none!important}
 #atlasSlideReader button,#atlasSlideReader input,#atlasSlideReader select{font:inherit;color:inherit}
@@ -78,7 +78,7 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
 @media(max-width:1050px){#atlasSlideReader{padding-left:14px}.atlas-reader-hint{display:none}#atlasSlideReader .atlas-reader-head{display:block}#atlasSlideReader .atlas-reader-links{margin-top:12px}}
 @media(max-width:760px){#atlasSlideReader{padding:12px 78px 50px 8px}#atlasSlideReader .atlas-pair{grid-template-columns:1fr}#atlasSlideReader .atlas-pane+.atlas-pane{border-left:0;border-top:1px solid var(--reader-line)}#atlasSlideReader .atlas-reader-nav{flex-wrap:wrap;top:5px;padding:8px}#atlasSlideReader .atlas-reader-nav select{flex:1;max-width:100%;margin-left:0}#atlasSlideReader .atlas-row-head{padding:10px;align-items:start}#atlasSlideReader .atlas-teaching-copy{padding:15px}#atlasSlideReader .atlas-reader-ai{right:75px;top:12px;width:calc(100vw - 87px)}#atlasSlideReader .atlas-zoom-viewport{max-height:65vh}#atlasSlideReader .atlas-origin-badge{font-size:9px}}
 @media(prefers-reduced-motion:reduce){#atlasSlideReader{scroll-behavior:auto}}
-@media print{body.atlas-slide-mode #atlasGenDock,body.atlas-slide-mode #atlasGenTools,#atlasSlideReader .atlas-reader-nav,#atlasSlideReader .atlas-reader-ai,#atlasSlideReader .atlas-pane-toolbar{display:none!important}#atlasSlideReader{padding:0}#atlasSlideReader .atlas-slide-row{break-inside:avoid}#atlasSlideReader .atlas-zoom-viewport{max-height:none;overflow:visible}}
+@media print{body.atlas-slide-mode #atlasGenDock,body.atlas-slide-mode #atlasGenTools,body.atlas-slide-mode #atlasDrawBar,#atlasSlideReader .atlas-reader-nav,#atlasSlideReader .atlas-reader-ai,#atlasSlideReader .atlas-pane-toolbar{display:none!important}#atlasSlideReader{padding:0}#atlasSlideReader .atlas-slide-row{break-inside:avoid}#atlasSlideReader .atlas-zoom-viewport{max-height:none;overflow:visible}}
 
 #atlasSlideReader .atlas-pane{padding:0!important}
 #atlasSlideReader .atlas-slide-bitmap{position:absolute;inset:0}
@@ -364,3 +364,4 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
  #atlasSlideReader .atlas-midterm-banner-item{grid-template-columns:1fr}
  #atlasSlideReader .atlas-midterm-banner-item p,#atlasSlideReader .atlas-midterm-banner-item small{grid-column:1}
 }
+

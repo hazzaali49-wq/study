@@ -2,17 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-function setup(historyCount,raw=false){
- let strokesPainted=0,clears=0,saves=0,frames=[];
- const context={save(){},restore(){},beginPath(){},arc(){},fill(){strokesPainted++;},moveTo(){},lineTo(){},stroke(){strokesPainted++;},clearRect(){clears++;},drawImage(){}};
- function canvas(){const events={};return {width:1000,height:500,clientWidth:1000,style:{},after(){},getContext:()=>context,getBoundingClientRect:()=>({left:0,top:0,width:1000,height:500}),addEventListener:(n,f)=>events[n]=f,closest:()=>null,setPointerCapture(){},releasePointerCapture(){},events};}
+function setup(historyCount,raw=false,getTool){
+ let strokesPainted=0,clears=0,saves=0,frames=[];const compositeAlphas=[],layers=[],stack=[];
+ const context={globalAlpha:1,save(){stack.push(this.globalAlpha);},restore(){this.globalAlpha=stack.pop();},beginPath(){},arc(){},fill(){strokesPainted++;},moveTo(){},lineTo(){},stroke(){strokesPainted++;},clearRect(){clears++;},drawImage(){compositeAlphas.push(this.globalAlpha);}};
+ function canvas(){const events={};return {width:1000,height:500,clientWidth:1000,style:{},after(layer){layers.push(layer);},getContext:()=>context,getBoundingClientRect:()=>({left:0,top:0,width:1000,height:500}),addEventListener:(n,f)=>events[n]=f,closest:()=>null,setPointerCapture(){},releasePointerCapture(){},events};}
  const c=canvas(),history=Array.from({length:historyCount},()=>({tool:'pen',size:6,color:'#f00',pts:[{x:.1,y:.1},{x:.2,y:.2}]}));
  const window={requestAnimationFrame:f=>(frames.push(f),frames.length),cancelAnimationFrame(){}};
  if(raw)window.onpointerrawupdate=null;
  const sandbox={window,document:{createElement:()=>canvas()},setTimeout,clearTimeout,Date};vm.runInNewContext(fs.readFileSync(new URL('../public/ink-engine.js',import.meta.url),'utf8'),sandbox);
- const ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>history,onChange:()=>saves++});
+ const ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>history,onChange:()=>saves++,...(getTool?{getTool}:{} )});
  const event=x=>({pointerId:1,pointerType:'pen',button:0,pressure:.5,clientX:x,clientY:100,preventDefault(){},stopPropagation(){}});
- return {c,ink,event,history,paint:()=>{const work=frames;frames=[];work.forEach(f=>f());},counts:()=>({strokesPainted,clears,saves})};
+ return {c,ink,event,history,compositeAlphas,layers,paint:()=>{const work=frames;frames=[];work.forEach(f=>f());},counts:()=>({strokesPainted,clears,saves})};
 }
 test('moving the pointer paints the new segments, independent of saved stroke count',()=>{
  const empty=setup(0),full=setup(500);
@@ -43,4 +43,20 @@ test('raw pen updates paint immediately and do not also subscribe to duplicate m
  const s=setup(0,true);assert.equal(s.c.events.pointermove,undefined);
  s.c.events.pointerdown(s.event(100));s.c.events.pointerrawupdate(s.event(300));
  assert.equal(s.history[0].pts.at(-1).x,.3);assert.equal(s.counts().strokesPainted,2);
+});
+
+test('highlighter keeps the same translucent opacity while moving, after lift and on replay',()=>{
+ const s=setup(0,false,()=>({tool:'highlighter',color:'#ffd04a',size:7,opacity:.22}));
+ s.c.events.pointerdown(s.event(100));
+ for(let x=101;x<=150;x++)s.c.events.pointermove(s.event(x));
+ assert.equal(s.layers[0].style.opacity,'0.22');
+ assert.deepEqual(s.compositeAlphas,[],'partial segments stay on one mask instead of accumulating opacity');
+ s.c.events.pointerup({...s.event(150),type:'pointerup'});
+ assert.deepEqual(s.compositeAlphas,[.22]);
+ s.ink.redraw();assert.deepEqual(s.compositeAlphas,[.22,.22]);
+ assert.equal(s.history[0].opacity,.22);
+});
+test('old highlighter strokes use a readable default and excessive saved opacity is capped',()=>{
+ const s=setup(0);s.history.push({tool:'highlighter',size:6,color:'#ffd04a',pts:[{x:.1,y:.2}]},{tool:'highlighter',size:6,opacity:1,pts:[{x:.2,y:.2}]});
+ s.ink.redraw();assert.deepEqual(s.compositeAlphas,[.22,.30]);
 });
