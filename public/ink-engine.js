@@ -36,7 +36,7 @@ function drawPart(ctx,canvas,stroke,points,scale){
  }
  ctx.restore();
 }
-function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnabled=()=>true,getInputMode=()=> 'auto',getTool=()=>({tool:'pen',size:3,color:'#ff4f70'})}){
+function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnabled=()=>true,getInputMode=()=> 'auto',getTool=()=>({tool:'pen',size:3,color:'#ff4f70'}),usePrediction=false}){
  const ctx=canvas.getContext('2d',{desynchronized:true}),live=document.createElement('canvas');live.className='atlas-gpage-canvas atlas-gpage-live';live.style.pointerEvents='none';
  // Overlay geometry never depends on a stylesheet arriving first.
  for(const layer of [canvas,live])Object.assign(layer.style,{position:'absolute',inset:'0',width:'100%',height:'100%'});
@@ -44,7 +44,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  if(canvas.parentElement&&!canvas.parentElement.style.position)canvas.parentElement.style.position='relative';
  canvas.after(live);const preview=live.getContext('2d',{desynchronized:true});
  live.width=live.height=1;
- let active=null,rect=null,pid=null,pointerType='',painted=0,scale=1,lastSample=-Infinity,bounds=null,baseTool=null,clip=null,previewRatio=1,tip=null,tipTimer=null;
+ let active=null,rect=null,pid=null,pointerType='',painted=0,scale=1,lastSample=-Infinity,bounds=null,baseTool=null,clip=null,previewRatio=1,tip=null,tipTimer=null,paintFrame=0;
  function sync(){
   scale=canvas.width/Math.max(1,canvas.clientWidth);
   if(!active&&canvas.width===1&&canvas.height===1){live.width=live.height=1;clearPrediction();if(tip)tip.width=tip.height=1;}
@@ -74,11 +74,21 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   const padding=strokeWidth(active)*scale+2;
   for(const p of points){const x=p.x*canvas.width,y=p.y*canvas.height;if(!bounds)bounds={left:x-padding,top:y-padding,right:x+padding,bottom:y+padding};else{bounds.left=Math.min(bounds.left,x-padding);bounds.top=Math.min(bounds.top,y-padding);bounds.right=Math.max(bounds.right,x+padding);bounds.bottom=Math.max(bounds.bottom,y+padding);}}
  }
+ // Stylus hardware can deliver hundreds of raw updates a second. Keep all real
+ // input points immediately, but submit expensive canvas operations only once
+ // per display frame. Mouse drawing stays synchronous.
+ function cancelPaint(){if(paintFrame){root.cancelAnimationFrame?.(paintFrame);paintFrame=0;}}
+ function flushPaint(){cancelPaint();paint();}
+ function requestPaint(){
+  if(pointerType!=='pen'||!root.requestAnimationFrame){paint();return;}
+  if(paintFrame)return;
+  paintFrame=root.requestAnimationFrame(()=>{paintFrame=0;paint();});
+ }
  function crop(){const x=Math.max(0,Math.floor(bounds?.left||0)),y=Math.max(0,Math.floor(bounds?.top||0));return [x,y,Math.max(1,Math.min(canvas.width,Math.ceil(bounds?.right||1))-x),Math.max(1,Math.min(canvas.height,Math.ceil(bounds?.bottom||1))-y)];}
  function clearPreview(){if(bounds)preview.clearRect(...crop());bounds=null;}
  function clearPrediction(){if(tipTimer!==null)clearTimeout(tipTimer);tipTimer=null;if(tip&&!tip.hidden){tip.hidden=true;tip.style.display='none';}}
  function predict(e){
-  if(pointerType!=='pen'||active?.tool!=='pen'||!Number.isFinite(e.timeStamp))return;
+  if(!usePrediction||pointerType!=='pen'||active?.tool!=='pen'||!Number.isFinite(e.timeStamp))return;
   let predicted=[];try{predicted=e.getPredictedEvents?.()||[];}catch{}
   const last=active.pts.at(-1),points=[last];let timestamp=e.timeStamp;
   for(const event of predicted){
@@ -113,7 +123,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   drawPart(context,canvas,stroke,points,scale);ctx.save();ctx.globalAlpha=opacityFor(stroke);ctx.drawImage(mask,x,y);ctx.restore();mask.width=mask.height=1;
  }
  function commitSegment(){
-  if(!active)return;clearPrediction();paint();
+  if(!active)return;clearPrediction();flushPaint();
   if(active.tool!=='eraser'&&bounds){
    const [x,y,w,h]=crop();
    if(x>=clip.x&&y>=clip.y&&x+w<=clip.x+clip.w&&y+h<=clip.y+clip.h){
@@ -133,7 +143,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  function release(){const pointer=pid;pid=null;if(owner?.canvas===canvas)owner=null;try{canvas.releasePointerCapture?.(pointer);}catch{}}
  function discard(){
   if(!active)return;const erased=active.tool==='eraser',strokes=getStrokes(),index=strokes.indexOf(active);if(index>=0)strokes.splice(index,1);
-  clearPrediction();clearPreview();active=null;release();if(erased)redraw();
+  cancelPaint();clearPrediction();clearPreview();active=null;release();if(erased)redraw();
  }
  function start(e){
   rememberPen(e);if(!isEnabled()||canvas.closest('.atlas-hand-mode'))return;
@@ -150,7 +160,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   if(timestamp!==null&&timestamp<lastSample)return;
   if(timestamp!==null)lastSample=timestamp;
   const p=point(e),last=active.pts.at(-1),distance=Math.hypot((p.x-last.x)*rect.width,(p.y-last.y)*rect.height);
-  if(distance>(exact?0:.15))active.pts.push(p);
+  if(distance>(exact?.02:.15))active.pts.push(p);
  }
  function move(e){
   rememberPen(e);
@@ -162,7 +172,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   if(toolFor(e)!==active.tool){commitSegment();startSegment(e);}
   let batch=[];try{batch=e.getCoalescedEvents?.()||[];}catch{}
   for(const item of batch)appendPoint(item);
-  appendPoint(e,true);paint();predict(e);
+  appendPoint(e,true);requestPaint();predict(e);
  }
  function finish(e){
   if(!active||pid!==e.pointerId)return;
