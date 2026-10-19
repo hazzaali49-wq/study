@@ -121,7 +121,7 @@ function setupZoom(pane){
  }
  pane.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>zoom(scale*Math.pow(1.15,Number(b.dataset.zoom))));pane.querySelector('[data-fit]').onclick=()=>{zoom(1);viewport.scrollTo(0,0);};
  const pan=pane.querySelector('.atlas-pan-toggle');pan.onclick=()=>{hand=!hand;pan.setAttribute('aria-pressed',String(hand));viewport.style.cursor=hand?'grab':'';viewport.style.touchAction=hand?'none':'pan-x pan-y';viewport.classList.toggle('atlas-hand-mode',hand);};
- viewport.addEventListener('wheel',e=>{state.activePane=pane;if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();zoom(scale*Math.exp(-e.deltaY*.008),e.clientX,e.clientY);},{passive:false});
+ viewport.addEventListener('wheel',e=>{state.activePane=pane;if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();if(window.StudyAtlasInk?.isDrawing?.())return;zoom(scale*Math.exp(-e.deltaY*.008),e.clientX,e.clientY);},{passive:false});
  viewport.addEventListener('pointerdown',e=>{
   state.activePane=pane;if(e.target.closest('button,a,summary,input')||e.button>0)return;
   if(document.body.classList.contains('atlas-gdrawing')&&!hand)return;
@@ -135,8 +135,8 @@ function setupZoom(pane){
   else if(hand){e.preventDefault();viewport.scrollLeft-=e.clientX-prev.x;viewport.scrollTop-=e.clientY-prev.y;}
  },{passive:false});
  const finish=e=>{pointers.delete(e.pointerId);gesture=null;};viewport.addEventListener('pointerup',finish);viewport.addEventListener('pointercancel',finish);viewport.addEventListener('lostpointercapture',finish);
- viewport.addEventListener('touchstart',e=>{if(e.touches.length===2){e.preventDefault();const [a,b]=e.touches;gesture={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),scale};}},{passive:false});
- viewport.addEventListener('touchmove',e=>{if(e.touches.length!==2||!gesture)return;e.preventDefault();const [a,b]=e.touches;zoom(gesture.scale*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/Math.max(1,gesture.distance),(a.clientX+b.clientX)/2,(a.clientY+b.clientY)/2);},{passive:false});viewport.addEventListener('touchend',()=>gesture=null,{passive:true});
+ viewport.addEventListener('touchstart',e=>{if(document.body.classList.contains('atlas-gdrawing')&&!hand)return;if(e.touches.length===2){e.preventDefault();const [a,b]=e.touches;gesture={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),scale};}},{passive:false});
+ viewport.addEventListener('touchmove',e=>{if(document.body.classList.contains('atlas-gdrawing')&&!hand)return;if(e.touches.length!==2||!gesture)return;e.preventDefault();const [a,b]=e.touches;zoom(gesture.scale*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/Math.max(1,gesture.distance),(a.clientX+b.clientX)/2,(a.clientY+b.clientY)/2);},{passive:false});viewport.addEventListener('touchend',()=>gesture=null,{passive:true});
  const viewportObserver=new ResizeObserver(entries=>{const w=Math.round(entries[0]?.contentRect?.width||viewport.clientWidth||0);if(!w||Math.abs(w-lastViewportWidth)<2)return;lastViewportWidth=w;syncSpace(true);});
  const contentObserver=new ResizeObserver(entries=>{const h=Math.round(entries[0]?.contentRect?.height||content.offsetHeight||0);if(!h||Math.abs(h-lastContentHeight)<2)return;lastContentHeight=h;syncSpace(false);});
  viewportObserver.observe(viewport);contentObserver.observe(content);update();
@@ -302,7 +302,7 @@ async function open(config){
  let scrolling=false;addEventListener('scroll',()=>{if(scrolling)return;scrolling=true;requestAnimationFrame(()=>{scrolling=false;const n=current()?.n||1;jump.value=n;try{sessionStorage.setItem('atlas-reader-position:'+state.id,String(n));}catch{}});},{passive:true});
  addEventListener('keydown',e=>{if(document.body.classList.contains('atlas-notebook-open')||e.target.closest('input,textarea,select,summary')||e.ctrlKey||e.metaKey||e.altKey||document.body.classList.contains('atlas-gdrawing'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go((current()?.n||1)+(e.key==='ArrowRight'?1:-1));}});
  if(!document.getElementById('atlasTimerModal'))await script('/study-tools.js?v=9');
- if(!document.getElementById('atlasGenDock'))await script('/generated-tools.js?v=20');
+ if(!document.getElementById('atlasGenDock'))await script('/generated-tools.js?v=21');
  await window.StudyAtlasNotebook.mountEnd().catch(()=>{});
  const requested=Number(new URLSearchParams(location.search).get('slide'));let saved=0;try{saved=Number(sessionStorage.getItem('atlas-reader-position:'+state.id));}catch{}
  const start=Math.max(1,Math.min(state.count,Math.round(requested||saved||1)));await render(start,true);if(start>1)go(start);

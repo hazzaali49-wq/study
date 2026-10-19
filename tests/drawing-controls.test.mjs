@@ -36,3 +36,10 @@ test('opening a board or note exits drawing and hides the compact bar',async()=>
   assert.equal(d.getElementById('atlasDrawBar').hidden,true);assert.equal(ink[0].isEnabled(),false);
  }
 });
+
+test('input preference is saved and Draw exits the reader hand tool',async()=>{
+ const {document:d,values,ink}=await setup(),pan=d.createElement('button');pan.className='atlas-pan-toggle';pan.setAttribute('aria-pressed','true');pan.onclick=()=>pan.setAttribute('aria-pressed','false');d.body.appendChild(pan);
+ d.getElementById('atlasGDraw').click();assert.equal(pan.getAttribute('aria-pressed'),'false');
+ const select=d.getElementById('atlasGTInput');for(const option of select.options)option.selected=option.value==='pen';select.onchange();
+ assert.equal(ink[0].getInputMode(),'pen');assert.equal(JSON.parse(values.get('atlasDrawingInput.v1')),'pen');
+});

@@ -25,10 +25,10 @@
     // These tools are also loaded by minimal lecture pages with no tool styles.
     for(const file of ['generated-tools','study-tools']){
       if(!document.querySelector('link[href*="'+file+'.css"]')){
-        const css=document.createElement('link');css.rel='stylesheet';css.href='/'+file+'.css?v=20';document.head.appendChild(css);
+        const css=document.createElement('link');css.rel='stylesheet';css.href='/'+file+'.css?v=21';document.head.appendChild(css);
       }
     }
-    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=4';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
+    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=5';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
     if(document.getElementById('atlasGenDock')) return;
     for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=17';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
     if(!document.querySelector('link[href*="study-notebook.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/study-notebook.css?v=1';document.head.appendChild(css);}
@@ -67,6 +67,7 @@
       </div>
       <label class="atlas-gt-size">Size <input id="atlasGTSize" type="range" min="2" max="24" value="3"><output id="atlasGTSizeValue">3</output></label>
       <label class="atlas-gt-size" id="atlasGTOpacityLabel" hidden>Opacity <input id="atlasGTOpacity" type="range" min="12" max="30" value="22"><output id="atlasGTOpacityValue">22%</output></label>
+      <label class="atlas-gt-input">Input <select id="atlasGTInput" aria-label="Drawing input"><option value="auto">Automatic</option><option value="pen">Pen only · ignore fingers</option></select></label><small class="atlas-gt-help">Use Pen only if your palm leaves marks. Automatic also supports a mouse or finger.</small>
       <div class="atlas-gt-actions"><button id="atlasGTUndo">Undo</button><button id="atlasGTClear">Clear area</button></div><small id="atlasGTStatus"></small>`;
     document.body.appendChild(tools);
     const drawBar=document.createElement('div');drawBar.id='atlasDrawBar';drawBar.hidden=true;
@@ -96,6 +97,7 @@
     let zoom=1, draw=false, tool='pen', color='#ff4f70', size=3, opacity=1, activeZone=null;
     const toolSettings={pen:{color:'#ff4f70',size:3,opacity:1},highlighter:{color:'#ffd04a',size:7,opacity:.22},eraser:{color:'#ffffff',size:10,opacity:1}};
     const zones=[], strokeMap=new Map();
+    let inputMode=read('atlasDrawingInput.v1','auto')==='pen'?'pen':'auto';
 
     function zoneId(el,i){
       if(el.id)return 'id:'+el.id;
@@ -106,15 +108,21 @@
     }
     function canvasSize(z){
       if(!z.near)return;
+      if(z.ink?.isDrawing()){z.resizePending=true;return;}z.resizePending=false;
       const w=Math.max(1,z.el.clientWidth),h=Math.max(1,z.el.clientHeight),d=Math.min(2,devicePixelRatio||1,Math.sqrt(3000000/(w*h)));
       const nw=Math.round(w*d),nh=Math.round(h*d);
       if(z.c.width!==nw||z.c.height!==nh){z.c.width=nw;z.c.height=nh;renderZone(z);}
     }
     function renderZone(z){z?.ink?.redraw();}
-    let saveTimer;
-    function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveWhenIdle,350);}
-    addEventListener('pagehide',()=>{clearTimeout(saveTimer);saveInk();});
-    function saveWhenIdle(){if(zones.some(z=>z.ink?.isDrawing())){saveTimer=setTimeout(saveWhenIdle,350);return;}saveInk();}
+    let saveTimer,idleSave;
+    function scheduleSave(){clearTimeout(saveTimer);if(idleSave)window.cancelIdleCallback?.(idleSave);idleSave=null;saveTimer=setTimeout(saveWhenIdle,900);}
+    function flushInk(){clearTimeout(saveTimer);if(idleSave)window.cancelIdleCallback?.(idleSave);idleSave=null;zones.forEach(z=>z.ink?.stop?.());clearTimeout(saveTimer);saveInk();}
+    addEventListener('pagehide',flushInk);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushInk();});
+    function saveWhenIdle(){
+      const save=()=>{idleSave=null;if(zones.some(z=>z.ink?.isDrawing())){saveTimer=setTimeout(saveWhenIdle,500);return;}saveInk();};
+      if(window.requestIdleCallback)idleSave=window.requestIdleCallback(save,{timeout:1500});else save();
+    }
     function saveInk(){
       const all=read(INK_KEY,{}),k=pageKey(),payload={version:4,zones:{...(forPage(INK_KEY)?.zones||{})}};
       zones.forEach(z=>payload.zones[z.id]=strokeMap.get(z.id)||[]);
@@ -125,7 +133,7 @@
       const id=el.dataset.inkId||zoneId(el,i);el.classList.add('atlas-gdraw-zone');el.dataset.atlasGDrawZone=id;
       const c=document.createElement('canvas');c.className='atlas-gpage-canvas';c.dataset.zone=id;c.width=1;c.height=1;el.appendChild(c);
       const z={el,c,id,near:false};zones.push(z);strokeMap.set(id,[]);
-      z.ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>strokeMap.get(id)||[],isEnabled:()=>draw,getTool:()=>{activeZone=z;return {tool,color,size,opacity};},onChange:scheduleSave});
+      z.ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>strokeMap.get(id)||[],isEnabled:()=>draw,getInputMode:()=>inputMode,onBeforeStart:()=>{z.near=true;canvasSize(z);},getTool:()=>{activeZone=z;return {tool,color,size,opacity};},onChange:()=>{scheduleSave();if(z.resizePending)canvasSize(z);}});
       c.addEventListener('pointerdown',()=>{if(draw&&!tools.hidden)setPanel();});
       new ResizeObserver(()=>{if(!z.ink.isDrawing())canvasSize(z);}).observe(el);inkObserver.observe(el);
     }
@@ -179,6 +187,8 @@
     addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.target.closest('#atlasNotebook')){const open=[...panelButtons.keys()].find(p=>!p.hidden);if(open){e.stopPropagation();closePanel(open);}else if(draw){e.stopPropagation();setDrawing(false);}}});
     document.getElementById('atlasGHome').onclick=()=>Notebook.home(lecture.moduleId);
     function setDrawing(enabled){
+      if(!enabled)zones.forEach(z=>z.ink?.stop?.());
+      if(enabled)document.querySelectorAll('.atlas-pan-toggle[aria-pressed="true"]').forEach(button=>button.click());
       draw=enabled;document.body.classList.toggle('atlas-gdrawing',draw);drawBar.hidden=!draw;
       const button=document.getElementById('atlasGDraw');button.classList.toggle('active',draw);button.setAttribute('aria-pressed',String(draw));
       button.lastElementChild.textContent=draw?'Done':'Draw';
@@ -203,6 +213,9 @@
     };});
     document.getElementById('atlasGTSize').oninput=e=>{size=Number(e.target.value);toolSettings[tool].size=size;document.getElementById('atlasGTSizeValue').textContent=size;};
     document.getElementById('atlasGTOpacity').oninput=e=>{opacity=Number(e.target.value)/100;toolSettings[tool].opacity=opacity;document.getElementById('atlasGTOpacityValue').textContent=Math.round(opacity*100)+'%';};
+    const inputSelect=document.getElementById('atlasGTInput');
+    for(const option of inputSelect.options)option.selected=option.value===inputMode;
+    inputSelect.onchange=()=>{zones.forEach(z=>z.ink?.stop?.());inputMode=inputSelect.value==='pen'?'pen':'auto';write('atlasDrawingInput.v1',inputMode);};
     document.getElementById('atlasDrawUndo').onclick=()=>document.getElementById('atlasGTUndo').click();
     refreshTool();
     document.getElementById('atlasGTUndo').onclick=()=>{
