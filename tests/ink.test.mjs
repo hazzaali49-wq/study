@@ -29,12 +29,11 @@ test('moving the pointer paints the new segments, independent of saved stroke co
 test('another finger cannot become part of the active pen stroke',()=>{
  const s=setup(0);s.c.events.pointerdown(s.event(100));s.c.events.pointermove({...s.event(200),pointerId:2,pointerType:'touch'});s.c.events.pointerup(s.event(100));assert.equal(s.history[0].pts.length,1);
 });
-test('stylus points are captured immediately and rasterized on the next display frame',()=>{
+test('the first stylus movement is rendered immediately without relying on animation frames',()=>{
  const s=setup(500);s.c.events.pointerdown(s.event(100));const before=s.counts().strokesPainted;
  s.c.events.pointermove(s.event(220));
  assert.equal(s.history.at(-1).pts.at(-1).x,.22);
- assert.equal(s.counts().strokesPainted,before,'high-rate stylus input should not paint repeatedly within one frame');
- s.paint();assert.ok(s.counts().strokesPainted>before);
+ assert.ok(s.counts().strokesPainted>before,'handwriting must appear immediately on first pen movement');
 });
 test('coalesced samples keep the newest event and pointer-up endpoint',()=>{
  const s=setup(0);s.c.events.pointerdown(s.event(100));
@@ -44,10 +43,10 @@ test('coalesced samples keep the newest event and pointer-up endpoint',()=>{
  assert.equal(s.history[0].pts.at(-1).x,.24);assert.equal(s.counts().saves,1);
 });
 
-test('raw pen updates queue rendering and keep a standard move fallback',()=>{
+test('raw pen updates render the first movement immediately and keep standard move fallback',()=>{
  const s=setup(0,true);assert.equal(typeof s.c.events.pointermove,'function');
  s.c.events.pointerdown(s.event(100));s.c.events.pointerrawupdate(s.event(300));
- assert.equal(s.history[0].pts.at(-1).x,.3);assert.equal(s.counts().strokesPainted,1);s.paint();assert.equal(s.counts().strokesPainted,2);
+ assert.equal(s.history[0].pts.at(-1).x,.3);assert.equal(s.counts().strokesPainted,2);
 });
 
 test('highlighter keeps the same translucent opacity while moving, after lift and on replay',()=>{
@@ -116,10 +115,11 @@ test('cancellation, blur and leaving drawing mode finish once without a phantom 
   assert.equal(s.history[0].pts.at(-1).x,.16);assert.equal(s.counts().saves,1);assert.equal(s.ink.isDrawing(),false);
  }
 });
-test('finishing a short stroke copies only its occupied area, not the full slide canvas',()=>{
+test('finishing a pen stroke commits actual points rather than copying an unfinished preview bitmap',()=>{
  const s=setup(0);s.c.events.pointerdown(s.event(100));s.c.events.pointermove(s.event(200));s.c.events.pointerup({...s.event(200),type:'pointerup'});
- const copy=s.copies[0];assert.equal(copy.length,9);assert.ok(copy[3]*copy[4]<1000*500*.02);
- assert.deepEqual(copy.slice(1,5),copy.slice(5,9),'source and destination regions remain aligned');
+ assert.equal(s.copies.length,0,'pen saving must not rely on a GPU preview copy');
+ assert.deepEqual(s.c.operations.filter(x=>x[0]==='line').at(-1),['line',200,100]);
+ assert.equal(s.counts().saves,1);
 });
 
 test('a long explanation uses a bounded visible ink surface without layout reads during movement',()=>{
@@ -136,7 +136,8 @@ test('a long explanation uses a bounded visible ink surface without layout reads
  assert.equal(measurements,1,'no layout queries on the hot path');assert.deepEqual([live.width,live.height],dimensions,'no resizing while the pen moves');
  s.c.events.pointerup({...s.event(400),clientY:200,type:'pointerup'});
  assert.equal(s.history.at(-1).pts.at(-1).y,700/1800,'full-slide coordinates survive viewport cropping');
- const copy=s.copies.at(-1);assert.equal(copy[0],live);assert.ok(copy[7]*copy[8]<s.c.width*s.c.height*.01,'commits copy just the stroke rectangle');
+ assert.equal(s.copies.length,0,'permanent writing uses vector points, never the transient preview');
+ assert.deepEqual(s.c.operations.filter(op=>op[0]==='line').at(-1),['line',400/600*s.c.width,700/1800*s.c.height]);
  s.c.width=s.c.height=1;s.ink.sync();assert.equal(live.width*live.height,1,'leaving the viewport releases the live bitmap');
 });
 
@@ -151,9 +152,9 @@ test('visible ink and committed coordinates stay aligned inside a scrolled, 2x z
  const screenY=rect.top+parseFloat(live.style.top)/100*rect.height+end[2]/live.height*parseFloat(live.style.height)/100*rect.height;
  assert.ok(Math.abs(screenX-200)<.001);assert.ok(Math.abs(screenY-300)<.001);
  s.c.events.pointerup({...s.event(200),clientY:300,type:'pointerup'});
- const copy=s.copies.at(-1),last=s.history[0].pts.at(-1);
- assert.ok(copy[5]<=last.x*s.c.width&&copy[5]+copy[7]>=last.x*s.c.width);
- assert.ok(copy[6]<=last.y*s.c.height&&copy[6]+copy[8]>=last.y*s.c.height);
+ const last=s.history[0].pts.at(-1),endSaved=s.c.operations.filter(op=>op[0]==='line').at(-1);
+ assert.deepEqual(endSaved,['line',last.x*s.c.width,last.y*s.c.height]);
+ assert.equal(s.copies.length,0,'stored ink must not depend on browser canvas compositing');
 });
 
 test('captured input outside the visible crop is still committed and retained for snapshots',()=>{
@@ -212,10 +213,11 @@ test('high-frequency stylus events do not force repeated canvas painting before 
   s.c.events.pointerrawupdate(e);
  }
  assert.equal(s.history[0].pts.at(-1).x,.599,'input position follows the pen immediately');
- assert.equal(s.counts().strokesPainted,1,'500 raw events must not create 500 draw calls');
+ assert.ok(s.counts().strokesPainted>1,'the pen should update visibly during a long stroke');
+ assert.ok(s.counts().strokesPainted<65,'500 raw events must not create 500 draw calls');
  assert.equal(s.layers.length,1,'normal drawing never allocates a prediction-tip canvas');
  s.paint();
- assert.ok(s.counts().strokesPainted<15,'canvas receives batched points on the next frame');
+ assert.ok(s.counts().strokesPainted<65,'rasterization is bounded even for rapid hardware events');
  s.c.events.pointerup({...s.event(610),timeStamp:503,type:'pointerup'});
  assert.equal(s.history[0].pts.at(-1).x,.61);
  assert.equal(s.counts().saves,1);
@@ -227,7 +229,8 @@ test('finishing before the next frame flushes every pen endpoint into saved ink'
  s.c.events.pointerup({...s.event(250),type:'pointerup',timeStamp:3});
  assert.equal(s.history[0].pts.at(-1).x,.25);
  assert.equal(s.counts().saves,1);
- assert.ok(s.copies.length>0,'the saved canvas is committed even if the next animation frame has not run');
+ assert.equal(s.copies.length,0,'saving must not read from the temporary preview layer');
+ assert.deepEqual(s.c.operations.filter(op=>op[0]==='line').at(-1),['line',250,100],'the final endpoint is committed to the durable canvas');
  assert.equal(s.ink.isDrawing(),false);
 });
 
@@ -237,4 +240,27 @@ test('prediction remains opt-in because resizing a tip canvas for each pen event
  for(let i=0;i<8;i++)s.c.events.pointerrawupdate({...s.event(130+i),timeStamp:i+2,getPredictedEvents:()=>[{...s.event(145+i),timeStamp:i+5}]});
  assert.equal(s.layers.length,1,'the default stylus path avoids speculative canvas reallocations');
  s.c.events.pointerup({...s.event(150),timeStamp:12,type:'pointerup'});
+});
+
+test('pen ink survives a hypothetical delayed GPU preview, including a quick tap',()=>{
+ const s=setup(0,true);
+ s.c.getContext('2d').drawImage=()=>{throw Error('preview GPU pixels unavailable')};
+ s.c.events.pointerdown({...s.event(100),timeStamp:1});
+ s.c.events.pointerrawupdate({...s.event(150),timeStamp:2});
+ s.c.events.pointerup({...s.event(190),timeStamp:3,type:'pointerup'});
+ assert.deepEqual(s.c.operations.filter(op=>op[0]==='line').at(-1),['line',190,100]);
+ assert.equal(s.counts().saves,1);
+ s.ink.redraw();
+ assert.deepEqual(s.c.operations.filter(op=>op[0]==='line').at(-1),['line',190,100]);
+});
+test('the pen can render immediately when browser animation callbacks are suspended',()=>{
+ const s=setup(0,true);
+ s.c.events.pointerdown({...s.event(100),timeStamp:1});
+ s.c.events.pointerrawupdate({...s.event(140),timeStamp:2});
+ const before=s.counts().strokesPainted;
+ s.c.events.pointerrawupdate({...s.event(210),timeStamp:24});
+ assert.ok(s.counts().strokesPainted>before,'new real pen samples must show without a scheduled frame');
+ assert.equal(s.history[0].pts.at(-1).x,.21);
+ s.c.events.pointerup({...s.event(250),timeStamp:25,type:'pointerup'});
+ assert.equal(s.history[0].pts.at(-1).x,.25);
 });
