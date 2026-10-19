@@ -181,7 +181,12 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   clearPrediction();
   if(toolFor(e)!==active.tool){commitSegment();startSegment(e);}
   const before=active.pts.length;
-  let batch=[];try{batch=e.getCoalescedEvents?.()||[];}catch{}
+  // Raw pen updates already arrive at hardware frequency. Asking each raw
+  // event for coalesced history can replay the same samples repeatedly and
+  // stall the main thread on stylus-only devices. Pointermove keeps the
+  // coalesced fallback for browsers that do not deliver raw input.
+  let batch=[];
+  if(e.type!=='pointerrawupdate'){try{batch=e.getCoalescedEvents?.()||[];}catch{}}
   for(const item of batch)appendPoint(item);
   appendPoint(e,true);
   if(active.pts.length>before)requestPaint(e);
