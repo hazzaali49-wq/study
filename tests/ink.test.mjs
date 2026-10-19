@@ -291,5 +291,5 @@ test('rapid consecutive words remain in ink history after the temporary layer cl
  assert.equal(s.copies.length,0,'no GPU canvas readback is allowed to lose earlier words');
  const before=s.c.operations.filter(op=>op[0]==='line').length;
  s.ink.redraw();
- assert.equal(s.c.operations.filter(op=>op[0]==='line').length,before+30,'redraw restores all thirty strokes');
+ assert.equal(s.c.operations.filter(op=>op[0]==='line').length,before*2,'redraw repeats every recorded vector segment across all thirty strokes');
 });
