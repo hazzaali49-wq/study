@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-function setup(historyCount,raw=false,getTool,getInputMode){
+function setup(historyCount,raw=false,getTool,getInputMode,usePrediction=false){
  let strokesPainted=0,clears=0,saves=0,frames=[];const compositeAlphas=[],layers=[],copies=[],rootEvents={};
  function canvas(){
   const events={},stack=[],operations=[];let matrix=[1,0,0,1,0,0];
@@ -14,7 +14,7 @@ function setup(historyCount,raw=false,getTool,getInputMode){
  const window={addEventListener:(name,callback)=>rootEvents[name]=callback,requestAnimationFrame:f=>(frames.push(f),frames.length),cancelAnimationFrame(){}};
  if(raw)window.onpointerrawupdate=null;
  const sandbox={window,document:{createElement:()=>canvas()},setTimeout,clearTimeout,Date};vm.runInNewContext(fs.readFileSync(new URL('../public/ink-engine.js',import.meta.url),'utf8'),sandbox);
- const ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>history,onChange:()=>saves++,...(getTool?{getTool}:{} ),...(getInputMode?{getInputMode}:{})});
+ const ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>history,onChange:()=>saves++,...(getTool?{getTool}:{} ),...(getInputMode?{getInputMode}:{}),usePrediction});
  const event=x=>({pointerId:1,pointerType:'pen',button:0,pressure:.5,clientX:x,clientY:100,preventDefault(){},stopPropagation(){}});
  return {c,ink,event,history,compositeAlphas,layers,copies,rootEvents,window,makeCanvas:canvas,paint:()=>{const work=frames;frames=[];work.forEach(f=>f());},counts:()=>({strokesPainted,clears,saves})};
 }
@@ -29,11 +29,12 @@ test('moving the pointer paints the new segments, independent of saved stroke co
 test('another finger cannot become part of the active pen stroke',()=>{
  const s=setup(0);s.c.events.pointerdown(s.event(100));s.c.events.pointermove({...s.event(200),pointerId:2,pointerType:'touch'});s.c.events.pointerup(s.event(100));assert.equal(s.history[0].pts.length,1);
 });
-test('ink reaches each input position immediately without waiting for an animation frame',()=>{
+test('stylus points are captured immediately and rasterized on the next display frame',()=>{
  const s=setup(500);s.c.events.pointerdown(s.event(100));const before=s.counts().strokesPainted;
  s.c.events.pointermove(s.event(220));
- assert.ok(s.counts().strokesPainted>before);
  assert.equal(s.history.at(-1).pts.at(-1).x,.22);
+ assert.equal(s.counts().strokesPainted,before,'high-rate stylus input should not paint repeatedly within one frame');
+ s.paint();assert.ok(s.counts().strokesPainted>before);
 });
 test('coalesced samples keep the newest event and pointer-up endpoint',()=>{
  const s=setup(0);s.c.events.pointerdown(s.event(100));
@@ -43,10 +44,10 @@ test('coalesced samples keep the newest event and pointer-up endpoint',()=>{
  assert.equal(s.history[0].pts.at(-1).x,.24);assert.equal(s.counts().saves,1);
 });
 
-test('raw pen updates paint immediately and keep a standard move fallback',()=>{
+test('raw pen updates queue rendering and keep a standard move fallback',()=>{
  const s=setup(0,true);assert.equal(typeof s.c.events.pointermove,'function');
  s.c.events.pointerdown(s.event(100));s.c.events.pointerrawupdate(s.event(300));
- assert.equal(s.history[0].pts.at(-1).x,.3);assert.equal(s.counts().strokesPainted,2);
+ assert.equal(s.history[0].pts.at(-1).x,.3);assert.equal(s.counts().strokesPainted,1);s.paint();assert.equal(s.counts().strokesPainted,2);
 });
 
 test('highlighter keeps the same translucent opacity while moving, after lift and on replay',()=>{
@@ -67,14 +68,14 @@ test('old highlighter strokes use a readable default and excessive saved opacity
 
 test('a raw-capable browser still draws when the stylus supplies only pointermove',()=>{
  const s=setup(0,true);s.c.events.pointerdown(s.event(100));s.c.events.pointermove(s.event(250));
- assert.equal(s.history[0].pts.at(-1).x,.25);assert.equal(s.counts().strokesPainted,2);
+ assert.equal(s.history[0].pts.at(-1).x,.25);s.paint();assert.equal(s.counts().strokesPainted,2);
 });
 test('raw and regular coalesced events are not double-painted or allowed to rewind a stroke',()=>{
  const s=setup(0,true);s.c.events.pointerdown({...s.event(100),timeStamp:1});
  s.c.events.pointerrawupdate({...s.event(300),timeStamp:3,getCoalescedEvents:()=>[{...s.event(200),timeStamp:2},{...s.event(300),timeStamp:3}]});
- const before=s.counts().strokesPainted;
+ s.paint();const before=s.counts().strokesPainted;
  s.c.events.pointermove({...s.event(300),timeStamp:3,getCoalescedEvents:()=>[{...s.event(200),timeStamp:2},{...s.event(300),timeStamp:3}]});
- s.c.events.pointerrawupdate({...s.event(200),timeStamp:2});
+ s.c.events.pointerrawupdate({...s.event(200),timeStamp:2});s.paint();
  assert.equal(s.counts().strokesPainted,before);assert.deepEqual(Array.from(s.history[0].pts,p=>p.x),[.1,.2,.3]);
 });
 test('the pen takes priority over a palm that touched first, including in the other panel',()=>{
@@ -144,7 +145,7 @@ test('visible ink and committed coordinates stay aligned inside a scrolled, 2x z
  Object.assign(s.c,{width:720,height:3600,clientWidth:600});s.c.getBoundingClientRect=()=>rect;
  s.c.closest=selector=>selector==='.atlas-zoom-viewport'?{getBoundingClientRect:()=>({left:100,top:100,width:500,height:600})}:null;
  Object.assign(s.window,{innerWidth:1000,innerHeight:900,devicePixelRatio:2});
- s.c.events.pointerdown({...s.event(150),clientY:200});s.c.events.pointermove({...s.event(200),clientY:300});
+ s.c.events.pointerdown({...s.event(150),clientY:200});s.c.events.pointermove({...s.event(200),clientY:300});s.paint();
  const live=s.layers[0],end=live.operations.filter(op=>op[0]==='line').at(-1);
  const screenX=rect.left+parseFloat(live.style.left)/100*rect.width+end[1]/live.width*parseFloat(live.style.width)/100*rect.width;
  const screenY=rect.top+parseFloat(live.style.top)/100*rect.height+end[2]/live.height*parseFloat(live.style.height)/100*rect.height;
@@ -163,7 +164,7 @@ test('captured input outside the visible crop is still committed and retained fo
 });
 
 test('native predicted points draw only a small temporary tip and never enter saved strokes',()=>{
- const s=setup(0,true);s.c.events.pointerdown({...s.event(100),timeStamp:1});
+ const s=setup(0,true,null,null,true);s.c.events.pointerdown({...s.event(100),timeStamp:1});
  const predicted={...s.event(210),timeStamp:18};
  s.c.events.pointermove({...s.event(200),timeStamp:10,getPredictedEvents:()=>[predicted]});
  assert.equal(s.layers.length,2);const tip=s.layers[1];assert.equal(tip.hidden,false);assert.ok(tip.width*tip.height<4000);
@@ -177,16 +178,16 @@ test('native predicted points draw only a small temporary tip and never enter sa
 
 test('prediction is optional, bounded and never applied to highlighter or eraser ink',()=>{
  for(const getPredictedEvents of [()=>{throw Error('unsupported');},()=>[{clientX:1000,clientY:100,timeStamp:12}],()=>[{clientX:205,clientY:100,timeStamp:100}]]){
-  const s=setup(0);s.c.events.pointerdown({...s.event(100),timeStamp:1});s.c.events.pointermove({...s.event(200),timeStamp:10,getPredictedEvents});assert.equal(s.layers.length,1);assert.equal(s.history[0].pts.at(-1).x,.2);
+  const s=setup(0,false,null,null,true);s.c.events.pointerdown({...s.event(100),timeStamp:1});s.c.events.pointermove({...s.event(200),timeStamp:10,getPredictedEvents});assert.equal(s.layers.length,1);assert.equal(s.history[0].pts.at(-1).x,.2);
  }
  for(const tool of ['highlighter','eraser']){
-  const s=setup(0,false,()=>({tool,size:7,color:'#ff0'}));s.c.events.pointerdown({...s.event(100),timeStamp:1});
+  const s=setup(0,false,()=>({tool,size:7,color:'#ff0'}),null,true);s.c.events.pointerdown({...s.event(100),timeStamp:1});
   s.c.events.pointermove({...s.event(200),timeStamp:10,getPredictedEvents:()=>[{...s.event(210),timeStamp:18}]});assert.equal(s.layers.length,1);
  }
 });
 
 test('a stationary pen loses its speculative tip automatically',async()=>{
- const s=setup(0);s.c.events.pointerdown({...s.event(100),timeStamp:1});
+ const s=setup(0,false,null,null,true);s.c.events.pointerdown({...s.event(100),timeStamp:1});
  s.c.events.pointermove({...s.event(200),timeStamp:10,getPredictedEvents:()=>[{...s.event(210),timeStamp:18}]});
  assert.equal(s.layers[1].hidden,false);await new Promise(resolve=>setTimeout(resolve,60));assert.equal(s.layers[1].hidden,true);s.ink.stop();
 });
@@ -197,8 +198,43 @@ test('coalesced stylus samples paint in pressure-sized batches, retaining all in
  s.c.events.pointerrawupdate({...s.event(305),pressure:.8,timeStamp:103,getCoalescedEvents:()=>batch});
  assert.equal(s.history[0].pts.length,102,'no intermediate pen points are lost');
  assert.equal(s.history[0].pts.at(-1).x,.305,'the latest raw sample is recorded');
- assert.ok(s.counts().strokesPainted<=6,'drawing 101 samples must not require 101 canvas strokes');
+ s.paint();assert.ok(s.counts().strokesPainted<=6,'drawing 101 samples must not require 101 canvas strokes');
  s.c.events.pointerup({...s.event(310),type:'pointerup',timeStamp:104});
  assert.equal(s.history[0].pts.at(-1).x,.31);
  assert.equal(s.counts().saves,1);
+});
+
+test('high-frequency stylus events do not force repeated canvas painting before the next display frame',()=>{
+ const s=setup(0,true);
+ s.c.events.pointerdown({...s.event(100),timeStamp:1});
+ for(let i=0;i<500;i++){
+  const e={...s.event(100+i),timeStamp:i+2};
+  s.c.events.pointerrawupdate(e);
+ }
+ assert.equal(s.history[0].pts.at(-1).x,.599,'input position follows the pen immediately');
+ assert.equal(s.counts().strokesPainted,1,'500 raw events must not create 500 draw calls');
+ assert.equal(s.layers.length,1,'normal drawing never allocates a prediction-tip canvas');
+ s.paint();
+ assert.ok(s.counts().strokesPainted<15,'canvas receives batched points on the next frame');
+ s.c.events.pointerup({...s.event(610),timeStamp:503,type:'pointerup'});
+ assert.equal(s.history[0].pts.at(-1).x,.61);
+ assert.equal(s.counts().saves,1);
+});
+
+test('finishing before the next frame flushes every pen endpoint into saved ink',()=>{
+ const s=setup(0,true);s.c.events.pointerdown({...s.event(100),timeStamp:1});
+ s.c.events.pointerrawupdate({...s.event(150),timeStamp:2});
+ s.c.events.pointerup({...s.event(250),type:'pointerup',timeStamp:3});
+ assert.equal(s.history[0].pts.at(-1).x,.25);
+ assert.equal(s.counts().saves,1);
+ assert.ok(s.copies.length>0,'the saved canvas is committed even if the next animation frame has not run');
+ assert.equal(s.ink.isDrawing(),false);
+});
+
+test('prediction remains opt-in because resizing a tip canvas for each pen event can cause stylus lag',()=>{
+ const s=setup(0,true);
+ s.c.events.pointerdown({...s.event(100),timeStamp:1});
+ for(let i=0;i<8;i++)s.c.events.pointerrawupdate({...s.event(130+i),timeStamp:i+2,getPredictedEvents:()=>[{...s.event(145+i),timeStamp:i+5}]});
+ assert.equal(s.layers.length,1,'the default stylus path avoids speculative canvas reallocations');
+ s.c.events.pointerup({...s.event(150),timeStamp:12,type:'pointerup'});
 });
