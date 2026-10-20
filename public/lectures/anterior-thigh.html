@@ -75,7 +75,7 @@ function block(slide){
  '<ul>'+slide.key_points.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul>'+
  '<details class="defs"><summary>Explain every term ('+defs.length+')</summary><dl>'+defs.map(d=>'<dt>'+esc(d.term)+'</dt><dd>'+esc(d.meaning)+'</dd>').join('')+'</dl></details>'+
  (slide.extra?'<details><summary>Memory or clinical connection</summary><p>'+esc(slide.extra)+'</p></details>':'')+
- '<details><summary>Labels and wording from this source slide</summary><p>'+esc(slide.source||'Image-based source; refer to the unchanged original PDF.')+'</p></details></article>';
+ '<details><summary>Important source labels (study transcription)</summary><p>'+esc(slide.source||'Image-based source; refer to the unchanged original PDF.')+'</p></details></article>';
 }
 list.innerHTML=data.slides.map(block).join('');
 document.getElementById('anteriorChapters').innerHTML=data.chapters.map((c,i)=>'<button type="button" data-go="'+c.slide_start+'" title="'+esc(c.guide)+'">'+(i+1)+'. '+esc(c.title)+'</button>').join('');
