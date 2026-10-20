@@ -100,6 +100,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   for(let i=Math.max(1,fastShown);i<pts.length;i++){
    const previous=pts[i-1],p=pts[i];
    if(!fastPath||fastSegments>=36){
+    if(fastPath)fastPath.setAttribute('d',fastData);
     fastPath=document.createElementNS(ns,'path');
     fastPath.setAttribute('fill','none');
     fastPath.setAttribute('stroke',active.color||'#ff4f70');
