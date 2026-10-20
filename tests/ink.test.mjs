@@ -378,8 +378,8 @@ test('pen barrel eraser can switch from the fast SVG path to persistent canvas i
 test('the newest drawing scripts invalidate stale cached engines',()=>{
  const tools=fs.readFileSync(new URL('../public/generated-tools.js',import.meta.url),'utf8');
  const reader=fs.readFileSync(new URL('../public/slide-reader.js',import.meta.url),'utf8');
- assert.match(tools,/\/ink-engine\.js\?v=11/);
- assert.match(reader,/\/generated-tools\.js\?v=25/);
+ assert.match(tools,/\/ink-engine\.js\?v=12/);
+ assert.match(reader,/\/generated-tools\.js\?v=26/);
 });
 
 test('Chromium delegated ink is used when available without delaying SVG fallback or changing saved pen data',async()=>{
