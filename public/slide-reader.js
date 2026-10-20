@@ -92,13 +92,40 @@ function rowHTML(n){const note=state.notes.get(n),midterm=window.StudyAtlasMidte
 function current(){
  if(!state)return null;const y=innerHeight*.4;
  const rows=[...state.root.querySelectorAll('.atlas-slide-row')];
- const row=rows.find(c=>{const r=c.getBoundingClientRect();return r.top<y&&r.bottom>y;})||rows.find(c=>c.getBoundingClientRect().top>=y)||rows.at(-1);
+ const row=state.studyView?state.root.querySelector('.atlas-study-current'):rows.find(c=>{const r=c.getBoundingClientRect();return r.top<y&&r.bottom>y;})||rows.find(c=>c.getBoundingClientRect().top>=y)||rows.at(-1);
  return row?{n:Number(row.dataset.slide),row,note:state.notes.get(Number(row.dataset.slide))}:null;
 }
-function go(n){if(!state)return;n=Math.max(1,Math.min(state.count,Math.round(Number(n)||1)));state.root.querySelector('#atlas-slide-'+n)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});state.focused=n;try{sessionStorage.setItem('atlas-reader-position:'+state.id,String(n));}catch{}render(n);}
+function go(n){
+ if(!state)return;n=Math.max(1,Math.min(state.count,Math.round(Number(n)||1)));
+ const row=state.root.querySelector('#atlas-slide-'+n);
+ if(state.studyView){
+  window.StudyAtlasInk?.stop?.();state.root.querySelector('.atlas-study-current')?.classList.remove('atlas-study-current');row?.classList.add('atlas-study-current');
+  state.root.querySelector('nav input').value=n;state.activePane=row?.querySelector('.atlas-pane');
+ }else row?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+ state.focused=n;try{sessionStorage.setItem('atlas-reader-position:'+state.id,String(n));}catch{}render(n);
+ if(state.studyView)window.dispatchEvent(new Event('atlas:study-view'));
+}
+function studyView(enabled){
+ if(!state||!!state.studyView===enabled)return;
+ const n=current()?.n||state.focused||1;window.StudyAtlasInk?.stop?.();
+ state.studyView=enabled;document.body.classList.toggle('atlas-study-view',enabled);document.documentElement.classList.toggle('atlas-study-view',enabled);
+ state.root.querySelector('.atlas-study-current')?.classList.remove('atlas-study-current');
+ const button=state.root.querySelector('[data-study-view]');button.setAttribute('aria-pressed',String(enabled));button.textContent=enabled?'Exit study view':'Study view';
+ if(enabled){
+  // Keep an explicit exit button visible; pen hover never reveals or moves it.
+  document.body.classList.remove('atlas-gen-focus');
+  const focus=document.getElementById('atlasGFocus');focus?.classList.remove('active');focus?.setAttribute('aria-pressed','false');if(focus?.lastElementChild)focus.lastElementChild.textContent='Hide panels';
+  if(window.parent!==window)window.parent.postMessage({source:'study-atlas-focus',focus:true},location.origin);
+  go(n);
+ }else{
+  if(window.parent!==window)window.parent.postMessage({source:'study-atlas-focus',focus:false},location.origin);
+  state.root.querySelector('#atlas-slide-'+n)?.scrollIntoView({behavior:'auto',block:'start'});
+  window.dispatchEvent(new Event('atlas:study-view'));
+ }
+}
 function setupZoom(pane){
  const viewport=pane.querySelector('.atlas-zoom-viewport'),space=pane.querySelector('.atlas-zoom-space'),content=pane.querySelector('.atlas-zoom-content');let scale=1,hand=false,pointers=new Map(),gesture=null,lastViewportWidth=0,lastContentHeight=0;
- const output=pane.querySelector('output');
+ const output=pane.querySelector('output');let pendingSpace=0;
  function widthPx(){return Math.max(1,Math.floor(viewport.clientWidth||viewport.getBoundingClientRect().width||1))}
  function syncWidth(){
   const w=widthPx(),current=Math.round(parseFloat(content.style.width)||0);
@@ -106,6 +133,9 @@ function setupZoom(pane){
   return w;
  }
  function syncSpace(changeWidth=true){
+  // Fullscreen controls and viewport changes must not resize the writing
+  // surface underneath an active pen. Apply their geometry after pen-up.
+  if(window.StudyAtlasInk?.isDrawing?.()){pendingSpace|=changeWidth?2:1;return;}
   const w=changeWidth?syncWidth():Math.max(1,Math.round(content.offsetWidth||widthPx()));
   content.style.transform=scale===1?'none':`scale(${scale})`;
   const h=Math.max(1,Math.round(content.offsetHeight||1)),sw=Math.max(w,Math.ceil(w*scale)),sh=Math.max(h,Math.ceil(h*scale));
@@ -140,6 +170,7 @@ function setupZoom(pane){
  const viewportObserver=new ResizeObserver(entries=>{const w=Math.round(entries[0]?.contentRect?.width||viewport.clientWidth||0);if(!w||Math.abs(w-lastViewportWidth)<2)return;lastViewportWidth=w;syncSpace(true);});
  const contentObserver=new ResizeObserver(entries=>{const h=Math.round(entries[0]?.contentRect?.height||content.offsetHeight||0);if(!h||Math.abs(h-lastContentHeight)<2)return;lastContentHeight=h;syncSpace(false);});
  viewportObserver.observe(viewport);contentObserver.observe(content);update();
+ addEventListener('atlas:ink-idle',()=>{if(!pendingSpace)return;const widthChanged=!!(pendingSpace&2);pendingSpace=0;syncSpace(widthChanged);});
  pane.atlasZoom=delta=>zoom(scale*Math.pow(1.15,delta));pane.atlasRefresh=()=>syncSpace(false);
 }
 function teachingVisualHTML(plan){
@@ -303,6 +334,12 @@ async function open(config){
  state.count=state.pdf.numPages;for(let n=1;n<=state.count;n++)state.notes.set(n,fromData(data,n));
  const legacyUrl=config.legacyUrl||(()=>{const u=new URL(location.href);u.searchParams.set('view','chapters');return u.href;})();
  root.innerHTML=`<header class="atlas-reader-head"><div><div class="atlas-reader-brand">✦ studyatlas · ${esc(config.module_code||'')}</div><h1>${esc(state.title)}</h1><p class="atlas-reader-sub">${state.count} original slides · original on the left, explanation on the right · zoom each side independently</p></div><div class="atlas-reader-links"><a href="/#home" target="_top" data-reader-menu>← All modules</a><button data-reader-notes>Saved notes</button>${state.pdfUnavailable?'<button type="button" data-attach-original>Attach original PDF</button>':`<a href="${esc(state.pdfUrl)}" target="_blank" rel="noopener">Original PDF ↗</a>`}${config.legacy!==false?`<a href="${esc(legacyUrl)}">Chapter guide</a>`:''}</div></header><nav class="atlas-reader-nav" aria-label="Slide navigation"><button data-reader-menu class="atlas-menu-button">← Menu</button><button data-reader-module class="atlas-module-button">Module</button><button data-prev aria-label="Previous slide">←</button><span class="atlas-nav-count">Slide</span><input type="number" min="1" max="${state.count}" value="1" aria-label="Go to slide"><span class="atlas-nav-count">/ ${state.count}</span><button data-next aria-label="Next slide">→</button><span class="atlas-reader-hint">← → keys · pinch each pane · hand tool to pan</span><select aria-label="Jump to chapter or revision"><option value="1">Chapters & revision…</option>${(data.chapters||[]).map(c=>`<option value="${Number(c.slide_start)||1}">${esc(c.title)} · ${c.slide_start}–${c.slide_end}</option>`).join('')}<option value="atlas-understanding">Final understanding</option><option value="atlas-revision">Detailed cheat sheet</option><option value="atlas-recall">Flashcards & practice</option><option value="atlas-guides">Complete chapter guides</option><option value="atlas-saved-notes">My saved notes</option></select></nav><main>${Array.from({length:state.count},(_,i)=>rowHTML(i+1)).join('')}${extras(data)}</main><div class="rail" hidden></div><section class="atlas-reader-ai" hidden><div class="atlas-ai-head"><span>Ask about this slide</span><button data-ai-close aria-label="Close AI">×</button></div><div class="atlas-ai-status">Free local tutor</div><textarea aria-label="Question" placeholder="What does this label mean? Why does this happen?"></textarea><div class="atlas-ai-actions"><button data-ask>Ask</button><button data-ask="picture">Explain picture</button><button data-stop hidden>Stop</button><button data-enable>Enable on-device AI</button></div><div class="atlas-ai-answer" role="status" aria-live="polite"></div></section>`;
+ const viewButton=document.createElement('button');viewButton.type='button';viewButton.dataset.studyView='';viewButton.textContent='Study view';viewButton.title='Expand the current slide and explanation within this window';viewButton.setAttribute('aria-pressed','false');
+ root.querySelector('nav select').before(viewButton);
+ viewButton.onclick=async()=>{
+  if(!state.studyView&&document.fullscreenElement){try{await document.exitFullscreen();}catch{}}
+  studyView(!state.studyView);
+ };
  root.querySelectorAll('.atlas-pane').forEach(setupZoom);
  root.addEventListener('click',event=>{
   if(!event.target.closest('[data-attach-original]'))return;
@@ -313,7 +350,7 @@ async function open(config){
  root.querySelector('[data-reader-module]').onclick=()=>window.StudyAtlasNotebook.home(config.module_id);
  root.querySelector('[data-reader-notes]').onclick=()=>{const d=window.StudyAtlasNotebook.context();window.StudyAtlasNotebook.open({lectureKey:d.lectureKey,title:d.title});};
  root.querySelector('[data-prev]').onclick=()=>go((current()?.n||1)-1);root.querySelector('[data-next]').onclick=()=>go((current()?.n||1)+1);
- const jump=root.querySelector('nav input');jump.onchange=()=>go(jump.value);root.querySelector('nav select').onchange=e=>{const target=e.target.value;if(target.startsWith('atlas-'))root.querySelector('#'+target)?.scrollIntoView({behavior:'smooth'});else go(target);};
+ const jump=root.querySelector('nav input');jump.onchange=()=>go(jump.value);root.querySelector('nav select').onchange=e=>{const target=e.target.value;if(target.startsWith('atlas-')){studyView(false);root.querySelector('#'+target)?.scrollIntoView({behavior:'smooth'});}else go(target);};
  root.querySelector('[data-ai-close]').onclick=()=>{state.controller?.abort();root.querySelector('.atlas-reader-ai').hidden=true;};
  root.querySelectorAll('[data-ask]').forEach(b=>b.onclick=()=>ask(b.dataset.ask==='picture'?'Explain the visual in this slide clearly. Describe the important structures, arrows or relationships and why they matter; do not just repeat labels.':root.querySelector('textarea').value.trim()||'Explain this slide simply.',{image:b.dataset.ask==='picture'}));
  root.querySelector('[data-stop]').onclick=()=>state.controller?.abort();
@@ -330,8 +367,13 @@ async function open(config){
  const observer=new IntersectionObserver(entries=>{entries.filter(e=>e.isIntersecting).forEach(e=>render(Number(e.target.dataset.slide)));},{rootMargin:'450px 0px'});root.querySelectorAll('.atlas-slide-row').forEach(r=>observer.observe(r));
  let scrolling=false;addEventListener('scroll',()=>{if(scrolling)return;scrolling=true;requestAnimationFrame(()=>{scrolling=false;const n=current()?.n||1;jump.value=n;try{sessionStorage.setItem('atlas-reader-position:'+state.id,String(n));}catch{}});},{passive:true});
  addEventListener('keydown',e=>{if(document.body.classList.contains('atlas-notebook-open')||e.target.closest('input,textarea,select,summary')||e.ctrlKey||e.metaKey||e.altKey||document.body.classList.contains('atlas-gdrawing'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go((current()?.n||1)+(e.key==='ArrowRight'?1:-1));}});
+ addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||!state.studyView||e.defaultPrevented||document.body.classList.contains('atlas-gdrawing')||document.body.classList.contains('atlas-gen-focus')||document.body.classList.contains('atlas-notebook-open'))return;
+  if(['atlasGenTools','atlasGenNotes','atlasGenBoard'].some(id=>document.getElementById(id)?.hidden===false)||!root.querySelector('.atlas-reader-ai').hidden)return;
+  e.preventDefault();studyView(false);
+ });
  if(!document.getElementById('atlasTimerModal'))await script('/study-tools.js?v=9');
- if(!document.getElementById('atlasGenDock'))await script('/generated-tools.js?v=26');
+ if(!document.getElementById('atlasGenDock'))await script('/generated-tools.js?v=27');
  await window.StudyAtlasNotebook.mountEnd().catch(()=>{});
  const requested=Number(new URLSearchParams(location.search).get('slide'));let saved=0;try{saved=Number(sessionStorage.getItem('atlas-reader-position:'+state.id));}catch{}
  const start=Math.max(1,Math.min(state.count,Math.round(requested||saved||1)));await render(start,true);if(start>1)go(start);

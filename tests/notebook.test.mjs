@@ -46,9 +46,10 @@ test('a quota failure never reports a note as saved or clears existing data',asy
  assert.equal((await S.list()).length,0);
 });
 
-async function toolsApp(){
+async function toolsApp(slideCount=1){
  const app=dom('<html><head></head><body><main><section class="chapter visualcard" data-slide="2"><h2>Slide two</h2><div data-side="original"><div class="atlas-pane-footer"></div></div><div class="visualcopy"><p>Explanation</p></div></section></main><div class="rail"></div><div class="atlas-reader-ai" hidden></div></body></html>');
  let slide=2;const row=app.document.querySelector('.visualcard');
+ for(let n=2;n<=slideCount;n++){const extra=row.cloneNode(true);extra.dataset.slide=String(n);row.parentElement.appendChild(extra);}
  app.window.StudyAtlasReader={id:()=>source.id,context:()=>({...source,module_id:source.moduleId}),current:()=>({n:slide,row}),aliases:()=>[],snapshot:async n=>image+'-'+n,go:n=>app.events.push(['go',n])};
  app.context.location.search='?id='+source.id;
  app.window.StudyAtlasInk={create:()=>({redraw(){},sync(){},isDrawing(){return false;}})};
@@ -124,6 +125,14 @@ test('progress ends at the last slide and ignores revision and saved notes below
  Object.defineProperty(app.document.documentElement,'scrollHeight',{value:9000});
  for(const [scroll,expected] of [[100,'0%'],[650,'50%'],[1200,'100%'],[6000,'100%'],[650,'50%']]){
   app.context.scrollY=scroll;app.window.dispatchEvent(new app.window.Event('scroll'));
+  assert.equal(app.document.getElementById('atlasGPct').textContent,expected);
+ }
+});
+test('study view progress follows the selected slide without measuring hidden slide layout',async()=>{
+ const app=await toolsApp(3);app.document.body.classList.add('atlas-study-view');
+ for(const row of app.document.querySelectorAll('.visualcard'))row.getBoundingClientRect=()=>{throw new Error('hidden geometry must not determine study view progress');};
+ for(const [n,expected] of [[1,'0%'],[2,'50%'],[3,'100%']]){
+  app.setSlide(n);app.window.dispatchEvent(new app.window.Event('atlas:study-view'));
   assert.equal(app.document.getElementById('atlasGPct').textContent,expected);
  }
 });

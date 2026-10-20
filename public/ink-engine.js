@@ -37,7 +37,9 @@ function drawPart(ctx,canvas,stroke,points,scale){
  ctx.restore();
 }
 function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnabled=()=>true,getInputMode=()=> 'auto',getTool=()=>({tool:'pen',size:3,color:'#ff4f70'}),usePrediction=false}){
- const ctx=canvas.getContext('2d',{desynchronized:true}),live=document.createElement('canvas');live.className='atlas-gpage-canvas atlas-gpage-live';live.style.pointerEvents='none';
+ // Completed ink must be composited with removal of the temporary SVG in the
+ // same frame. An independent front buffer can otherwise briefly lose the ink.
+ const ctx=canvas.getContext('2d'),live=document.createElement('canvas');live.className='atlas-gpage-canvas atlas-gpage-live';live.style.pointerEvents='none';
  // Overlay geometry never depends on a stylesheet arriving first.
  for(const layer of [canvas,live])Object.assign(layer.style,{position:'absolute',inset:'0',width:'100%',height:'100%'});
  canvas.style.touchAction='none';canvas.style.userSelect='none';
@@ -53,7 +55,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   Object.assign(layer.style,{inset:'auto',left:box.x/canvas.width*100+'%',top:box.y/canvas.height*100+'%',width:box.w/canvas.width*100+'%',height:box.h/canvas.height*100+'%'});
  }
  function transform(context,layer,box){const x=layer.width/box.w,y=layer.height/box.h;context.setTransform(x,0,0,y,-box.x*x,-box.y*y);}
- function preparePreview(){
+ function visibleClip(){
   // Long explanations can be thousands of pixels tall. Only the visible part
   // needs a frequently updated texture; the saved vector coordinates stay full-size.
   const viewport=canvas.closest('.atlas-zoom-viewport')?.getBoundingClientRect()||rect;
@@ -61,7 +63,10 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   const left=Math.max(rect.left,viewport.left,0),top=Math.max(rect.top,viewport.top,0);
   const right=Math.min(rect.left+rect.width,viewport.left+viewport.width,screenWidth),bottom=Math.min(rect.top+rect.height,viewport.top+viewport.height,screenHeight);
   const x=Math.max(0,Math.floor((left-rect.left)*canvas.width/Math.max(1,rect.width))),y=Math.max(0,Math.floor((top-rect.top)*canvas.height/Math.max(1,rect.height)));
-  clip={x,y,w:Math.max(1,Math.min(canvas.width-x,Math.ceil((right-rect.left)*canvas.width/Math.max(1,rect.width))-x)),h:Math.max(1,Math.min(canvas.height-y,Math.ceil((bottom-rect.top)*canvas.height/Math.max(1,rect.height))-y))};
+  return {x,y,w:Math.max(1,Math.min(canvas.width-x,Math.ceil((right-rect.left)*canvas.width/Math.max(1,rect.width))-x)),h:Math.max(1,Math.min(canvas.height-y,Math.ceil((bottom-rect.top)*canvas.height/Math.max(1,rect.height))-y))};
+ }
+ function preparePreview(){
+  clip=visibleClip();
   previewRatio=Math.min(1,rect.width/Math.max(1,canvas.width)*Math.min(1.5,root.devicePixelRatio||1),Math.sqrt(350000/(clip.w*clip.h)));
   const w=Math.max(1,Math.floor(clip.w*previewRatio)),h=Math.max(1,Math.floor(clip.h*previewRatio));
   if(live.width!==w)live.width=w;if(live.height!==h)live.height=h;
@@ -101,7 +106,10 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
    Object.assign(fastSvg.style,{position:'absolute',inset:'0',width:'100%',height:'100%',overflow:'hidden',pointerEvents:'none',zIndex:'71'});
    live.after(fastSvg);
   }
-  fastSvg.setAttribute('viewBox','0 0 '+canvas.width+' '+canvas.height);
+  // Keep the changing SVG viewport bounded too. A full-height SVG over a long
+  // explanation can invalidate a much larger surface on every raw pen update.
+  const box=visibleClip();place(fastSvg,box);
+  fastSvg.setAttribute('viewBox',box.x+' '+box.y+' '+box.w+' '+box.h);
   fastSvg.setAttribute('preserveAspectRatio','none');
   fastSvg.replaceChildren?.();
   fastPath=null;fastData='';fastShown=0;fastSegments=0;
@@ -170,7 +178,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  function clearPreview(){if(bounds)preview.clearRect(...crop());bounds=null;}
  function clearPrediction(){if(tipTimer!==null)clearTimeout(tipTimer);tipTimer=null;if(tip&&!tip.hidden){tip.hidden=true;tip.style.display='none';}}
  function predict(e){
-  if(!usePrediction||pointerType!=='pen'||active?.tool!=='pen'||!Number.isFinite(e.timeStamp))return;
+  if(!usePrediction||fastSvg||pointerType!=='pen'||active?.tool!=='pen'||!Number.isFinite(e.timeStamp))return;
   let predicted=[];try{predicted=e.getPredictedEvents?.()||[];}catch{}
   const last=active.pts.at(-1),points=[last];let timestamp=e.timeStamp;
   for(const event of predicted){
@@ -279,7 +287,9 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  function finish(e){
   if(!active||pid!==e.pointerId)return;
   if(e.type==='pointerup')appendPoint(e,true);
-  commitSegment();release();baseTool=null;onChange();
+  commitSegment();release();baseTool=null;
+  if(root.dispatchEvent&&root.Event)root.dispatchEvent(new root.Event('atlas:ink-idle'));
+  onChange();
  }
  canvas.addEventListener('pointerdown',start);
  canvas.addEventListener('pointerenter',rememberPen);
@@ -295,5 +305,5 @@ document.addEventListener?.('pointerover',rememberPen,{capture:true,passive:true
 root.addEventListener?.('pointerup',e=>owner?.finish(e),true);
 root.addEventListener?.('pointercancel',e=>owner?.finish(e),true);
 root.addEventListener?.('blur',()=>{if(owner)owner.finish({pointerId:owner.pid});});
-const api={create,drawPart,isDrawing:()=>!!owner};if(typeof module==='object'&&module.exports)module.exports=api;else root.StudyAtlasInk=api;
+const api={create,drawPart,isDrawing:()=>!!owner,stop:()=>owner?.finish({pointerId:owner.pid})};if(typeof module==='object'&&module.exports)module.exports=api;else root.StudyAtlasInk=api;
 })(typeof window!=='undefined'?window:globalThis);

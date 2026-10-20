@@ -294,6 +294,32 @@ body.atlas-slide-mode .atlas-gdrawing .atlas-pan-toggle{pointer-events:auto}
 /* Keep the pen's moving layer out of expensive backdrop compositing. */
 body.atlas-gdrawing #atlasSlideReader .atlas-reader-nav{backdrop-filter:none;-webkit-backdrop-filter:none}
 
+/* A stable window-filling study area with an explicit exit, independent of
+   browser fullscreen and its hover-triggered exit controls. */
+html.atlas-study-view,body.atlas-study-view{overflow:hidden!important}
+body.atlas-study-view #atlasSlideReader{position:fixed;inset:0;z-index:6000;height:100vh;height:100dvh;min-height:0;padding:10px 96px 76px 10px;display:flex;flex-direction:column;background:#090e19}
+body.atlas-study-view #atlasSlideReader>.atlas-reader-head,
+body.atlas-study-view #atlasSlideReader main>:not(.atlas-study-current){display:none!important}
+body.atlas-study-view #atlasSlideReader>.atlas-reader-nav{position:relative;top:auto;width:100%;max-width:none;margin:0 0 8px;flex:none;flex-wrap:wrap;backdrop-filter:none;-webkit-backdrop-filter:none}
+body.atlas-study-view #atlasSlideReader .atlas-reader-hint{display:none}
+body.atlas-study-view.atlas-gen-focus #atlasSlideReader>.atlas-reader-nav{display:flex!important}
+body.atlas-study-view #atlasSlideReader main{flex:1;min-height:0;max-width:none!important;margin:0!important}
+body.atlas-study-view #atlasSlideReader .atlas-study-current{height:100%;min-height:0;margin:0!important;display:flex;flex-direction:column;overflow:hidden;box-shadow:none}
+body.atlas-study-view #atlasSlideReader .atlas-study-current>.atlas-row-head{flex:none}
+body.atlas-study-view #atlasSlideReader .atlas-study-current>.atlas-pair{flex:1;min-height:0;align-items:stretch}
+body.atlas-study-view #atlasSlideReader .atlas-study-current>.atlas-slide-checks{display:none}
+body.atlas-study-view #atlasSlideReader .atlas-pane{min-height:0;display:flex;flex-direction:column}
+body.atlas-study-view #atlasSlideReader .atlas-pane-toolbar,
+body.atlas-study-view #atlasSlideReader .atlas-pane-footer{flex:none}
+body.atlas-study-view #atlasSlideReader .atlas-zoom-viewport{flex:1;min-height:0;max-height:none;contain:paint}
+body.atlas-study-view #atlasSlideReader [data-study-view]{border-color:var(--atlas-mod2,#5ed6bd);white-space:nowrap}
+@media(max-width:760px){
+ body.atlas-study-view #atlasSlideReader{padding:6px 78px 70px 6px}
+ body.atlas-study-view #atlasSlideReader .atlas-pair{grid-template-rows:minmax(0,1fr) minmax(0,1fr)}
+ body.atlas-study-view #atlasSlideReader .atlas-pane-footer{padding:4px 8px}
+ body.atlas-study-view #atlasSlideReader .atlas-origin-badge{display:none}
+}
+
 /* v10: put the actual exam question in a full-width, always-visible strip. */
 #atlasSlideReader .atlas-midterm-question-banner{
   position:relative;

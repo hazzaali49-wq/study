@@ -378,8 +378,8 @@ test('pen barrel eraser can switch from the fast SVG path to persistent canvas i
 test('the newest drawing scripts invalidate stale cached engines',()=>{
  const tools=fs.readFileSync(new URL('../public/generated-tools.js',import.meta.url),'utf8');
  const reader=fs.readFileSync(new URL('../public/slide-reader.js',import.meta.url),'utf8');
- assert.match(tools,/\/ink-engine\.js\?v=12/);
- assert.match(reader,/\/generated-tools\.js\?v=26/);
+ assert.match(tools,/\/ink-engine\.js\?v=13/);
+ assert.match(reader,/\/generated-tools\.js\?v=27/);
 });
 
 test('Chromium delegated ink is used when available without delaying SVG fallback or changing saved pen data',async()=>{
@@ -411,4 +411,32 @@ test('failed delegated ink initialization still draws pen input immediately',asy
  assert.equal(s.history[0].pts.at(-1).x,.18);
  s.c.events.pointerup({...s.event(200),type:'pointerup',timeStamp:3});
  assert.equal(s.counts().saves,1);
+});
+
+test('live SVG pen feedback is clipped to the visible scrolled and zoomed viewport',()=>{
+ const s=setup(0,true,null,null,false,true);let measurements=0;
+ Object.assign(s.c,{width:720,height:3600,clientWidth:600});
+ const rect={left:-300,top:-1800,width:1200,height:6000};
+ s.c.getBoundingClientRect=()=>{measurements++;return rect;};
+ s.c.closest=selector=>selector==='.atlas-zoom-viewport'?{getBoundingClientRect:()=>({left:100,top:100,width:500,height:600})}:null;
+ Object.assign(s.window,{innerWidth:1000,innerHeight:900});
+ s.c.events.pointerdown({...s.event(150),clientY:200,type:'pointerdown',timeStamp:1});
+ const overlay=s.layers[1],box=overlay.getAttribute('viewBox').split(' ').map(Number);
+ assert.ok(box[2]*box[3]<s.c.width*s.c.height*.05,'changes are contained to a small visible part of the long explanation');
+ assert.equal(s.layers[0].width*s.layers[0].height,1,'clipping SVG does not allocate a scratch bitmap');
+ for(let x=151;x<=200;x++)s.c.events.pointerrawupdate({...s.event(x),clientY:300,type:'pointerrawupdate',timeStamp:x});
+ const last=s.history[0].pts.at(-1),screen=(axis,p)=>{
+  const start=axis==='x'?rect.left:rect.top,length=axis==='x'?rect.width:rect.height,index=axis==='x'?0:1;
+  const offset=parseFloat(overlay.style[axis==='x'?'left':'top'])/100*length,size=parseFloat(overlay.style[axis==='x'?'width':'height'])/100*length;
+  return start+offset+(p*(axis==='x'?s.c.width:s.c.height)-box[index])/box[index+2]*size;
+ };
+ assert.ok(Math.abs(screen('x',last.x)-200)<.001);assert.ok(Math.abs(screen('y',last.y)-300)<.001);assert.equal(measurements,1);
+ s.c.events.pointerup({...s.event(205),clientY:305,type:'pointerup',timeStamp:201});
+ assert.equal(overlay.children.length,0);assert.equal(s.history[0].pts.at(-1).y,2105/6000);
+});
+
+test('global stop commits active ink before a study-view geometry change',()=>{
+ const s=setup(0,true,null,null,false,true);s.c.events.pointerdown(s.event(100));s.c.events.pointerrawupdate(s.event(200));
+ s.window.StudyAtlasInk.stop();assert.equal(s.ink.isDrawing(),false);assert.equal(s.counts().saves,1);assert.equal(s.history[0].pts.at(-1).x,.2);
+ s.window.StudyAtlasInk.stop();assert.equal(s.counts().saves,1);
 });

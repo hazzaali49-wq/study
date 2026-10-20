@@ -25,10 +25,10 @@
     // These tools are also loaded by minimal lecture pages with no tool styles.
     for(const file of ['generated-tools','study-tools']){
       if(!document.querySelector('link[href*="'+file+'.css"]')){
-        const css=document.createElement('link');css.rel='stylesheet';css.href='/'+file+'.css?v=22';document.head.appendChild(css);
+        const css=document.createElement('link');css.rel='stylesheet';css.href='/'+file+'.css?v=23';document.head.appendChild(css);
       }
     }
-    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=12';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
+    if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=13';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
     if(document.getElementById('atlasGenDock')) return;
     for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=17';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
     if(!document.querySelector('link[href*="study-notebook.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/study-notebook.css?v=1';document.head.appendChild(css);}
@@ -244,6 +244,10 @@
     const slideRows=[...document.querySelectorAll('.atlas-slide-row')];
     const progressRows=slideRows.length?slideRows:[...document.querySelectorAll('.visualcard')];
     function progress(){
+      if(document.body.classList.contains('atlas-study-view')){
+        const n=window.StudyAtlasReader?.current()?.n||1,p=progressRows.length<=1?100:Math.round((n-1)/(progressRows.length-1)*100);
+        document.getElementById('atlasGFill').style.height=p+'%';document.getElementById('atlasGPct').textContent=p+'%';return;
+      }
       const first=progressRows[0],last=progressRows.at(-1);
       const start=first?Math.max(0,first.getBoundingClientRect().top+scrollY):0;
       const end=last?last.getBoundingClientRect().bottom+scrollY:document.documentElement.scrollHeight;
@@ -252,6 +256,7 @@
       document.getElementById('atlasGFill').style.height=p+'%';document.getElementById('atlasGPct').textContent=p+'%';
     }
     addEventListener('scroll',progress,{passive:true});addEventListener('resize',progress,{passive:true});
+    addEventListener('atlas:study-view',progress);
     if(progressRows.length){const observer=new ResizeObserver(progress);progressRows.forEach(row=>observer.observe(row));}
     progress();
 
