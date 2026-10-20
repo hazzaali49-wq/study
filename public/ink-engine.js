@@ -203,7 +203,14 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  }
  function inContact(e){return Number.isFinite(e.buttons)?!!(e.buttons&33)||e.pressure>0:e.pressure>0||(e.type==='pointerdown'&&e.button!==2);}
  function toolFor(e){const eraser=pointerType==='pen'&&(Number.isFinite(e.buttons)?!!(e.buttons&34):e.button===5||e.button===2);return eraser?'eraser':baseTool.tool;}
- function startSegment(e){active={...baseTool,tool:toolFor(e),pts:[point(e)]};painted=0;lastPaintTime=-Infinity;lastSample=Number.isFinite(e.timeStamp)?e.timeStamp:-Infinity;bounds=null;live.style.opacity=String(opacityFor(active));getStrokes().push(active);if(!beginFastPen())paint();}
+ function startSegment(e){
+  active={...baseTool,tool:toolFor(e),pts:[point(e)]};
+  painted=0;lastPaintTime=-Infinity;lastSample=Number.isFinite(e.timeStamp)?e.timeStamp:-Infinity;bounds=null;
+  live.style.opacity=String(opacityFor(active));getStrokes().push(active);
+  // Opening a large scratch bitmap on every pen-down is unnecessarily slow.
+  // Prepare it only for highlighter, eraser or non-SVG fallback drawing.
+  if(!beginFastPen()){if(!clip)preparePreview();paint();}
+ }
  function release(){const pointer=pid;pid=null;if(owner?.canvas===canvas)owner=null;try{canvas.releasePointerCapture?.(pointer);}catch{}}
  function discard(){
   if(!active)return;const erased=active.tool==='eraser',strokes=getStrokes(),index=strokes.indexOf(active);if(index>=0)strokes.splice(index,1);
@@ -215,7 +222,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   if(type==='pen'&&!inContact(e))return;
   if(type!=='pen'&&(getInputMode()==='pen'||Date.now()-lastPenAt<1000||e.isPrimary===false||e.button>0)){consume(e);return;}
   if(active||owner){consume(e);return;}
-  consume(e);onBeforeStart();rect=canvas.getBoundingClientRect();sync();preparePreview();pid=e.pointerId;pointerType=type;baseTool={...getTool()};
+  consume(e);onBeforeStart();rect=canvas.getBoundingClientRect();sync();clip=null;pid=e.pointerId;pointerType=type;baseTool={...getTool()};
   owner={canvas,pid,type,finish,discard};startSegment(e);try{canvas.setPointerCapture?.(pid);}catch{}
  }
  function appendPoint(e,exact=false){
