@@ -368,3 +368,20 @@ body.atlas-gdrawing #atlasSlideReader .atlas-reader-nav{backdrop-filter:none;-we
  #atlasSlideReader .atlas-midterm-banner-item p,#atlasSlideReader .atlas-midterm-banner-item small{grid-column:1}
 }
 
+/* Identical lecture reader shell while an original PDF is being attached locally. */
+#atlasSlideReader .atlas-await-original{
+ position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;
+ justify-content:center;align-items:center;gap:12px;text-align:center;
+ padding:clamp(16px,5%,36px);background:linear-gradient(150deg,#142338,#0e1829);
+ color:#e5efff;border:1px dashed #42627d;min-height:260px;
+}
+#atlasSlideReader .atlas-await-original .atlas-await-icon{font-size:46px;color:#a9bff2;line-height:1}
+#atlasSlideReader .atlas-await-original strong{font-size:18px;font-weight:850}
+#atlasSlideReader .atlas-await-original p{font-size:13px;max-width:380px;line-height:1.55;color:#b9cce4;margin:0}
+#atlasSlideReader .atlas-await-original small{font-size:11px;color:#99b3ce}
+#atlasSlideReader [data-attach-original]{
+ color:#082b25;background:#9ce8ce;border:1px solid #b7fae4;
+ border-radius:11px;padding:10px 16px;cursor:pointer;font:inherit;font-size:13px;font-weight:850;
+}
+#atlasSlideReader .atlas-reader-links [data-attach-original]{margin-right:4px}
+#atlasSlideReader .atlas-await-original [data-attach-original]{font-size:14px}
