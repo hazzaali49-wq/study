@@ -381,3 +381,34 @@ test('the newest drawing scripts invalidate stale cached engines',()=>{
  assert.match(tools,/\/ink-engine\.js\?v=11/);
  assert.match(reader,/\/generated-tools\.js\?v=25/);
 });
+
+test('Chromium delegated ink is used when available without delaying SVG fallback or changing saved pen data',async()=>{
+ const s=setup(0,true,null,null,false,true);
+ const updates=[];let presentationArea=null;
+ s.window.navigator={ink:{requestPresenter:({presentationArea:area})=>{
+  presentationArea=area;
+  return Promise.resolve({updateInkTrailStartPoint:(event,style)=>updates.push({event,style})});
+ }}};
+ s.c.events.pointerdown({...s.event(100),type:'pointerdown',timeStamp:1});
+ assert.equal(presentationArea,s.c);
+ assert.equal(s.layers[1].children[0].tag,'circle','fast SVG shows before the delegated Ink promise resolves');
+ await Promise.resolve();await Promise.resolve();
+ s.c.events.pointerrawupdate({...s.event(175),type:'pointerrawupdate',timeStamp:2});
+ assert.equal(updates.length,1);
+ assert.equal(updates[0].event.clientX,175);
+ assert.equal(updates[0].style.color,'#ff4f70');
+ assert.ok(updates[0].style.diameter>=1);
+ s.c.events.pointerup({...s.event(190),type:'pointerup',timeStamp:3});
+ assert.equal(s.history[0].pts.at(-1).x,.19);
+});
+test('failed delegated ink initialization still draws pen input immediately',async()=>{
+ const s=setup(0,true,null,null,false,true);
+ s.window.navigator={ink:{requestPresenter:()=>Promise.reject(new Error('not supported here'))}};
+ s.c.events.pointerdown({...s.event(100),type:'pointerdown',timeStamp:1});
+ await Promise.resolve();await Promise.resolve();
+ s.c.events.pointerrawupdate({...s.event(180),type:'pointerrawupdate',timeStamp:2});
+ assert.equal(s.layers[1].children[0].tag,'path');
+ assert.equal(s.history[0].pts.at(-1).x,.18);
+ s.c.events.pointerup({...s.event(200),type:'pointerup',timeStamp:3});
+ assert.equal(s.counts().saves,1);
+});
