@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-function setup(historyCount,raw=false,getTool,getInputMode,usePrediction=false){
+function setup(historyCount,raw=false,getTool,getInputMode,usePrediction=false,nativeSvg=false){
  let strokesPainted=0,clears=0,saves=0,frames=[];const compositeAlphas=[],layers=[],copies=[],rootEvents={};
  function canvas(){
   const events={},stack=[],operations=[];let matrix=[1,0,0,1,0,0];
@@ -13,7 +13,19 @@ function setup(historyCount,raw=false,getTool,getInputMode,usePrediction=false){
  const c=canvas(),history=Array.from({length:historyCount},()=>({tool:'pen',size:6,color:'#f00',pts:[{x:.1,y:.1},{x:.2,y:.2}]}));
  const window={addEventListener:(name,callback)=>rootEvents[name]=callback,requestAnimationFrame:f=>(frames.push(f),frames.length),cancelAnimationFrame(){}};
  if(raw)window.onpointerrawupdate=null;
- const sandbox={window,document:{createElement:()=>canvas()},setTimeout,clearTimeout,Date};vm.runInNewContext(fs.readFileSync(new URL('../public/ink-engine.js',import.meta.url),'utf8'),sandbox);
+ function svgNode(tag){
+  const el={tag,style:{},attrs:{},children:[],parent:null,
+   setAttribute(k,v){this.attrs[k]=String(v);},getAttribute(k){return this.attrs[k];},
+   appendChild(child){child.parent=this;this.children.push(child);return child;},
+   replaceChildren(...children){this.children.forEach(child=>child.parent=null);this.children=[];children.forEach(child=>this.appendChild(child));},
+   remove(){if(this.parent){this.parent.children=this.parent.children.filter(child=>child!==this);this.parent=null;}},
+   after(child){layers.push(child);}
+  };
+  return el;
+ }
+ const doc={createElement:()=>canvas()};
+ if(nativeSvg)doc.createElementNS=(ns,tag)=>svgNode(tag);
+ const sandbox={window,document:doc,setTimeout,clearTimeout,Date};vm.runInNewContext(fs.readFileSync(new URL('../public/ink-engine.js',import.meta.url),'utf8'),sandbox);
  const ink=window.StudyAtlasInk.create({canvas:c,getStrokes:()=>history,onChange:()=>saves++,...(getTool?{getTool}:{} ),...(getInputMode?{getInputMode}:{}),usePrediction});
  const event=x=>({pointerId:1,pointerType:'pen',button:0,pressure:.5,clientX:x,clientY:100,preventDefault(){},stopPropagation(){}});
  return {c,ink,event,history,compositeAlphas,layers,copies,rootEvents,window,makeCanvas:canvas,paint:()=>{const work=frames;frames=[];work.forEach(f=>f());},counts:()=>({strokesPainted,clears,saves})};
@@ -292,4 +304,52 @@ test('rapid consecutive words remain in ink history after the temporary layer cl
  const before=s.c.operations.filter(op=>op[0]==='line').length;
  s.ink.redraw();
  assert.equal(s.c.operations.filter(op=>op[0]==='line').length,before*2,'redraw repeats every recorded vector segment across all thirty strokes');
+});
+
+test('native stylus draws a visible SVG stroke during the pointer event, with no canvas repaint wait',()=>{
+ const s=setup(0,true,null,null,false,true);
+ s.c.events.pointerdown({...s.event(100),type:'pointerdown',timeStamp:1});
+ assert.equal(s.layers.length,2,'native pen draws on top of the permanent and scratch canvases');
+ const overlay=s.layers[1];assert.equal(overlay.tag,'svg');
+ assert.equal(overlay.children[0].tag,'circle','pen down is immediately visible as a dot');
+ assert.equal(overlay.style.pointerEvents,'none','fast feedback must not steal pointer events');
+ const before=s.counts().strokesPainted;
+ s.c.events.pointerrawupdate({...s.event(125),type:'pointerrawupdate',timeStamp:2});
+ assert.equal(overlay.children[0].tag,'path');
+ assert.match(overlay.children[0].getAttribute('d'),/125/,'the actual pen tip appears synchronously');
+ assert.equal(s.counts().strokesPainted,before,'no canvas drawing occurs during live pen movement');
+ s.c.events.pointerup({...s.event(145),type:'pointerup',timeStamp:3});
+ assert.equal(overlay.children.length,0,'temporary SVG clears after vector ink is committed');
+ assert.equal(s.history[0].pts.at(-1).x,.145);
+ assert.deepEqual(s.c.operations.filter(op=>op[0]==='line').at(-1),['line',145,100]);
+ assert.equal(s.counts().saves,1);
+});
+test('fast SVG pen feedback retains every path chunk in a long hardware event',()=>{
+ const s=setup(0,true,null,null,false,true);
+ s.c.events.pointerdown({...s.event(100),type:'pointerdown',timeStamp:1});
+ const samples=Array.from({length:100},(_,i)=>({...s.event(102+i*2),timeStamp:2+i}));
+ s.c.events.pointermove({...s.event(305),type:'pointermove',timeStamp:103,getCoalescedEvents:()=>samples});
+ const overlay=s.layers[1],paths=overlay.children.filter(child=>child.tag==='path');
+ assert.ok(paths.length>=3,'fast feedback is split into cheap bounded path chunks');
+ assert.ok(paths.every(p=>p.getAttribute('d')?.includes('L')),'none of the old path chunks disappear');
+ assert.ok(paths.at(-1).getAttribute('d').includes('305'),'the last pen location is visible before the frame');
+ assert.equal(s.counts().strokesPainted,0,'the large ink canvas is not repainted on pen movement');
+ s.c.events.pointerup({...s.event(310),type:'pointerup',timeStamp:104});
+ assert.equal(overlay.children.length,0);
+ assert.equal(s.history[0].pts.at(-1).x,.31);
+});
+test('two immediate SVG pen words do not overwrite prior persistent writing',()=>{
+ const s=setup(0,true,null,null,false,true);
+ for(let i=0;i<2;i++){
+  const x=100+i*100,time=1+i*4;
+  s.c.events.pointerdown({...s.event(x),type:'pointerdown',timeStamp:time});
+  s.c.events.pointerrawupdate({...s.event(x+20),type:'pointerrawupdate',timeStamp:time+1});
+  assert.ok(s.layers[1].children.length>0);
+  s.c.events.pointerup({...s.event(x+40),type:'pointerup',timeStamp:time+2});
+  assert.equal(s.layers[1].children.length,0);
+ }
+ assert.equal(s.history.length,2);
+ assert.equal(s.counts().saves,2);
+ s.ink.redraw();
+ assert.equal(s.history.length,2);
 });
