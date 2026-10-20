@@ -18,7 +18,7 @@ export default async (req,context)=>{
  // Put the intercept before legacy inline AI scripts. It never calls a paid endpoint.
  html=html.replace(/<body([^>]*)>/i,'<body$1><script src="/slide-notes.js?v=3"></script><script src="/local-ai.js?v=5"></script>');
  const legacy=new URL(req.url).searchParams.get('view')==='chapters';
- html=html.replace('</body>',`<script src="/study-tools.js?v=8"></script><script src="/slide-reader.js?v=22"></script>${legacy?'<script src="/generated-tools.js?v=22"></script>':''}</body>`);
+ html=html.replace('</body>',`<script src="/study-tools.js?v=8"></script><script src="/slide-reader.js?v=27"></script>${legacy?'<script src="/generated-tools.js?v=26"></script>':''}</body>`);
  return new Response(html,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});
 };
 export const config={path:'/generated/:id',method:'GET'};
