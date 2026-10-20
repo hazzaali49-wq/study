@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anterior Compartment of the Thigh · Study Atlas</title>
+<link rel="stylesheet" href="/slide-reader.css?v=27">
+<link rel="stylesheet" href="/anatomy-study.css?v=1">
+<style>
+:root{color-scheme:dark;--bg:#08111e;--panel:#111d30;--line:#30445d;--muted:#b9cbdf;--green:#92e4c1;--text:#eef5fc}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,sans-serif}
+body:not(.atlas-slide-mode) #anteriorStudy{max-width:1180px;margin:auto;padding:22px 22px 70px}
+.atop{background:linear-gradient(130deg,#152c41,#102039);border:1px solid var(--line);border-radius:22px;padding:24px}
+.atop h1{font-size:clamp(1.5rem,3.7vw,2.65rem);line-height:1.15;margin:12px 0}
+.atop p{max-width:850px;color:var(--muted)}
+.alabel{letter-spacing:.13em;text-transform:uppercase;color:var(--green);font-weight:800;font-size:.75rem}
+.actionbar{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}
+.actionbar button,.actionbar a,.chapter-nav button{border:1px solid #4a6b81;background:#193347;color:#e5f9f3;cursor:pointer;padding:11px 15px;border-radius:11px;font-weight:800;text-decoration:none}
+.actionbar .primary{background:#9feac8;color:#0d2834}
+#sourceStatus{font-size:.88rem;color:#cedbee;margin:10px 0}
+.chapter-nav{display:flex;gap:8px;overflow-x:auto;margin:20px 0;padding-bottom:6px}
+.chapter-nav button{flex-shrink:0;font-size:.78rem}
+#anteriorSlideList{display:grid;gap:15px}
+.slide-card{background:var(--panel);border:1px solid var(--line);padding:18px 23px;border-radius:17px;scroll-margin-top:15px}
+.slide-card h2{font-size:1.21rem;margin:5px 0 10px;color:#fff}
+.slide-card p{white-space:pre-wrap;margin:9px 0}
+.slide-card .number{font-size:.74rem;color:var(--green);font-weight:950;letter-spacing:.11em}
+.slide-card .key{border-left:3px solid var(--green);padding:9px 13px;background:#173b37;margin:12px 0;color:#e8fcf3}
+.slide-card ul{padding-left:22px;margin:10px 0}.slide-card li{margin:4px 0}
+.defs{border-top:1px solid var(--line);margin-top:13px;padding-top:8px}
+.defs summary,.slide-card details>summary{cursor:pointer;color:#b5edd4;font-weight:800}
+.defs dl{display:grid;grid-template-columns:minmax(130px,190px) 1fr;gap:8px;margin:10px 0}
+.defs dt{font-weight:800;color:#d9f7ec}.defs dd{margin:0;color:#cbd6e6}
+#sourceSearch{width:100%;border:1px solid #57748b;background:#0a1829;border-radius:12px;color:white;padding:12px;font-size:1rem;margin:8px 0 20px}
+#anteriorPractice{margin-top:28px;background:#112338;border:1px solid var(--line);border-radius:18px;padding:20px}
+.qa{margin:18px 0;padding:15px;border:1px solid #39516a;border-radius:13px;background:#0c1a2c}
+.qa legend{font-weight:800}.qa .options{display:grid;gap:8px;margin-top:10px}
+.qa button{border:1px solid #33485d;background:#14283f;color:#e3ebf9;text-align:left;padding:10px 12px;border-radius:9px;cursor:pointer}
+.qa button.selected{border-color:#b4f0cc;background:#204e41}
+.qa .feedback{color:#eef6ff;padding:10px 0}
+#anteriorStudy[hidden]{display:none!important}
+@media(max-width:700px){.defs dl{grid-template-columns:1fr}.slide-card{padding:15px}.atop{padding:17px}}
+</style></head>
+<body data-atlas-module="anat20060">
+<main id="anteriorStudy">
+ <div class="atop">
+  <a href="/#module-anat20060" style="color:#9feac8;text-decoration:none">← Locomotor Biology</a>
+  <div class="alabel">ANAT20060 · Lecture 05 · complete beginner guide</div>
+  <h1>Anterior compartment of the thigh &amp; femoral triangle</h1>
+  <p>Every one of the 27 original slide topics is explained with a plain-English walk-through, important labels, the reason it matters, quick definitions and an exam takeaway. Includes 22 five-option questions, with the original three lecture questions clearly labelled.</p>
+  <div class="actionbar"><button type="button" class="primary" id="attachOriginal">Attach original PDF · unlock side-by-side slides</button><button type="button" id="viewGuide">Read the full guide</button><a href="#anteriorPractice">Practice questions ↓</a></div>
+  <input type="file" id="sourcePicker" hidden accept="application/pdf,.pdf">
+  <div id="sourceStatus" role="status">The explanations are ready. Attach the unchanged 27-page source PDF once on this browser to activate the normal slide-by-slide reader with the original on the left. Nothing is uploaded to Netlify or sent to an AI service.</div>
+ </div>
+ <nav class="chapter-nav" id="anteriorChapters" aria-label="Choose a lecture chapter"></nav>
+ <label for="sourceSearch" class="alabel">Find a term in every slide</label>
+ <input type="search" id="sourceSearch" placeholder="Search femoral ring, quadriceps, saphenous nerve…">
+ <div id="anteriorSlideList"></div>
+ <section id="anteriorPractice"><h2>Practice — select an answer for immediate feedback</h2><p>The last three questions are copied from the lecture; the others are additional practice based on its slides.</p><div id="anteriorQuestions"></div></section>
+</main>
+<script src="/anterior-thigh-first.js?v=1"></script>
+<script src="/anterior-thigh-second.js?v=2"></script>
+<script src="/anterior-thigh-course.js?v=1"></script>
+<script type="application/json" id="atlasLectureMeta">{"id":"anterior-thigh","short":"anterior-thigh","noteKey":"anterior-thigh","title":"Anterior Compartment of the Thigh & Femoral Triangle","module_id":"anat20060","module_code":"ANAT20060","number":5}</script>
+<script src="/pdf-source.js?v=anatomy-1"></script>
+<script src="/slide-reader.js?v=27"></script>
+<script>
+(()=>{
+'use strict';
+const data=window.StudyAtlasAnteriorData,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+const list=document.getElementById('anteriorSlideList'),search=document.getElementById('sourceSearch');
+if(!data||data.slides.length!==27){list.textContent='The complete lecture data could not load. Reload this page.';return;}
+function block(slide){
+ const defs=slide.definitions||[];
+ return '<article class="slide-card" id="source-slide-'+slide.n+'"><span class="number">SOURCE SLIDE '+String(slide.n).padStart(2,'0')+' / 27</span>'+
+ '<h2>'+esc(slide.title)+'</h2><p>'+esc(slide.explain)+'</p><div class="key"><b>Remember:</b> '+esc(slide.takeaway)+'</div>'+
+ '<ul>'+slide.key_points.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul>'+
+ '<details class="defs"><summary>Explain every term ('+defs.length+')</summary><dl>'+defs.map(d=>'<dt>'+esc(d.term)+'</dt><dd>'+esc(d.meaning)+'</dd>').join('')+'</dl></details>'+
+ (slide.extra?'<details><summary>Memory or clinical connection</summary><p>'+esc(slide.extra)+'</p></details>':'')+
+ '<details><summary>Labels and wording from this source slide</summary><p>'+esc(slide.source||'Image-based source; refer to the unchanged original PDF.')+'</p></details></article>';
+}
+list.innerHTML=data.slides.map(block).join('');
+document.getElementById('anteriorChapters').innerHTML=data.chapters.map((c,i)=>'<button type="button" data-go="'+c.slide_start+'" title="'+esc(c.guide)+'">'+(i+1)+'. '+esc(c.title)+'</button>').join('');
+document.getElementById('anteriorChapters').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)document.getElementById('source-slide-'+b.dataset.go)?.scrollIntoView({behavior:'smooth'});});
+search.addEventListener('input',()=>{const q=search.value.trim().toLowerCase();list.querySelectorAll('.slide-card').forEach((el,i)=>el.hidden=!!q&&!JSON.stringify(data.slides[i]).toLowerCase().includes(q));});
+const questions=document.getElementById('anteriorQuestions');
+questions.innerHTML=data.questions.map((q,i)=>'<fieldset class="qa" data-index="'+i+'"><legend>'+(i+1)+'. '+esc(q.question)+'</legend><div class="options">'+q.options.map((op,j)=>'<button type="button" data-option="'+j+'">'+String.fromCharCode(65+j)+'. '+esc(op)+'</button>').join('')+'</div><div class="feedback" role="status" aria-live="polite"></div><small><a href="#source-slide-'+q.slide_refs[0]+'" style="color:#9feac8">Source slide '+q.slide_refs[0]+' ↑</a></small></fieldset>').join('');
+questions.addEventListener('click',e=>{const btn=e.target.closest('[data-option]');if(!btn)return;const box=btn.closest('.qa'),q=data.questions[Number(box.dataset.index)],selected=Number(btn.dataset.option),correct=selected===q.answer_index;box.querySelectorAll('[data-option]').forEach(b=>b.classList.toggle('selected',b===btn));box.querySelector('.feedback').textContent=(correct?'✓ Correct. ':'Not quite. Correct: '+String.fromCharCode(65+q.answer_index)+'. '+q.options[q.answer_index]+'. ')+q.explanation;});
+document.getElementById('viewGuide').onclick=()=>document.getElementById('source-slide-1').scrollIntoView({behavior:'smooth'});
+const button=document.getElementById('attachOriginal'),picker=document.getElementById('sourcePicker'),status=document.getElementById('sourceStatus');
+button.onclick=()=>picker.click();
+const dbname='study-atlas-source-files-v1',dbstore='originals',key='anterior-thigh:2026:27';
+function db(){return new Promise((resolve,reject)=>{if(!window.indexedDB)return reject(Error('Persistent browser storage unavailable'));const r=indexedDB.open(dbname,1);r.onupgradeneeded=()=>r.result.createObjectStore(dbstore);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+async function readStored(){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction(dbstore,'readonly'),r=t.objectStore(dbstore).get(key);r.onsuccess=()=>{d.close();resolve(r.result||null);};r.onerror=()=>{d.close();reject(r.error);};});}
+async function saveStored(file){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction(dbstore,'readwrite');t.objectStore(dbstore).put(file,key);t.oncomplete=()=>{d.close();resolve();};t.onerror=()=>{d.close();reject(t.error);};});}
+let opening=false;
+async function openWith(file){
+ if(opening)return;opening=true;
+ status.textContent='Opening all 27 original pages with their explanations…';
+ try{
+  const url=URL.createObjectURL(file);
+  await window.StudyAtlasReader.open({id:'anterior-thigh',number:5,title:data.title,module_id:'anat20060',module_code:'ANAT20060',pdfUrl:url,data,legacy:false});
+  if(document.getElementById('atlasSlideReader .atlas-slide-row')){document.getElementById('anteriorStudy').hidden=true;document.querySelector('body').style.background='';}
+  else {status.textContent='Reader could not open this PDF. Your teaching guide remains available.';URL.revokeObjectURL(url);}
+ }catch(e){status.textContent='Could not open the original PDF: '+e.message;}
+ finally{opening=false;}
+}
+picker.onchange=async()=>{const file=picker.files?.[0];if(!file)return;if(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'){status.textContent='Please choose the original lecture as a PDF.';return;}
+ try{await saveStored(file);status.textContent='The unchanged PDF is saved locally on this device.';}catch(e){status.textContent='Browser storage is unavailable; the PDF will work for this session.';}
+ await openWith(file);
+};
+readStored().then(file=>{if(file instanceof Blob)openWith(file);}).catch(()=>{});
+document.addEventListener('change',e=>{if(!e.target.matches('#atlasSlideReader .q input[type="radio"]'))return;const q=e.target.closest('.q');q?.querySelector('[data-check]')?.click();});
+})();
+</script>
+</body></html>
