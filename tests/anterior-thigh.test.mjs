@@ -54,3 +54,16 @@ test('Lecture 5 card exists and its reader safely attaches the original only wit
  const executable=scripts.at(-1)[1];
  assert.doesNotThrow(()=>new vm.Script(executable,{filename:'anterior-thigh.html:script'}));
 });
+
+test('anterior thigh opens the same two-panel reader immediately, not a standalone guide',()=>{
+ const html=file('lectures/anterior-thigh.html');
+ const reader=file('slide-reader.js');
+ assert.match(html,/openStandardReader\(\)/,'the standard slide reader opens on first visit');
+ assert.match(html,/allowMissingOriginal:true/,'the reader appears before a PDF is selected');
+ assert.match(html,/atlas-slide-mode #anteriorStudy\{display:none/,'the standalone guide does not remain on screen');
+ assert.match(html,/StudyAtlasReader\.attachOriginal\(file\)/,'the PDF appears in the running reader without navigating away');
+ assert.match(reader,/\.atlas-await-original/,'the missing PDF is not silently represented by fabricated source slides');
+ assert.match(reader,/async function attachOriginal\(file\)/,'the existing reader can accept the unchanged PDF in place');
+ assert.match(reader,/pdf\.numPages!==S\.count/,'a mismatched lecture PDF cannot silently overwrite slide alignment');
+ assert.match(reader,/state\.pdfUnavailable/);
+});
