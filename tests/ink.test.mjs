@@ -353,3 +353,31 @@ test('two immediate SVG pen words do not overwrite prior persistent writing',()=
  s.ink.redraw();
  assert.equal(s.history.length,2);
 });
+
+test('pen-down creates no large scratch bitmap or GPU surface before the first handwritten pixel',()=>{
+ const s=setup(0,true,null,null,false,true);
+ s.c.events.pointerdown({...s.event(100),type:'pointerdown',timeStamp:1});
+ assert.equal(s.layers[0].width*s.layers[0].height,1,'SVG pen must not allocate a live canvas at pointerdown');
+ assert.equal(s.layers[1].children[0].tag,'circle','the visible pen dot is ready immediately');
+ s.c.events.pointerrawupdate({...s.event(180),type:'pointerrawupdate',timeStamp:2});
+ assert.equal(s.layers[0].width*s.layers[0].height,1,'hardware pen updates do not touch a scratch bitmap');
+ s.c.events.pointerup({...s.event(200),type:'pointerup',timeStamp:3});
+ assert.equal(s.c.operations.filter(x=>x[0]==='line').at(-1)[1],200);
+});
+test('pen barrel eraser can switch from the fast SVG path to persistent canvas ink',()=>{
+ const s=setup(0,true,null,null,false,true);
+ s.c.events.pointerdown({...s.event(100),type:'pointerdown',buttons:1,pressure:.5,timeStamp:1});
+ s.c.events.pointermove({...s.event(150),type:'pointermove',buttons:1,pressure:.5,timeStamp:2});
+ s.c.events.pointermove({...s.event(170),type:'pointermove',buttons:3,pressure:.5,timeStamp:3});
+ assert.equal(s.history.length,2);
+ assert.equal(s.history[1].tool,'eraser');
+ assert.ok(s.layers[0].width*s.layers[0].height>1,'non-pen mode allocates its necessary canvas');
+ s.c.events.pointerup({...s.event(190),type:'pointerup',buttons:0,pressure:0,timeStamp:4});
+ assert.equal(s.counts().saves,1);
+});
+test('the newest drawing scripts invalidate stale cached engines',()=>{
+ const tools=fs.readFileSync(new URL('../public/generated-tools.js',import.meta.url),'utf8');
+ const reader=fs.readFileSync(new URL('../public/slide-reader.js',import.meta.url),'utf8');
+ assert.match(tools,/\/ink-engine\.js\?v=11/);
+ assert.match(reader,/\/generated-tools\.js\?v=25/);
+});
