@@ -44,7 +44,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  if(canvas.parentElement&&!canvas.parentElement.style.position)canvas.parentElement.style.position='relative';
  canvas.after(live);const preview=live.getContext('2d',{desynchronized:true});
  live.width=live.height=1;
- let active=null,rect=null,pid=null,pointerType='',painted=0,scale=1,lastSample=-Infinity,bounds=null,baseTool=null,clip=null,previewRatio=1,tip=null,tipTimer=null,paintFrame=0,lastPaintTime=-Infinity;
+ let active=null,rect=null,pid=null,pointerType='',painted=0,scale=1,lastSample=-Infinity,bounds=null,baseTool=null,clip=null,previewRatio=1,tip=null,tipTimer=null,paintFrame=0,lastPaintTime=-Infinity,fastSvg=null,fastPath=null,fastData='',fastSegments=0,fastShown=0,fastDot=null;
  function sync(){
   scale=canvas.width/Math.max(1,canvas.clientWidth);
   if(!active&&canvas.width===1&&canvas.height===1){live.width=live.height=1;clearPrediction();if(tip)tip.width=tip.height=1;}
@@ -67,6 +67,58 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   if(live.width!==w)live.width=w;if(live.height!==h)live.height=h;
   place(live,clip);transform(preview,live,clip);
  }
+ // Immediate stylus feedback uses a native SVG path, not a high-resolution
+ // canvas. Updating a short path is synchronous and cheap even when the browser
+ // is still compositing PDF canvases underneath it. Permanent ink remains
+ // vector data in the existing stroke history.
+ function beginFastPen(){
+  if(pointerType!=='pen'||active?.tool!=='pen'||!document.createElementNS)return false;
+  const ns='http://www.w3.org/2000/svg';
+  if(!fastSvg){
+   fastSvg=document.createElementNS(ns,'svg');
+   fastSvg.setAttribute('aria-hidden','true');
+   Object.assign(fastSvg.style,{position:'absolute',inset:'0',width:'100%',height:'100%',overflow:'hidden',pointerEvents:'none',zIndex:'71'});
+   live.after(fastSvg);
+  }
+  fastSvg.setAttribute('viewBox','0 0 '+canvas.width+' '+canvas.height);
+  fastSvg.setAttribute('preserveAspectRatio','none');
+  fastSvg.replaceChildren?.();
+  fastPath=null;fastData='';fastShown=0;fastSegments=0;
+  const p=active.pts[0],width=strokeWidth(active)*scale;
+  fastDot=document.createElementNS(ns,'circle');
+  fastDot.setAttribute('cx',String(p.x*canvas.width));
+  fastDot.setAttribute('cy',String(p.y*canvas.height));
+  fastDot.setAttribute('r',String(width/2));
+  fastDot.setAttribute('fill',active.color||'#ff4f70');
+  fastSvg.appendChild(fastDot);fastShown=1;return true;
+ }
+ function showFastPen(){
+  if(!fastSvg||!active||active.tool!=='pen'||pointerType!=='pen')return false;
+  const pts=active.pts,ns='http://www.w3.org/2000/svg',width=strokeWidth(active)*scale;
+  if(pts.length<2)return true;
+  if(fastDot){fastDot.remove?.();fastDot=null;}
+  for(let i=Math.max(1,fastShown);i<pts.length;i++){
+   const previous=pts[i-1],p=pts[i];
+   if(!fastPath||fastSegments>=36){
+    fastPath=document.createElementNS(ns,'path');
+    fastPath.setAttribute('fill','none');
+    fastPath.setAttribute('stroke',active.color||'#ff4f70');
+    fastPath.setAttribute('stroke-width',String(width*(.65+((p.p??.5)+(previous.p??.5))*.35)));
+    fastPath.setAttribute('stroke-linejoin','round');
+    fastPath.setAttribute('stroke-linecap','round');
+    fastData='M'+(previous.x*canvas.width).toFixed(2)+' '+(previous.y*canvas.height).toFixed(2);
+    fastSegments=0;fastSvg.appendChild(fastPath);
+   }
+   fastData+=' L'+(p.x*canvas.width).toFixed(2)+' '+(p.y*canvas.height).toFixed(2);
+   fastSegments++;
+  }
+  fastPath?.setAttribute('d',fastData);
+  fastShown=pts.length;return true;
+ }
+ function clearFastPen(){
+  fastSvg?.replaceChildren?.();fastSvg?.setAttribute('aria-hidden','true');
+  fastPath=null;fastDot=null;fastData='';fastShown=0;fastSegments=0;
+ }
  function point(e){const pressure=Number(e.pressure);return {x:Math.max(0,Math.min(1,(e.clientX-rect.left)/Math.max(1,rect.width))),y:Math.max(0,Math.min(1,(e.clientY-rect.top)/Math.max(1,rect.height))),p:(e.pointerType||pointerType)==='pen'&&Number.isFinite(pressure)?Math.max(0,Math.min(1,pressure)):.5};}
  function paint(){
   if(!active||painted===active.pts.length)return;const points=active.pts.slice(Math.max(0,painted-1));
@@ -80,6 +132,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  function cancelPaint(){if(paintFrame){root.cancelAnimationFrame?.(paintFrame);paintFrame=0;}}
  function flushPaint(){cancelPaint();paint();}
  function requestPaint(e){
+  if(pointerType==='pen'&&active?.tool==='pen'&&showFastPen())return;
   if(pointerType!=='pen'){paint();return;}
   const now=Number.isFinite(e?.timeStamp)?e.timeStamp:Date.now();
   if(lastPaintTime===-Infinity||now-lastPaintTime>=10||!root.requestAnimationFrame){
@@ -131,14 +184,16 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  }
  function commitSegment(){
   if(!active)return;
-  clearPrediction();flushPaint();
+  clearPrediction();
+  if(!fastSvg||pointerType!=='pen'||active.tool!=='pen')flushPaint();
   // Do not copy pixels from the desynchronized preview bitmap. The GPU can
   // still be compositing that surface when the pen lifts, causing letters to
   // vanish after the preview is cleared. Replay the actual vector points into
   // the durable canvas instead; this also keeps snapshots and saved notes
   // independent of preview timing and clipping.
   if(active.tool!=='eraser')recordedStroke(active);
-  clearPreview();active=null;
+  // Leave fast feedback visible until permanent pixels have been submitted.
+  clearFastPen();clearPreview();active=null;
  }
  function redraw(){
   if(active)return;
@@ -147,11 +202,11 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  }
  function inContact(e){return Number.isFinite(e.buttons)?!!(e.buttons&33)||e.pressure>0:e.pressure>0||(e.type==='pointerdown'&&e.button!==2);}
  function toolFor(e){const eraser=pointerType==='pen'&&(Number.isFinite(e.buttons)?!!(e.buttons&34):e.button===5||e.button===2);return eraser?'eraser':baseTool.tool;}
- function startSegment(e){active={...baseTool,tool:toolFor(e),pts:[point(e)]};painted=0;lastPaintTime=-Infinity;lastSample=Number.isFinite(e.timeStamp)?e.timeStamp:-Infinity;bounds=null;live.style.opacity=String(opacityFor(active));getStrokes().push(active);paint();}
+ function startSegment(e){active={...baseTool,tool:toolFor(e),pts:[point(e)]};painted=0;lastPaintTime=-Infinity;lastSample=Number.isFinite(e.timeStamp)?e.timeStamp:-Infinity;bounds=null;live.style.opacity=String(opacityFor(active));getStrokes().push(active);if(!beginFastPen())paint();}
  function release(){const pointer=pid;pid=null;if(owner?.canvas===canvas)owner=null;try{canvas.releasePointerCapture?.(pointer);}catch{}}
  function discard(){
   if(!active)return;const erased=active.tool==='eraser',strokes=getStrokes(),index=strokes.indexOf(active);if(index>=0)strokes.splice(index,1);
-  cancelPaint();clearPrediction();clearPreview();active=null;release();if(erased)redraw();
+  cancelPaint();clearPrediction();clearFastPen();clearPreview();active=null;release();if(erased)redraw();
  }
  function start(e){
   rememberPen(e);if(!isEnabled()||canvas.closest('.atlas-hand-mode'))return;
