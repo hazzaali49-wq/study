@@ -159,7 +159,22 @@ function setVisual(row,note,page){
  row.querySelector('[data-side="teaching"]')?.atlasRefresh?.();
 }
 async function render(n,urgent=false){
- const S=state;if(!S||S.rendered.has(n))return;if(urgent)S.priority=n;if(S.pending.has(n))return S.tasks.get(n);
+ const S=state;if(!S||S.rendered.has(n))return;
+ if(S.pdfUnavailable){
+  const row=S.root.querySelector('#atlas-slide-'+n);
+  if(!row)return;
+  const stage=row.querySelector('.atlas-source-stage');
+  stage.style.aspectRatio='4/3';
+  stage.querySelector('.atlas-source-loading')?.remove();
+  if(!stage.querySelector('.atlas-await-original')){
+   const message=document.createElement('div');
+   message.className='atlas-await-original';
+   message.innerHTML='<div class="atlas-await-icon">▤</div><strong>Original slide '+n+' of '+S.count+'</strong><p>Ready to display next to the explanation when you attach the original lecture PDF.</p><button type="button" data-attach-original>Attach original PDF</button><small>Stored privately on this device after attachment</small>';
+   stage.appendChild(message);
+  }
+  S.rendered.add(n);
+  return;
+ }if(urgent)S.priority=n;if(S.pending.has(n))return S.tasks.get(n);
  S.pending.add(n);
  const job=async()=>{
   try{
@@ -275,11 +290,25 @@ async function open(config){
  document.body.prepend(root);document.body.classList.add('atlas-slide-mode');document.body.dataset.atlasModule=config.module_id||'';
  const colors=PALETTES[config.module_id]||PALETTES.mdsa20030;document.documentElement.style.setProperty('--atlas-mod',colors[0]);document.documentElement.style.setProperty('--atlas-mod2',colors[1]);
  root.innerHTML='<div class="atlas-reader-head"><div><div class="atlas-reader-brand">✦ studyatlas</div><h1>'+esc(state.title)+'</h1><p class="atlas-reader-sub">Opening original slides…</p></div></div>';
- try{const source=await loadPdfSource(config);state.pdfUrl=source.objectUrl;state.pdf=await window.StudyAtlasPDF.load(source.input,{lectureId:config.id,preparedCalcium:!!config.pdfBase64Parts});}catch(e){root.querySelector('.atlas-reader-sub').textContent='The original could not be loaded. Open the source or reload this page.';const a=document.createElement('a');a.href=state.pdfUrl;a.textContent='Open original PDF';root.appendChild(a);const retry=document.createElement('button');retry.textContent='Retry opening lecture';retry.onclick=()=>location.reload();root.appendChild(retry);const home=document.createElement('a');home.href='/';home.textContent='Return to your library';home.style.marginLeft='16px';root.appendChild(home);root.querySelector('.atlas-reader-sub').textContent='Could not open the slides: '+e.message;document.body.classList.remove('atlas-slide-mode');state=null;return;}
+ try{
+  if(config.allowMissingOriginal&&!config.pdfUrl&&!config.pdfBase64Url&&!config.pdfBase64Parts){
+   state.pdfUnavailable=true;
+   state.pdf={numPages:Number(data.slide_count)||data.slides?.length||0,destroy(){}};
+  }else{
+   const source=await loadPdfSource(config);
+   state.pdfUrl=source.objectUrl;
+   state.pdf=await window.StudyAtlasPDF.load(source.input,{lectureId:config.id,preparedCalcium:!!config.pdfBase64Parts});
+  }
+ }catch(e){root.querySelector('.atlas-reader-sub').textContent='The original could not be loaded. Open the source or reload this page.';const a=document.createElement('a');a.href=state.pdfUrl;a.textContent='Open original PDF';root.appendChild(a);const retry=document.createElement('button');retry.textContent='Retry opening lecture';retry.onclick=()=>location.reload();root.appendChild(retry);const home=document.createElement('a');home.href='/';home.textContent='Return to your library';home.style.marginLeft='16px';root.appendChild(home);root.querySelector('.atlas-reader-sub').textContent='Could not open the slides: '+e.message;document.body.classList.remove('atlas-slide-mode');state=null;return;}
  state.count=state.pdf.numPages;for(let n=1;n<=state.count;n++)state.notes.set(n,fromData(data,n));
  const legacyUrl=config.legacyUrl||(()=>{const u=new URL(location.href);u.searchParams.set('view','chapters');return u.href;})();
  root.innerHTML=`<header class="atlas-reader-head"><div><div class="atlas-reader-brand">✦ studyatlas · ${esc(config.module_code||'')}</div><h1>${esc(state.title)}</h1><p class="atlas-reader-sub">${state.count} original slides · original on the left, explanation on the right · zoom each side independently</p></div><div class="atlas-reader-links"><a href="/#home" target="_top" data-reader-menu>← All modules</a><button data-reader-notes>Saved notes</button><a href="${esc(state.pdfUrl)}" target="_blank" rel="noopener">Original PDF ↗</a>${config.legacy!==false?`<a href="${esc(legacyUrl)}">Chapter guide</a>`:''}</div></header><nav class="atlas-reader-nav" aria-label="Slide navigation"><button data-reader-menu class="atlas-menu-button">← Menu</button><button data-reader-module class="atlas-module-button">Module</button><button data-prev aria-label="Previous slide">←</button><span class="atlas-nav-count">Slide</span><input type="number" min="1" max="${state.count}" value="1" aria-label="Go to slide"><span class="atlas-nav-count">/ ${state.count}</span><button data-next aria-label="Next slide">→</button><span class="atlas-reader-hint">← → keys · pinch each pane · hand tool to pan</span><select aria-label="Jump to chapter or revision"><option value="1">Chapters & revision…</option>${(data.chapters||[]).map(c=>`<option value="${Number(c.slide_start)||1}">${esc(c.title)} · ${c.slide_start}–${c.slide_end}</option>`).join('')}<option value="atlas-understanding">Final understanding</option><option value="atlas-revision">Detailed cheat sheet</option><option value="atlas-recall">Flashcards & practice</option><option value="atlas-guides">Complete chapter guides</option><option value="atlas-saved-notes">My saved notes</option></select></nav><main>${Array.from({length:state.count},(_,i)=>rowHTML(i+1)).join('')}${extras(data)}</main><div class="rail" hidden></div><section class="atlas-reader-ai" hidden><div class="atlas-ai-head"><span>Ask about this slide</span><button data-ai-close aria-label="Close AI">×</button></div><div class="atlas-ai-status">Free local tutor</div><textarea aria-label="Question" placeholder="What does this label mean? Why does this happen?"></textarea><div class="atlas-ai-actions"><button data-ask>Ask</button><button data-ask="picture">Explain picture</button><button data-stop hidden>Stop</button><button data-enable>Enable on-device AI</button></div><div class="atlas-ai-answer" role="status" aria-live="polite"></div></section>`;
  root.querySelectorAll('.atlas-pane').forEach(setupZoom);
+ root.addEventListener('click',event=>{
+  if(!event.target.closest('[data-attach-original]'))return;
+  event.preventDefault();
+  document.getElementById('sourcePicker')?.click();
+ });
  root.querySelectorAll('[data-reader-menu]').forEach(b=>b.onclick=e=>{e.preventDefault();window.StudyAtlasNotebook.home();});
  root.querySelector('[data-reader-module]').onclick=()=>window.StudyAtlasNotebook.home(config.module_id);
  root.querySelector('[data-reader-notes]').onclick=()=>{const d=window.StudyAtlasNotebook.context();window.StudyAtlasNotebook.open({lectureKey:d.lectureKey,title:d.title});};
