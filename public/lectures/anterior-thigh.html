@@ -7,6 +7,7 @@
 :root{color-scheme:dark;--bg:#08111e;--panel:#111d30;--line:#30445d;--muted:#b9cbdf;--green:#92e4c1;--text:#eef5fc}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,sans-serif}
+body.atlas-slide-mode #anteriorStudy{display:none!important}
 body:not(.atlas-slide-mode) #anteriorStudy{max-width:1180px;margin:auto;padding:22px 22px 70px}
 .atop{background:linear-gradient(130deg,#152c41,#102039);border:1px solid var(--line);border-radius:22px;padding:24px}
 .atop h1{font-size:clamp(1.5rem,3.7vw,2.65rem);line-height:1.15;margin:12px 0}
@@ -48,7 +49,7 @@ body:not(.atlas-slide-mode) #anteriorStudy{max-width:1180px;margin:auto;padding:
   <p>Every one of the 27 original slide topics is explained with a plain-English walk-through, important labels, the reason it matters, quick definitions and an exam takeaway. Includes 22 five-option questions, with the original three lecture questions clearly labelled.</p>
   <div class="actionbar"><button type="button" class="primary" id="attachOriginal">Attach original PDF · unlock side-by-side slides</button><button type="button" id="viewGuide">Read the full guide</button><a href="#anteriorPractice">Practice questions ↓</a></div>
   <input type="file" id="sourcePicker" hidden accept="application/pdf,.pdf">
-  <div id="sourceStatus" role="status">The explanations are ready. Attach the unchanged 27-page source PDF once on this browser to activate the normal slide-by-slide reader with the original on the left. Nothing is uploaded to Netlify or sent to an AI service.</div>
+  <div id="sourceStatus" role="status">Opening the regular two-panel study reader…</div>
  </div>
  <nav class="chapter-nav" id="anteriorChapters" aria-label="Choose a lecture chapter"></nav>
  <label for="sourceSearch" class="alabel">Find a term in every slide</label>
@@ -93,21 +94,53 @@ async function readStored(){const d=await db();return new Promise((resolve,rejec
 async function saveStored(file){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction(dbstore,'readwrite');t.objectStore(dbstore).put(file,key);t.oncomplete=()=>{d.close();resolve();};t.onerror=()=>{d.close();reject(t.error);};});}
 let opening=false;
 async function openWith(file){
- if(opening)return;opening=true;
- status.textContent='Opening all 27 original pages with their explanations…';
+ if(opening)return false;opening=true;
+ status.textContent='Opening the 27 original slides beside the explanations…';
  try{
+  if(window.StudyAtlasReader.context()?.id==='anterior-thigh'){
+   const ok=await window.StudyAtlasReader.attachOriginal(file);
+   if(ok)status.textContent='The original PDF is now attached.';
+   return ok;
+  }
   const url=URL.createObjectURL(file);
-  await window.StudyAtlasReader.open({id:'anterior-thigh',number:5,title:data.title,module_id:'anat20060',module_code:'ANAT20060',pdfUrl:url,data,legacy:false});
-  if(document.getElementById('atlasSlideReader .atlas-slide-row')){document.getElementById('anteriorStudy').hidden=true;document.querySelector('body').style.background='';}
-  else {status.textContent='Reader could not open this PDF. Your teaching guide remains available.';URL.revokeObjectURL(url);}
- }catch(e){status.textContent='Could not open the original PDF: '+e.message;}
+  await window.StudyAtlasReader.open({
+   id:'anterior-thigh',number:5,title:data.title,module_id:'anat20060',module_code:'ANAT20060',
+   pdfUrl:url,data,legacy:false
+  });
+  if(document.querySelector('#atlasSlideReader .atlas-slide-row')){
+   document.getElementById('anteriorStudy').hidden=true;return true;
+  }
+  URL.revokeObjectURL(url);return false;
+ }catch(e){status.textContent='Could not open PDF: '+e.message;throw e;}
  finally{opening=false;}
 }
-picker.onchange=async()=>{const file=picker.files?.[0];if(!file)return;if(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'){status.textContent='Please choose the original lecture as a PDF.';return;}
- try{await saveStored(file);status.textContent='The unchanged PDF is saved locally on this device.';}catch(e){status.textContent='Browser storage is unavailable; the PDF will work for this session.';}
- await openWith(file);
+async function openStandardReader(){
+ await window.StudyAtlasReader.open({
+  id:'anterior-thigh',number:5,title:data.title,module_id:'anat20060',
+  module_code:'ANAT20060',pdfUrl:'',data,legacy:false,allowMissingOriginal:true
+ });
+ if(document.querySelector('#atlasSlideReader .atlas-slide-row'))document.getElementById('anteriorStudy').hidden=true;
+}
+picker.onchange=async()=>{
+ const file=picker.files?.[0];if(!file)return;
+ if(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'){
+  status.textContent='Please choose the original lecture PDF.';return;
+ }
+ try{
+  const ok=await openWith(file);
+  if(ok){try{await saveStored(file);}catch{status.textContent='Original opened, but could not save it on this device.';}}
+ }catch(e){alert('Unable to open PDF: '+e.message);}
 };
-readStored().then(file=>{if(file instanceof Blob)openWith(file);}).catch(()=>{});
+(async()=>{
+ try{
+  const stored=await readStored().catch(()=>null);
+  if(stored instanceof Blob){
+   try{if(await openWith(stored))return;}
+   catch{status.textContent='Cached PDF could not be opened. You can reattach the original.';}
+  }
+  await openStandardReader();
+ }catch(e){status.textContent='The normal slide reader could not start: '+e.message;}
+})();
 document.addEventListener('change',e=>{if(!e.target.matches('#atlasSlideReader .q input[type="radio"]'))return;const q=e.target.closest('.q');q?.querySelector('[data-check]')?.click();});
 })();
 </script>
