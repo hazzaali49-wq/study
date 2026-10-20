@@ -44,7 +44,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  if(canvas.parentElement&&!canvas.parentElement.style.position)canvas.parentElement.style.position='relative';
  canvas.after(live);const preview=live.getContext('2d',{desynchronized:true});
  live.width=live.height=1;
- let active=null,rect=null,pid=null,pointerType='',painted=0,scale=1,lastSample=-Infinity,bounds=null,baseTool=null,clip=null,previewRatio=1,tip=null,tipTimer=null,paintFrame=0,lastPaintTime=-Infinity,fastSvg=null,fastPath=null,fastData='',fastSegments=0,fastShown=0,fastDot=null;
+ let active=null,rect=null,pid=null,pointerType='',painted=0,scale=1,lastSample=-Infinity,bounds=null,baseTool=null,clip=null,previewRatio=1,tip=null,tipTimer=null,paintFrame=0,lastPaintTime=-Infinity,fastSvg=null,fastPath=null,fastData='',fastSegments=0,fastShown=0,fastDot=null,inkPresenter=null,inkRequest=null;
  function sync(){
   scale=canvas.width/Math.max(1,canvas.clientWidth);
   if(!active&&canvas.width===1&&canvas.height===1){live.width=live.height=1;clearPrediction();if(tip)tip.width=tip.height=1;}
@@ -71,8 +71,29 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
  // canvas. Updating a short path is synchronous and cheap even when the browser
  // is still compositing PDF canvases underneath it. Permanent ink remains
  // vector data in the existing stroke history.
+ // Chromium's Ink API can draw the next pen segment in the browser/OS compositor
+ // before JavaScript receives another event. This is purely an enhancement:
+ // it never writes to saved history and silently falls back if unsupported.
+ function ensureNativeInk(){
+  if(inkRequest||!root.navigator?.ink?.requestPresenter)return;
+  try{
+   inkRequest=Promise.resolve(root.navigator.ink.requestPresenter({presentationArea:canvas}))
+    .then(p=>{inkPresenter=p;return p;},()=>null);
+  }catch{inkRequest=Promise.resolve(null);}
+ }
+ function nativeInkTip(e){
+  if(pointerType!=='pen'||active?.tool!=='pen'||!inkPresenter)return;
+  try{
+   inkPresenter.updateInkTrailStartPoint(e,{
+    color:active.color||'#ff4f70',
+    diameter:Math.max(1,strokeWidth(active)*rect.width/Math.max(1,canvas.clientWidth))
+   });
+  }catch{}
+ }
  function beginFastPen(){
-  if(pointerType!=='pen'||active?.tool!=='pen'||!document.createElementNS)return false;
+  if(pointerType!=='pen'||active?.tool!=='pen')return false;
+  ensureNativeInk();
+  if(!document.createElementNS)return false;
   const ns='http://www.w3.org/2000/svg';
   if(!fastSvg){
    fastSvg=document.createElementNS(ns,'svg');
@@ -252,7 +273,7 @@ function create({canvas,getStrokes,onChange=()=>{},onBeforeStart=()=>{},isEnable
   if(e.type!=='pointerrawupdate'){try{batch=e.getCoalescedEvents?.()||[];}catch{}}
   for(const item of batch)appendPoint(item);
   appendPoint(e,true);
-  if(active.pts.length>before)requestPaint(e);
+  if(active.pts.length>before){requestPaint(e);nativeInkTip(e);}
   predict(e);
  }
  function finish(e){
