@@ -392,7 +392,7 @@ test('Chromium delegated ink is used when available without delaying SVG fallbac
  s.c.events.pointerdown({...s.event(100),type:'pointerdown',timeStamp:1});
  assert.equal(presentationArea,s.c);
  assert.equal(s.layers[1].children[0].tag,'circle','fast SVG shows before the delegated Ink promise resolves');
- await Promise.resolve();await Promise.resolve();
+ await new Promise(resolve=>setTimeout(resolve,0));
  s.c.events.pointerrawupdate({...s.event(175),type:'pointerrawupdate',timeStamp:2});
  assert.equal(updates.length,1);
  assert.equal(updates[0].event.clientX,175);
