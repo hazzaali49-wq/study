@@ -17,7 +17,7 @@ function renderStatus(){
 async function api(body,token=cfg?.token){
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),25000);
  try{
-  const response=await fetch('/api/study-sync',{method:'POST',credentials:'omit',cache:'no-store',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify(body),signal:controller.signal});
+  const response=await fetch('/api/study-sync',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify(body),signal:controller.signal});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.error||'Device sync could not connect. Your work is saved on this device.');
   return data;
@@ -51,14 +51,14 @@ async function downloadAsset(reference,token){
   let value='';
   for(const id of reference[name]){
    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),25000);
-   try{const r=await fetch('/api/study-sync?asset='+encodeURIComponent(id),{credentials:'omit',cache:'no-store',headers:{authorization:'Bearer '+token},signal:controller.signal});if(!r.ok)throw new Error('A saved image could not be downloaded yet. Sync will retry.');value+=await r.text();}finally{clearTimeout(timeout);}
+   try{const r=await fetch('/api/study-sync?asset='+encodeURIComponent(id),{credentials:'same-origin',cache:'no-store',headers:{authorization:'Bearer '+token},signal:controller.signal});if(!r.ok)throw new Error('A saved image could not be downloaded yet. Sync will retry.');value+=await r.text();}finally{clearTimeout(timeout);}
   }
   if(!/^(data:image\/(png|jpeg|webp);base64,|\/[^/]|https?:\/\/)/i.test(value))throw new Error('A synced image has an unsupported format.');
   asset[name]=value;
  }return asset;
 }
 function portableRecord(row){
- const copy={...row};for(const key of ['href','pdfUrl'])if(copy[key]){try{const u=new URL(copy[key],location.origin);if(u.origin===location.origin)copy[key]=u.pathname+u.search+u.hash;}catch{}}return copy;
+ const copy={...row};for(const key of ['href','pdfUrl'])if(copy[key]){if(String(copy[key]).startsWith('blob:')){copy[key]='';continue;}try{const u=new URL(copy[key],location.origin);if(u.origin===location.origin)copy[key]=u.pathname+u.search+u.hash;}catch{}}return copy;
 }
 async function syncRound(){
  if(!cfg)return;

@@ -17,7 +17,7 @@ function cloud(){
   async list({prefix}){return {blobs:[...values.keys()].filter(k=>k.startsWith(prefix)).map(key=>({key})),directories:[]};}
  };
  const handler=createSyncHandler(()=>store);
- return {values,handler,requests,set fail(x){fail=x;},async fetch(url,options){requests.push(options?.body?JSON.parse(options.body):url);if(fail)throw Error('Network unavailable');return handler(new Request(new URL(url,'https://atlas.test'),options));}};
+ return {values,handler,requests,set fail(x){fail=x;},async fetch(url,options){assert.equal(options?.credentials,'same-origin','preserve the hosting sign-in cookie for private sites');requests.push(options?.body?JSON.parse(options.body):url);if(fail)throw Error('Network unavailable');return handler(new Request(new URL(url,'https://atlas.test'),options));}};
 }
 async function device(server,factory=new IDBFactory()){
  const a=dom('<html><head></head><body><div id="rootPage"><header class="head"><h1>Study Atlas</h1></header></div></body></html>');
@@ -78,3 +78,8 @@ test('sync API rejects missing credentials, foreign origins and unknown codes an
  const c=cloud(),factory=new IDBFactory(),a=await device(c,factory);const note=await a.store.save(source,{kind:'note',text:'Original'},{snapshot:image});const stale=await device(c,factory);
  const remote={...note,text:'Older remote',syncVersion:'0000000000000040-aaaaaaaaaaaaaaaa'};a.store.observeVersions([remote]);await a.store.save(source,{id:note.id,kind:'note',text:'Latest in another tab'},{snapshot:sketch});await stale.store.mergeRemote({items:[{record:remote,asset:{snapshot:image}}]});await a.store.reload();assert.equal((await a.store.list())[0].text,'Latest in another tab');assert.equal((await a.store.assets(note.id)).snapshot,sketch);
  });
+
+test('notes from device-only uploaded lectures sync their captured slides without temporary PDF URLs',async()=>{
+ const c=cloud(),a=await device(c),b=await device(c);const local={...source,id:'local-lecture-5',localId:'local-lecture-5',href:'/local-lecture.html?id=local-lecture-5',pdfUrl:'blob:device-only-original'};
+ const note=await a.store.save(local,{kind:'note',slide:4,text:'Local original and explanation'},{snapshot:image});await a.sync.enable();await b.sync.connect(a.token());assert.equal((await b.store.list())[0].text,'Local original and explanation');assert.equal((await b.store.assets(note.id)).snapshot,image);assert.equal((await b.store.syncSnapshot()).lectures[0].pdfUrl,'');
+});
