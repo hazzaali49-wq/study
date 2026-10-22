@@ -30,7 +30,7 @@
     }
     if(!window.StudyAtlasInk){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/ink-engine.js?v=13';s.onload=resolve;s.onerror=reject;document.body.appendChild(s);});}
     if(document.getElementById('atlasGenDock')) return;
-    for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=17';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
+    for(const [name,file] of [['StudyAtlasStudyStore','study-store'],['StudyAtlasNotebook','study-notebook']])if(!window[name])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='/'+file+'.js?v=18';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
     if(!document.querySelector('link[href*="study-notebook.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href='/study-notebook.css?v=1';document.head.appendChild(css);}
     const Notebook=window.StudyAtlasNotebook,Store=window.StudyAtlasStudyStore;
     const lecture=Notebook.context();

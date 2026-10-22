@@ -1,9 +1,19 @@
-/* Notes and pins share one device-local store. Images live separately from the list metadata. */
+/* Local-first notes and pins. Optional device sync transfers the same records and images. */
 (()=>{
 'use strict';
 const FALLBACK='atlasStudyNotebook.v1',SIGNAL='atlasStudyNotebook.changed',items=new Map(),lectures=new Map();
 const legacyCache=new Map();
 let database=null,opening=null,fallback=null;
+const CLOCK='atlasStudyNotebook.clock',VERSION=/^\d{16}-[a-z0-9]{16}$/;
+const device=Array.from({length:16},()=>Math.floor(Math.random()*36).toString(36)).join('');
+let clock=0;
+function observe(version){if(VERSION.test(version||'')){clock=Math.max(clock,Number(version.slice(0,16)));try{localStorage.setItem(CLOCK,String(Math.max(clock,Number(localStorage.getItem(CLOCK))||0)));}catch{}}}
+function nextVersion(){
+ try{clock=Math.max(clock,Number(localStorage.getItem(CLOCK))||0);}catch{}
+ clock++;try{localStorage.setItem(CLOCK,String(clock));}catch{}
+ return String(clock).padStart(16,'0')+'-'+device;
+}
+function syncNeeded(){window.dispatchEvent(new CustomEvent('atlas:notebook-sync-needed'));}
 const json=(key,other)=>{try{return JSON.parse(localStorage.getItem(key))??other;}catch{return other;}};
 function legacyJSON(key,other){
  try{const raw=localStorage.getItem(key),cached=legacyCache.get(key);if(cached?.raw===raw)return cached.value;const value=JSON.parse(raw)??other;legacyCache.set(key,{raw,value});return value;}catch{return other;}
@@ -32,6 +42,14 @@ async function ready(){
   const rows=database?await transaction(['items'],'readonly',t=>t.objectStore('items').getAll()):fallback.items||[];
   const contexts=database?await transaction(['lectures'],'readonly',t=>t.objectStore('lectures').getAll()):fallback.lectures||[];
   rows.forEach(x=>items.set(x.id,x));contexts.forEach(x=>lectures.set(x.id,x));
+  [...rows,...contexts].forEach(x=>observe(x.syncVersion));
+  // Existing work is versioned in place; snapshots and original legacy saves are retained.
+  const oldRows=rows.filter(x=>!VERSION.test(x.syncVersion||'')),oldContexts=contexts.filter(x=>!VERSION.test(x.syncVersion||''));
+  for(const x of [...oldRows,...oldContexts])x.syncVersion=nextVersion();
+  if(oldRows.length||oldContexts.length){
+   if(database)await transaction(['items','lectures'],'readwrite',t=>{oldRows.forEach(x=>t.objectStore('items').put(x));oldContexts.forEach(x=>t.objectStore('lectures').put(x));});
+   else{fallback={...fallback,items:rows,lectures:contexts};localStorage.setItem(FALLBACK,JSON.stringify(fallback));}
+  }
  })();return opening;
 }
 function changed(){
@@ -42,31 +60,35 @@ function changed(){
 async function reload(){
  await ready();const rows=database?await transaction(['items'],'readonly',t=>t.objectStore('items').getAll()):json(FALLBACK,{items:[]}).items;
  const contexts=database?await transaction(['lectures'],'readonly',t=>t.objectStore('lectures').getAll()):json(FALLBACK,{lectures:[]}).lectures;
- items.clear();(rows||[]).forEach(x=>items.set(x.id,x));
- lectures.clear();(contexts||[]).forEach(x=>lectures.set(x.id,x));
+ items.clear();(rows||[]).forEach(x=>{observe(x.syncVersion);items.set(x.id,x);});
+ lectures.clear();(contexts||[]).forEach(x=>{observe(x.syncVersion);lectures.set(x.id,x);});
  window.dispatchEvent(new CustomEvent('atlas:notebook-changed'));
 }
 window.addEventListener('storage',e=>{if(e.key===SIGNAL||e.key===FALLBACK)reload().catch(()=>{});});
-async function persist(record,asset){
+async function persist(record,asset,remote=false){
  await ready();
+ if(!remote)record={...record,syncVersion:nextVersion()};else observe(record.syncVersion);
  if(database)await transaction(['items','assets'],'readwrite',t=>{
-  t.objectStore('items').put(record);
-  if(record.deleted)t.objectStore('assets').delete(record.id);
-  else if(asset)t.objectStore('assets').put({id:record.id,...asset});
+  const write=()=>{t.objectStore('items').put(record);if(record.deleted)t.objectStore('assets').delete(record.id);else if(asset)t.objectStore('assets').put({id:record.id,...asset});};
+  if(remote){const request=t.objectStore('items').get(record.id);request.onsuccess=()=>{const current=request.result;if(current&&(current.syncVersion||'')>=record.syncVersion)record=current;else write();};}else write();
  });else{
   // Write before changing memory: a quota error must never look like a successful save.
-  const disk=json(FALLBACK,fallback),next={...disk,items:[...(disk.items||[]).filter(x=>x.id!==record.id),record],assets:{...disk.assets}};
+  const disk=json(FALLBACK,fallback),current=disk.items?.find(x=>x.id===record.id);
+  if(remote&&current&&(current.syncVersion||'')>=record.syncVersion){items.set(record.id,current);return current;}
+  const next={...disk,items:[...(disk.items||[]).filter(x=>x.id!==record.id),record],assets:{...disk.assets}};
   if(record.deleted)delete next.assets[record.id];else if(asset)next.assets[record.id]=asset;
   localStorage.setItem(FALLBACK,JSON.stringify(next));fallback=next;
  }
- items.set(record.id,record);return record;
+ items.set(record.id,record);if(!remote)syncNeeded();return record;
 }
 async function register(value){
  await ready();const before=lectures.get(value.id),full=descriptor({...before,...value}),{figures,blocks,...d}=full;
  if(JSON.stringify(before)!==JSON.stringify(d)){
+  d.syncVersion=nextVersion();
   if(database)await transaction(['lectures'],'readwrite',t=>t.objectStore('lectures').put(d));
   else {const disk=json(FALLBACK,fallback),next={...disk,lectures:[...(disk.lectures||[]).filter(x=>x.id!==d.id),d]};localStorage.setItem(FALLBACK,JSON.stringify(next));fallback=next;}
   lectures.set(d.id,d);
+  syncNeeded();
  }
  await migrate(full);return d;
 }
@@ -106,20 +128,40 @@ async function list(scope={}){
 async function save(d,value,asset={}){
  d=await register(d);const id=value.id||'saved:'+Date.now().toString(36)+':'+Math.random().toString(36).slice(2),old=items.get(id);
  const record={...old,...meta(d),...value,id,created:old?.created||value.created||Date.now(),updated:Date.now(),hasSnapshot:!!asset.snapshot||!!old?.hasSnapshot,hasSketch:!!asset.sketch||!!old?.hasSketch};
- await persist(record,{...await assets(id),...asset});changed();return record;
+ const saved=await persist(record,{...await assets(id),...asset});changed();return saved;
 }
 async function assets(id){await ready();return database?(await transaction(['assets'],'readonly',t=>t.objectStore('assets').get(id))||{}):(json(FALLBACK,fallback).assets?.[id]||{});}
 async function attach(id,snapshot){
  await ready();const asset=await assets(id);let updated;
  if(database)await transaction(['items','assets'],'readwrite',t=>{
   const request=t.objectStore('items').get(id);
-  request.onsuccess=()=>{const row=request.result;if(!row||row.deleted)return;updated={...row,hasSnapshot:true};t.objectStore('items').put(updated);t.objectStore('assets').put({...asset,id,snapshot});};
+  request.onsuccess=()=>{const row=request.result;if(!row||row.deleted)return;updated={...row,hasSnapshot:true,updated:Date.now(),syncVersion:nextVersion()};t.objectStore('items').put(updated);t.objectStore('assets').put({...asset,id,snapshot});};
  });else{
   const disk=json(FALLBACK,fallback),row=disk.items?.find(x=>x.id===id);if(!row||row.deleted)return;
-  updated={...row,hasSnapshot:true};await persist(updated,{...asset,snapshot});
+  updated=await persist({...row,hasSnapshot:true,updated:Date.now()},{...asset,snapshot});
  }
- if(updated)items.set(id,updated);
+ if(updated){items.set(id,updated);syncNeeded();}
 }
-async function remove(id){await ready();const row=items.get(id);if(!row)return;await persist({...row,deleted:true,text:'',strokes:[]});changed();}
-window.StudyAtlasStudyStore={ready,register,list,save,remove,assets,attach,reload,descriptor,group};
+async function remove(id){await ready();const row=items.get(id);if(!row)return;await persist({...row,updated:Date.now(),deleted:true,text:'',strokes:[]});changed();}
+async function syncSnapshot(){await ready();return {items:[...items.values()].map(x=>({...x})),lectures:[...lectures.values()].map(x=>({...x}))};}
+async function mergeRemote(payload){
+ await ready();let modified=false;
+ for(const x of [...(payload.items||[]).map(x=>x.record),...(payload.lectures||[])])observe(x?.syncVersion);
+ for(const d of payload.lectures||[]){
+  if(!d?.id||!VERSION.test(d.syncVersion||'')||(lectures.get(d.id)?.syncVersion||'')>=d.syncVersion)continue;
+  if(database)await transaction(['lectures'],'readwrite',t=>t.objectStore('lectures').put(d));
+  else{const disk=json(FALLBACK,fallback);fallback={...disk,lectures:[...(disk.lectures||[]).filter(x=>x.id!==d.id),d]};localStorage.setItem(FALLBACK,JSON.stringify(fallback));}
+  lectures.set(d.id,d);modified=true;
+ }
+ for(const {record,asset} of payload.items||[]){
+  if(!record?.id||!VERSION.test(record.syncVersion||'')||(items.get(record.id)?.syncVersion||'')>=record.syncVersion)continue;
+  await persist(record,asset,true);modified=true;
+ }
+ if(modified)changed();return modified;
+}
+window.StudyAtlasStudyStore={ready,register,list,save,remove,assets,attach,reload,descriptor,group,syncSnapshot,mergeRemote,observeVersions:rows=>rows.forEach(x=>observe(x?.syncVersion))};
+// Loading from this shared entry point also covers existing generated and standalone lectures.
+if(!window.StudyAtlasCloudSync&&!document.querySelector('script[data-atlas-sync-loader]')){
+ const s=document.createElement('script');s.src='/study-sync.js?v=1';s.dataset.atlasSyncLoader='true';s.defer=true;document.head.appendChild(s);
+}
 })();
