@@ -178,7 +178,7 @@ window.STUDY_MODULES = [
         "slides": "36 original slides",
         "chapters": "6 chapters · concise explanations · 28 practice questions",
         "href": "lectures/knee-joint.html",
-        "original": "lectures/knee-joint.html?original=1",
+        "original": "resources/Knee_Joint_Original_Lecture.pdf",
         "description": "Locking, ligaments, menisci, radiology, bursae, arthroscopy and knee injuries.",
         "noteKey": "knee-joint"
       },
@@ -189,7 +189,7 @@ window.STUDY_MODULES = [
         "slides": "23 original slides",
         "chapters": "5 chapters · concise explanations · 21 practice questions",
         "href": "lectures/lumbar-plexus.html",
-        "original": "lectures/lumbar-plexus.html?original=1",
+        "original": "resources/Lumbar_Plexus_Original_Lecture.pdf",
         "description": "All six nerves: roots, routes, distribution, clinical tests and posterior wall relationships.",
         "noteKey": "lumbar-plexus"
       }

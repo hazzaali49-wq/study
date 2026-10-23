@@ -26,8 +26,9 @@ for(const [slug,entry] of Object.entries(manifest.lectures))test(slug+' opens an
  assert.equal(draws(),entry.pages.length);
  assert.equal(app.document.querySelectorAll('.atlas-source-loading').length,0);
  assert.ok(app.document.querySelector('#atlas-revision'));
- if(!entry.annotated)assert.ok(app.document.querySelectorAll('.atlas-midterm-important').length);
- else {assert.ok(app.document.querySelectorAll('.atlas-uploaded-notes').length);assert.ok(app.document.querySelectorAll('.atlas-uploaded-clarification').length);assert.equal(app.window.StudyAtlasReader.context().module_id,'anat20060');}
+ const hasMidterm=entry.pages.some(p=>app.window.StudyAtlasMidtermLinks.forSlide(slug,p.n).length);
+ if(hasMidterm)assert.ok(app.document.querySelectorAll('.atlas-midterm-important').length);
+ if(entry.annotated){assert.ok(app.document.querySelectorAll('.atlas-uploaded-notes').length);assert.ok(app.document.querySelectorAll('.atlas-uploaded-clarification').length);assert.equal(app.window.StudyAtlasReader.context().module_id,'anat20060');}
 });
 test('PDF text extraction failure does not block the original slide image',async()=>{
  const app=dom('<html><body><div id="atlasTimerModal"></div><div id="atlasGenDock"></div></body></html>');
