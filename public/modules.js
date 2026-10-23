@@ -105,7 +105,95 @@ window.STUDY_MODULES = [
     "art": "loco",
     "color": "#d4dbf1",
     "desc": "Bones, joints, muscles and movement.",
-    "lectures": []
+    "lectures": [
+      {
+        "id": "introduction-fascia",
+        "number": "01",
+        "title": "Introduction & Fascia of the Lower Limb",
+        "slides": "31 annotated slides",
+        "chapters": "Clear explanations · notes · recall",
+        "href": "lectures/introduction-fascia.html",
+        "original": "resources/Fascia_Original_Lecture.pdf",
+        "description": "Fascial layers and fluid spread, plantar fascia and recall.",
+        "noteKey": "introduction-fascia"
+      },
+      {
+        "id": "os-coxae-femur",
+        "number": "02",
+        "title": "Osteology of the Os Coxae & Femur",
+        "slides": "40 annotated slides",
+        "chapters": "Clear explanations · notes · recall",
+        "href": "lectures/os-coxae-femur.html",
+        "original": "resources/Os_Coxae_Femur_Original_Lecture.pdf",
+        "description": "Pelvic shape and passages, imaging, angles and clinical cases.",
+        "noteKey": "os-coxae-femur"
+      },
+      {
+        "id": "gluteal-region",
+        "number": "03",
+        "title": "Gluteal Region & Hip Joint",
+        "slides": "34 annotated slides",
+        "chapters": "Clear explanations · notes · recall",
+        "href": "lectures/gluteal-region.html",
+        "original": "resources/Gluteal_Region_Original_Lecture.pdf",
+        "description": "Gluteal muscles and stability, recall drawings and hip blood supply.",
+        "noteKey": "gluteal-region"
+      },
+      {
+        "id": "posterior-thigh",
+        "number": "04",
+        "title": "Posterior Compartment of the Thigh",
+        "slides": "29 annotated slides",
+        "chapters": "Clear explanations · notes · recall",
+        "href": "lectures/posterior-thigh.html",
+        "original": "resources/Posterior_Thigh_Original_Lecture.pdf",
+        "description": "Dissection and imaging landmarks, popliteal fossa and swellings.",
+        "noteKey": "posterior-thigh"
+      },
+      {
+        "id": "anterior-thigh",
+        "number": "05",
+        "title": "Anterior Compartment of the Thigh & Femoral Triangle",
+        "slides": "27 source slides",
+        "chapters": "6 complete teaching chapters · 22 practice questions",
+        "href": "lectures/anterior-thigh.html",
+        "description": "Femoral triangle, sheath, saphenous vein, quadriceps, knee stability, hernias, femoral nerve and skin territories.",
+        "noteKey": "anterior-thigh"
+      },
+      {
+        "id": "medial-thigh",
+        "number": "06",
+        "title": "Medial Compartment of the Thigh",
+        "slides": "27 annotated slides",
+        "chapters": "Clear explanations · notes · recall",
+        "href": "lectures/medial-thigh.html",
+        "original": "resources/Medial_Thigh_Original_Lecture.pdf",
+        "description": "Attachments and pes anserinus, sample question and obturator hernia.",
+        "noteKey": "medial-thigh"
+      },
+      {
+        "id": "knee-joint",
+        "number": "07",
+        "title": "Knee Joint",
+        "slides": "36 original slides",
+        "chapters": "6 chapters · concise explanations · 28 practice questions",
+        "href": "lectures/knee-joint.html",
+        "original": "lectures/knee-joint.html?original=1",
+        "description": "Locking, ligaments, menisci, radiology, bursae, arthroscopy and knee injuries.",
+        "noteKey": "knee-joint"
+      },
+      {
+        "id": "lumbar-plexus",
+        "number": "08",
+        "title": "Lumbar Plexus",
+        "slides": "23 original slides",
+        "chapters": "5 chapters · concise explanations · 21 practice questions",
+        "href": "lectures/lumbar-plexus.html",
+        "original": "lectures/lumbar-plexus.html?original=1",
+        "description": "All six nerves: roots, routes, distribution, clinical tests and posterior wall relationships.",
+        "noteKey": "lumbar-plexus"
+      }
+    ]
   },
   {
     "id": "anat20040",

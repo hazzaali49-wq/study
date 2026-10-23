@@ -1,0 +1,15 @@
+body{margin:0;background:#090e19;color:#edf2ff;font:16px/1.65 system-ui,sans-serif}
+#privateLectureGate{max-width:620px;margin:9vh auto;padding:34px;border:1px solid #334159;border-radius:20px;background:#111b2c}
+#privateLectureGate a{color:#a7bdff;text-decoration:none}#privateLectureGate h1{line-height:1.2;font-size:2.5rem;margin:12px 0}
+.private-lecture-tag{margin-top:30px;color:#f1d39a;font-size:12px;font-weight:800;letter-spacing:.14em}
+#privateLectureProgress{padding:15px 17px;margin:22px 0;background:#18253c;border-radius:12px;color:#d5e2ff}
+#privateLectureUnlock[hidden],#privateLectureGate[hidden],.atlas-slide-mode #privateLectureGate{display:none!important}
+#privateLectureUnlock label,#privateLectureUnlock input,#privateLectureUnlock small{display:block}
+#privateLectureUnlock label{font-weight:700;margin:16px 0 7px}
+#privateLectureUnlock input{box-sizing:border-box;width:100%;padding:13px;border:1px solid #536582;border-radius:10px;background:#0a1220;color:#fff;font:inherit}
+#privateLectureUnlock button{padding:12px 19px;border:0;border-radius:10px;background:#8a6aee;color:#fff;font:inherit;font-weight:750;margin:14px 0;cursor:pointer}
+#privateLectureUnlock button:disabled{opacity:.55}#privateLectureUnlock small{color:#b5c2da}
+body[data-instant-checks] #atlasSlideReader .q [data-check]{display:none}
+body[data-instant-checks] .atlas-options label[data-result="correct"]{box-shadow:inset 0 0 0 1px #68ceae}
+body[data-instant-checks] .atlas-options label[data-result="incorrect"]{box-shadow:inset 0 0 0 1px #e99c9c}
+@media(max-width:680px){#privateLectureGate{margin:30px 12px;padding:24px}}
