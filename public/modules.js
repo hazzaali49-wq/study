@@ -192,6 +192,17 @@ window.STUDY_MODULES = [
         "original": "resources/Lumbar_Plexus_Original_Lecture.pdf",
         "description": "All six nerves: roots, routes, distribution, clinical tests and posterior wall relationships.",
         "noteKey": "lumbar-plexus"
+      },
+      {
+        "id": "osteology-leg",
+        "number": "09",
+        "title": "Osteology of the Leg & Foot",
+        "slides": "38 original slides",
+        "chapters": "6 chapters · concise explanations · 28 practice questions",
+        "href": "lectures/osteology-leg.html",
+        "original": "resources/Osteology_Leg_Original_Lecture.pdf",
+        "description": "Tibia and fibula, growth, knee revision, ankle and foot bones, ligaments, Pott and Weber fractures.",
+        "noteKey": "osteology-leg"
       }
     ]
   },
